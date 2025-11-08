@@ -19,7 +19,7 @@ typedef struct {
 Matrix *matrix_create(int rows, int cols);
 Matrix *matrix_zeros(int rows, int cols);
 Matrix *matrix_ones(int rows, int cols);
-Matrix *matrix_random(int rows, int cols);
+Matrix *matrix_random(int rows, int cols, float min, float max);
 Matrix *matrix_identity(int rows, int cols);
 void matrix_free(Matrix *m);
 
