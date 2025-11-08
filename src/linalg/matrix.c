@@ -4,7 +4,9 @@
 
 #include "matrix.h"
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 Matrix *matrix_create(int rows, int cols) {
@@ -16,50 +18,197 @@ Matrix *matrix_create(int rows, int cols) {
 }
 
 Matrix *matrix_zeros(int rows, int cols) {
-    Matrix *mat = matrix_create(rows, cols);
-    for (int m = 0; m < rows; m++) {
-        for (int n = 0; n < cols; n++) {
-            mat->data[m * cols + n] = 0.f;
+    Matrix *m = matrix_create(rows, cols);
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            matrix_set(m, i, j, 0.f);
         }
     }
-    return mat;
+    return m;
 }
 
 Matrix *matrix_ones(int rows, int cols) {
-    Matrix *mat = matrix_create(rows, cols);
-    for (int m = 0; m < rows; m++) {
-        for (int n = 0; n < cols; n++) {
-            mat->data[m * cols + n] = 1.f;
+    Matrix *m = matrix_create(rows, cols);
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            matrix_set(m, i, j, 1.f);
         }
     }
-    return mat;
+    return m;
 }
 
 Matrix *matrix_random(int rows, int cols, float min, float max) {
-    Matrix *mat = matrix_create(rows, cols);
+    Matrix *m = matrix_create(rows, cols);
 
     srand(time(NULL));
-    for (int m = 0; m < rows; m++) {
-        for (int n = 0; n < cols; n++) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
             float norm_rand = (float)rand() / (float)RAND_MAX;
-            mat->data[m * cols + n] = min + norm_rand * (max - min);
+            matrix_set(m, i, j, min + norm_rand * (max - min));
         }
     }
-    return mat;
+    return m;
 }
 
 Matrix *matrix_identity(int rows, int cols) {
     assert(rows == cols);
-    Matrix *mat = matrix_create(rows, cols);
-    for (int m = 0; m < rows; m++) {
-        for (int n = 0; n < cols; n++) {
-            mat->data[m * cols + n] = (m == n) ? 1.f : 0.f;
+    Matrix *m = matrix_create(rows, cols);
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            matrix_set(m, i, j, (i == j) ? 1.f : 0.f);
         }
     }
-    return mat;
+    return m;
 }
 
 void matrix_free(Matrix *m) {
     free(m->data);
     free(m);
+}
+
+void matrix_multiply(Matrix *result, const Matrix *a, const Matrix *b) {
+    assert(a->cols == b->rows);
+    assert(result->rows == a->rows);
+    assert(result->cols == b->cols);
+
+    for (int i = 0; i < a->rows; i++) {
+        for (int j = 0; j < b->cols; j++) {
+            float acc = 0.f;
+            for (int k = 0; k < a->cols; k++) {
+                acc += matrix_get(a, i, k) * matrix_get(b, k, j);
+            }
+            matrix_set(result, i, j, acc);
+        }
+    }
+}
+
+void matrix_transpose(Matrix *result, const Matrix *m) {
+    assert(m->rows == result->rows);
+    assert(m->cols == result->cols);
+
+    // Swap dimensions first so matrix_set works correctly
+    result->rows = m->cols;
+    result->cols = m->rows;
+
+    for (int i = 0; i < m->rows; i++) {
+        for (int j = 0; j < m->cols; j++) {
+            matrix_set(result, j, i, matrix_get(m, i, j));
+        }
+    }
+}
+
+void matrix_add(Matrix *result, const Matrix *a, const Matrix *b) {
+    assert(a->rows == b->rows && b->rows == result->rows);
+    assert(a->cols == b->cols && b->cols == result->cols);
+    for (int i = 0; i < result->rows; i++) {
+        for (int j = 0; j < result->cols; j++) {
+            matrix_set(result, i, j, matrix_get(a, i, j) + matrix_get(b, i, j));
+        }
+    }
+}
+
+void matrix_subtract(Matrix *result, const Matrix *a, const Matrix *b) {
+    assert(a->rows == b->rows && b->rows == result->rows);
+    assert(a->cols == b->cols && b->cols == result->cols);
+    for (int i = 0; i < result->rows; i++) {
+        for (int j = 0; j < result->cols; j++) {
+            matrix_set(result, i, j, matrix_get(a, i, j) - matrix_get(b, i, j));
+        }
+    }
+}
+
+void matrix_scale(Matrix *result, const Matrix *m, float scalar) {
+    assert(m->rows == result->rows);
+    assert(m->cols == result->cols);
+    for (int i = 0; i < result->rows; i++) {
+        for (int j = 0; j < result->cols; j++) {
+            matrix_set(result, i, j, matrix_get(m, i, j) * scalar);
+        }
+    }
+}
+
+void matrix_multiply_elementwise(Matrix *result, const Matrix *a, const Matrix *b) {
+    assert(a->rows == b->rows && b->rows == result->rows);
+    assert(a->cols == b->cols && b->cols == result->cols);
+    for (int i = 0; i < result->rows; i++) {
+        for (int j = 0; j < result->cols; j++) {
+            matrix_set(result, i, j, matrix_get(a, i, j) * matrix_get(b, i, j));
+        }
+    }
+}
+
+void matrix_add_scalar(Matrix *result, const Matrix *m, float scalar) {
+    assert(m->rows == result->rows);
+    assert(m->cols == result->cols);
+    for (int i = 0; i < result->rows; i++) {
+        for (int j = 0; j < result->cols; j++) {
+            matrix_set(result, i, j, matrix_get(m, i, j) + scalar);
+        }
+    }
+}
+
+void matrix_vector_multiply(Vector *result, const Matrix *m, const Vector *v) {
+    assert(m->cols == v->size);
+    assert(result->size == m->rows);
+    for (int i = 0; i < m->rows; i++) {
+        float acc = 0.f;
+        for (int j = 0; j < m->cols; j++) {
+            acc += matrix_get(m, i, j) * v->data[j];
+        }
+        result->data[i] = acc;
+    }
+}
+
+// Adds a vector to each row of the matrix
+void matrix_add_vector(Matrix *result, const Matrix *m, const Vector *v) {
+    assert(result->rows == m->rows);
+    assert(result->cols == m->cols && m->cols == v->size);
+    for (int i = 0; i < m->rows; i++) {
+        for (int j = 0; j < m->cols; j++) {
+            matrix_set(result, i, j, matrix_get(m, i, j) + v->data[j]);
+        }
+    }
+}
+
+void matrix_copy(Matrix *dest, const Matrix *src) {
+    assert(dest->rows == src->rows);
+    assert(dest->rows == src->rows);
+    memcpy(dest->data, src->data, sizeof(float) * src->rows * src->cols);
+}
+
+// External definitions for inline functions (C99 fallback)
+extern inline float matrix_get(const Matrix *m, int row, int col);
+extern inline void matrix_set(Matrix *m, int row, int col, float value);
+
+void matrix_print(const Matrix *m) {
+    int i, j;
+    printf("[");
+    for (i = 0; i < m->rows - 1; i++) {
+        for (j = 0; j < m->cols - 1; j++) {
+            printf("%f,", matrix_get(m, i, j));
+        }
+        printf("%f,\n ", matrix_get(m, i, j));
+    }
+    printf("%f]", matrix_get(m, i, j));
+}
+
+void matrix_sum_rows(Vector *result, const Matrix *m) {
+    assert(m->rows == result->size);
+    for (int i = 0; i < m->rows; i++) {
+        float row_sum = 0.f;
+        for (int j = 0; j < m->cols; j++) {
+            row_sum += matrix_get(m, i, j);
+        }
+        result->data[i] = row_sum;
+    }
+}
+void matrix_sum_cols(Vector *result, const Matrix *m) {
+    assert(m->cols == result->size);
+    for (int j = 0; j < m->cols; j++) {
+        float col_sum = 0.f;
+        for (int i = 0; i < m->rows; i++) {
+            col_sum += matrix_get(m, i, j);
+        }
+        result->data[j] = col_sum;
+    }
 }

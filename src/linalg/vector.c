@@ -92,13 +92,13 @@ void vector_divide(Vector *result, const Vector *a, const Vector *b) {
     assert(a->size == b->size);
     assert(a->size == result->size);
     for (int i = 0; i < a->size; i++) {
-        result->data[i] = a->data[i] * b->data[i];
+        result->data[i] = a->data[i] / b->data[i];
     }
 }
 
 void vector_copy(Vector *dest, Vector *src) {
     assert(dest->size == src->size);
-    memcpy(dest, src, sizeof(float) * src->size);
+    memcpy(dest->data, src->data, sizeof(float) * src->size);
 }
 
 float vector_sum(const Vector *v) {

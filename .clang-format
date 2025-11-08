@@ -12,3 +12,4 @@ AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 PointerAlignment: Right
 IndentCaseLabels: false
+InsertBraces: true

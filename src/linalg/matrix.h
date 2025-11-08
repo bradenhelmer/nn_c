@@ -8,6 +8,7 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 #include "vector.h"
+#include <assert.h>
 
 typedef struct {
     float *data;
@@ -25,7 +26,7 @@ void matrix_free(Matrix *m);
 
 // Core linear algebra
 void matrix_multiply(Matrix *result, const Matrix *a, const Matrix *b);
-void matrix_transpose(Matrix *result, const Matrix *a, const Matrix *b);
+void matrix_transpose(Matrix *result, const Matrix *m);
 void matrix_add(Matrix *result, const Matrix *a, const Matrix *b);
 void matrix_subtract(Matrix *result, const Matrix *a, const Matrix *b);
 void matrix_scale(Matrix *result, const Matrix *m, float scalar);
@@ -40,9 +41,20 @@ void matrix_add_vector(Matrix *result, const Matrix *m, const Vector *v); // Bro
 
 // Utility functions
 void matrix_copy(Matrix *dest, const Matrix *src);
-float matrix_get(const Matrix *m, int row, int col);
-void matrix_set(Matrix *m, int row, int col, float value);
 void matrix_print(const Matrix *m);
+
+// Inline accessor functions (defined in header for inlining)
+inline float matrix_get(const Matrix *m, int row, int col) {
+    assert(row < m->rows);
+    assert(col < m->cols);
+    return m->data[row * m->cols + col];
+}
+
+inline void matrix_set(Matrix *m, int row, int col, float value) {
+    assert(row < m->rows);
+    assert(col < m->cols);
+    m->data[row * m->cols + col] = value;
+}
 
 // Special operations for neural networks
 void matrix_sum_rows(Vector *result, const Matrix *m); // For gradient accumulation
