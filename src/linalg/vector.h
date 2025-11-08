@@ -28,14 +28,14 @@ void vector_scale(Vector *result, const Vector *v, float scalar);
 float vector_dot(const Vector *a, const Vector *b);
 
 // Element-wise operations
-void vector_add(Vector *result, const Vector *a, const Vector *b); // Hadamard product
+void vector_multiply(Vector *result, const Vector *a, const Vector *b); // Hadamard product
 void vector_divide(Vector *result, const Vector *a, const Vector *b);
 
 // Utility functions
 void vector_copy(Vector *dest, Vector *src);
 float vector_sum(const Vector *v);
-float vector_max(const Vector *v);
 float vector_min(const Vector *v);
+float vector_max(const Vector *v);
 void vector_print(const Vector *v);
 
 #endif /* ifndef VECTOR_H */

@@ -11,5 +11,4 @@ AllowShortFunctionsOnASingleLine: None
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 PointerAlignment: Right
-SpaceAfterCStyleCast: true
 IndentCaseLabels: false
