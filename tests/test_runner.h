@@ -48,4 +48,7 @@ void run_vector_tests(void);
 // Matrix tests
 void run_matrix_tests(void);
 
+// Activation tests
+void run_activations_tests(void);
+
 #endif /* TEST_RUNNER_H */

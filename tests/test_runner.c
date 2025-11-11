@@ -17,6 +17,9 @@ int main() {
     // Run matrix tests
     run_matrix_tests();
 
+    // Run activation tests
+    run_activations_tests();
+
     printf("\n");
     printf("=====================================\n");
     printf("   All Tests Passed Successfully!\n");
