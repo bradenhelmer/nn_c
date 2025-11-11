@@ -5,52 +5,68 @@
 #include <assert.h>
 #include <math.h>
 
-void sigmoid(Vector *result, const Vector *input) {
+float sigmoid(float x) {
+    return 1.f / (1.f + expf(-(x)));
+}
+
+float sigmoid_derivative(float s) {
+    return s * (1.f - s);
+}
+
+float relu(float x) {
+    return x <= 0.f ? 0.f : x;
+}
+
+float relu_derivative(float x) {
+    return x < 0.f ? 0.f : 1.f;
+}
+
+float tanh_derivative(float t) {
+    return 1.f - (t * t);
+}
+
+void vector_sigmoid(Vector *result, const Vector *input) {
     assert(input->size == result->size);
     for (int i = 0; i < input->size; i++) {
-        result->data[i] = 1.f / (1.f + expf(-(input->data[i])));
+        result->data[i] = sigmoid(input->data[i]);
     }
 }
 
-void sigmoid_derivative(Vector *result, const Vector *sigmoid_output) {
+void vector_sigmoid_derivative(Vector *result, const Vector *sigmoid_output) {
     assert(sigmoid_output->size == result->size);
     for (int i = 0; i < sigmoid_output->size; i++) {
-        float sig_out_val = sigmoid_output->data[i];
-        result->data[i] = sig_out_val * (1.f - sig_out_val);
+        result->data[i] = sigmoid_derivative(sigmoid_output->data[i]);
     }
 }
 
-void relu(Vector *result, const Vector *input) {
+void vector_relu(Vector *result, const Vector *input) {
     assert(input->size == result->size);
     for (int i = 0; i < input->size; i++) {
-        float x = input->data[i];
-        result->data[i] = x <= 0.f ? 0.f : x;
+        result->data[i] = relu(input->data[i]);
     }
 }
 
-void relu_derivative(Vector *result, const Vector *input) {
+void vector_relu_derivative(Vector *result, const Vector *input) {
     assert(input->size == result->size);
     for (int i = 0; i < input->size; i++) {
-        float x = input->data[i];
-        result->data[i] = x < 0.f ? 0.f : 1.f;
+        result->data[i] = relu_derivative(input->data[i]);
     }
 }
 
-void tanh_activation(Vector *result, const Vector *input) {
+void vector_tanh_activation(Vector *result, const Vector *input) {
     assert(result->size == input->size);
     for (int i = 0; i < input->size; i++) {
         result->data[i] = tanhf(input->data[i]);
     }
 }
-void tanh_derivative(Vector *result, const Vector *tanh_output) {
+void vector_tanh_derivative(Vector *result, const Vector *tanh_output) {
     assert(result->size == tanh_output->size);
     for (int i = 0; i < tanh_output->size; i++) {
-        float tanh_out_val = tanh_output->data[i];
-        result->data[i] = 1.f - (tanh_out_val * tanh_out_val);
+        result->data[i] = tanh_derivative(tanh_output->data[i]);
     }
 }
 
-void softmax(Vector *result, const Vector *input) {
+void vector_softmax(Vector *result, const Vector *input) {
     assert(result->size == input->size);
     float max_val = vector_max(input);
     float sum = 0.f;
@@ -69,7 +85,7 @@ void matrix_sigmoid(Matrix *result, const Matrix *input) {
     assert(result->cols == input->cols);
     for (int i = 0; i < result->rows; i++) {
         for (int j = 0; j < result->cols; j++) {
-            matrix_set(result, i, j, 1.f / (1.f + expf(-matrix_get(input, i, j))));
+            matrix_set(result, i, j, sigmoid(matrix_get(input, i, j)));
         }
     }
 }
@@ -79,8 +95,7 @@ void matrix_sigmoid_derivative(Matrix *result, const Matrix *sigmoid_output) {
     assert(result->cols == sigmoid_output->cols);
     for (int i = 0; i < result->rows; i++) {
         for (int j = 0; j < result->cols; j++) {
-            float sig_out_val = matrix_get(sigmoid_output, i, j);
-            matrix_set(result, i, j, sig_out_val * (1.f - sig_out_val));
+            matrix_set(result, i, j, sigmoid_derivative(matrix_get(sigmoid_output, i, j)));
         }
     }
 }
@@ -90,8 +105,7 @@ void matrix_relu(Matrix *result, const Matrix *input) {
     assert(result->cols == input->cols);
     for (int i = 0; i < result->rows; i++) {
         for (int j = 0; j < result->cols; j++) {
-            float x = matrix_get(input, i, j);
-            matrix_set(result, i, j, x <= 0.f ? 0.f : x);
+            matrix_set(result, i, j, relu(matrix_get(input, i, j)));
         }
     }
 }
@@ -100,8 +114,7 @@ void matrix_relu_derivative(Matrix *result, const Matrix *input) {
     assert(result->cols == input->cols);
     for (int i = 0; i < result->rows; i++) {
         for (int j = 0; j < result->cols; j++) {
-            float x = matrix_get(input, i, j);
-            matrix_set(result, i, j, x < 0.f ? 0.f : 1.f);
+            matrix_set(result, i, j, relu_derivative(matrix_get(input, i, j)));
         }
     }
 }

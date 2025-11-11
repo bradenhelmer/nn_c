@@ -12,6 +12,87 @@
 #include <stdlib.h>
 
 // =============================================================================
+// Singular Float Activation Function Tests
+// =============================================================================
+
+void test_singular_sigmoid_basic() {
+    // Test sigmoid at key points
+    assert(float_equals(sigmoid(0.0f), 0.5f));
+    assert(float_equals(sigmoid(1.0f), 1.0f / (1.0f + expf(-1.0f))));
+    assert(float_equals(sigmoid(-1.0f), 1.0f / (1.0f + expf(1.0f))));
+    TEST_PASSED;
+}
+
+void test_singular_sigmoid_extremes() {
+    // Test large positive values - should approach 1
+    assert(sigmoid(10.0f) > 0.9999f);
+    assert(sigmoid(100.0f) > 0.9999f);
+
+    // Test large negative values - should approach 0
+    assert(sigmoid(-10.0f) < 0.0001f);
+    assert(sigmoid(-100.0f) < 0.0001f);
+    TEST_PASSED;
+}
+
+void test_singular_sigmoid_derivative_basic() {
+    // sigmoid'(x) = sigmoid(x) * (1 - sigmoid(x))
+    float s1 = 0.5f;   // sigmoid(0)
+    float s2 = 0.7311f; // sigmoid(1)
+    float s3 = 0.2689f; // sigmoid(-1)
+
+    assert(float_equals(sigmoid_derivative(s1), 0.25f));
+    assert(float_equals(sigmoid_derivative(s2), s2 * (1.0f - s2)));
+    assert(float_equals(sigmoid_derivative(s3), s3 * (1.0f - s3)));
+    TEST_PASSED;
+}
+
+void test_singular_sigmoid_derivative_extremes() {
+    // At extremes, derivative should be close to 0
+    assert(float_equals(sigmoid_derivative(0.0f), 0.0f));
+    assert(float_equals(sigmoid_derivative(1.0f), 0.0f));
+    TEST_PASSED;
+}
+
+void test_singular_relu_basic() {
+    // Test ReLU at key points
+    assert(float_equals(relu(0.0f), 0.0f));
+    assert(float_equals(relu(1.0f), 1.0f));
+    assert(float_equals(relu(-1.0f), 0.0f));
+    assert(float_equals(relu(5.5f), 5.5f));
+    assert(float_equals(relu(-10.0f), 0.0f));
+    TEST_PASSED;
+}
+
+void test_singular_relu_derivative_basic() {
+    // ReLU derivative: 1 for x >= 0, 0 for x < 0
+    assert(float_equals(relu_derivative(0.0f), 1.0f));
+    assert(float_equals(relu_derivative(1.0f), 1.0f));
+    assert(float_equals(relu_derivative(-1.0f), 0.0f));
+    assert(float_equals(relu_derivative(5.5f), 1.0f));
+    assert(float_equals(relu_derivative(-10.0f), 0.0f));
+    TEST_PASSED;
+}
+
+void test_singular_tanh_derivative_basic() {
+    // tanh'(x) = 1 - tanh(x)^2
+    float t1 = 0.0f;     // tanh(0)
+    float t2 = 0.7616f;  // tanh(1)
+    float t3 = -0.7616f; // tanh(-1)
+
+    assert(float_equals(tanh_derivative(t1), 1.0f));
+    assert(float_equals(tanh_derivative(t2), 1.0f - (t2 * t2)));
+    assert(float_equals(tanh_derivative(t3), 1.0f - (t3 * t3)));
+    TEST_PASSED;
+}
+
+void test_singular_tanh_derivative_extremes() {
+    // At extremes, derivative should be close to 0
+    assert(float_equals(tanh_derivative(1.0f), 0.0f));
+    assert(float_equals(tanh_derivative(-1.0f), 0.0f));
+    TEST_PASSED;
+}
+
+// =============================================================================
 // Vector Sigmoid Tests
 // =============================================================================
 
@@ -23,7 +104,7 @@ void test_sigmoid_basic() {
     input->data[1] = 1.0f;
     input->data[2] = -1.0f;
 
-    sigmoid(result, input);
+    vector_sigmoid(result, input);
 
     // sigmoid(0) = 0.5
     assert(float_equals(result->data[0], 0.5f));
@@ -44,7 +125,7 @@ void test_sigmoid_large_positive() {
     input->data[0] = 10.0f;
     input->data[1] = 100.0f;
 
-    sigmoid(result, input);
+    vector_sigmoid(result, input);
 
     // For large positive values, sigmoid approaches 1
     assert(result->data[0] > 0.9999f);
@@ -62,7 +143,7 @@ void test_sigmoid_large_negative() {
     input->data[0] = -10.0f;
     input->data[1] = -100.0f;
 
-    sigmoid(result, input);
+    vector_sigmoid(result, input);
 
     // For large negative values, sigmoid approaches 0
     assert(result->data[0] < 0.0001f);
@@ -82,7 +163,7 @@ void test_sigmoid_derivative_basic() {
     sigmoid_output->data[1] = 0.7311f; // sigmoid(1)
     sigmoid_output->data[2] = 0.2689f; // sigmoid(-1)
 
-    sigmoid_derivative(result, sigmoid_output);
+    vector_sigmoid_derivative(result, sigmoid_output);
 
     // sigmoid'(x) = sigmoid(x) * (1 - sigmoid(x))
     assert(float_equals(result->data[0], 0.25f));
@@ -101,7 +182,7 @@ void test_sigmoid_derivative_extremes() {
     sigmoid_output->data[0] = 0.0f;
     sigmoid_output->data[1] = 1.0f;
 
-    sigmoid_derivative(result, sigmoid_output);
+    vector_sigmoid_derivative(result, sigmoid_output);
 
     // At extremes, derivative should be close to 0
     assert(float_equals(result->data[0], 0.0f));
@@ -126,7 +207,7 @@ void test_relu_basic() {
     input->data[3] = 5.5f;
     input->data[4] = -10.0f;
 
-    relu(result, input);
+    vector_relu(result, input);
 
     assert(float_equals(result->data[0], 0.0f));
     assert(float_equals(result->data[1], 1.0f));
@@ -147,7 +228,7 @@ void test_relu_all_positive() {
     input->data[1] = 2.0f;
     input->data[2] = 3.0f;
 
-    relu(result, input);
+    vector_relu(result, input);
 
     assert(float_equals(result->data[0], 1.0f));
     assert(float_equals(result->data[1], 2.0f));
@@ -166,7 +247,7 @@ void test_relu_all_negative() {
     input->data[1] = -2.0f;
     input->data[2] = -3.0f;
 
-    relu(result, input);
+    vector_relu(result, input);
 
     assert(float_equals(result->data[0], 0.0f));
     assert(float_equals(result->data[1], 0.0f));
@@ -187,7 +268,7 @@ void test_relu_derivative_basic() {
     input->data[3] = 5.5f;
     input->data[4] = -10.0f;
 
-    relu_derivative(result, input);
+    vector_relu_derivative(result, input);
 
     // ReLU derivative is 0 for x < 0, 1 for x >= 0
     // Note: at x=0, the implementation uses x < 0, so derivative is 1
@@ -214,7 +295,7 @@ void test_tanh_basic() {
     input->data[1] = 1.0f;
     input->data[2] = -1.0f;
 
-    tanh_activation(result, input);
+    vector_tanh_activation(result, input);
 
     // tanh(0) = 0
     assert(float_equals(result->data[0], 0.0f));
@@ -237,7 +318,7 @@ void test_tanh_large_values() {
     input->data[2] = 100.0f;
     input->data[3] = -100.0f;
 
-    tanh_activation(result, input);
+    vector_tanh_activation(result, input);
 
     // For large positive values, tanh approaches 1
     assert(result->data[0] > 0.9999f);
@@ -259,7 +340,7 @@ void test_tanh_derivative_basic() {
     tanh_output->data[1] = 0.7616f;  // tanh(1)
     tanh_output->data[2] = -0.7616f; // tanh(-1)
 
-    tanh_derivative(result, tanh_output);
+    vector_tanh_derivative(result, tanh_output);
 
     // tanh'(x) = 1 - tanh(x)^2
     assert(float_equals(result->data[0], 1.0f));
@@ -278,7 +359,7 @@ void test_tanh_derivative_extremes() {
     tanh_output->data[0] = 1.0f;
     tanh_output->data[1] = -1.0f;
 
-    tanh_derivative(result, tanh_output);
+    vector_tanh_derivative(result, tanh_output);
 
     // At extremes, derivative should be close to 0
     assert(float_equals(result->data[0], 0.0f));
@@ -301,7 +382,7 @@ void test_softmax_basic() {
     input->data[1] = 2.0f;
     input->data[2] = 3.0f;
 
-    softmax(result, input);
+    vector_softmax(result, input);
 
     // Check that all values are positive
     assert(result->data[0] > 0.0f);
@@ -330,7 +411,7 @@ void test_softmax_uniform() {
         input->data[i] = 5.0f;
     }
 
-    softmax(result, input);
+    vector_softmax(result, input);
 
     // All outputs should be equal (1/n)
     for (int i = 0; i < 4; i++) {
@@ -355,7 +436,7 @@ void test_softmax_large_values() {
     input->data[1] = 1001.0f;
     input->data[2] = 1002.0f;
 
-    softmax(result, input);
+    vector_softmax(result, input);
 
     // Should still sum to 1 (tests numerical stability)
     float sum = result->data[0] + result->data[1] + result->data[2];
@@ -380,7 +461,7 @@ void test_softmax_with_negatives() {
     input->data[1] = 0.0f;
     input->data[2] = 1.0f;
 
-    softmax(result, input);
+    vector_softmax(result, input);
 
     // Should sum to 1
     float sum = vector_sum(result);
@@ -517,7 +598,7 @@ void test_sigmoid_in_place() {
     v->data[2] = -1.0f;
 
     // Use same vector for input and output
-    sigmoid(v, v);
+    vector_sigmoid(v, v);
 
     assert(float_equals(v->data[0], 0.5f));
     assert(float_equals(v->data[1], 1.0f / (1.0f + expf(-1.0f))));
@@ -534,7 +615,7 @@ void test_relu_in_place() {
     v->data[2] = 3.0f;
 
     // Use same vector for input and output
-    relu(v, v);
+    vector_relu(v, v);
 
     assert(float_equals(v->data[0], 1.0f));
     assert(float_equals(v->data[1], 0.0f));
@@ -550,7 +631,7 @@ void test_tanh_in_place() {
     v->data[1] = 1.0f;
 
     // Use same vector for input and output
-    tanh_activation(v, v);
+    vector_tanh_activation(v, v);
 
     assert(float_equals(v->data[0], 0.0f));
     assert(float_equals(v->data[1], tanhf(1.0f)));
@@ -565,7 +646,7 @@ void test_softmax_single_element() {
 
     input->data[0] = 5.0f;
 
-    softmax(result, input);
+    vector_softmax(result, input);
 
     // Single element softmax should always be 1
     assert(float_equals(result->data[0], 1.0f));
@@ -586,10 +667,10 @@ void test_activation_chain() {
     v->data[2] = 2.0f;
 
     // Apply ReLU first
-    relu(temp1, v);
+    vector_relu(temp1, v);
 
     // Then apply sigmoid
-    sigmoid(temp2, temp1);
+    vector_sigmoid(temp2, temp1);
 
     // After ReLU: [0, 0, 2]
     // After sigmoid: [0.5, 0.5, sigmoid(2)]
@@ -608,6 +689,16 @@ void test_activation_chain() {
 // =============================================================================
 
 void run_activations_tests(void) {
+    printf("\n=== Singular Float Activation Tests ===\n");
+    test_singular_sigmoid_basic();
+    test_singular_sigmoid_extremes();
+    test_singular_sigmoid_derivative_basic();
+    test_singular_sigmoid_derivative_extremes();
+    test_singular_relu_basic();
+    test_singular_relu_derivative_basic();
+    test_singular_tanh_derivative_basic();
+    test_singular_tanh_derivative_extremes();
+
     printf("\n=== Vector Sigmoid Tests ===\n");
     test_sigmoid_basic();
     test_sigmoid_large_positive();
