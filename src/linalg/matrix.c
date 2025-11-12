@@ -50,11 +50,10 @@ Matrix *matrix_random(int rows, int cols, float min, float max) {
     return m;
 }
 
-Matrix *matrix_identity(int rows, int cols) {
-    assert(rows == cols);
-    Matrix *m = matrix_create(rows, cols);
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
+Matrix *matrix_identity(int size) {
+    Matrix *m = matrix_create(size, size);
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
             matrix_set(m, i, j, (i == j) ? 1.f : 0.f);
         }
     }
@@ -62,8 +61,10 @@ Matrix *matrix_identity(int rows, int cols) {
 }
 
 void matrix_free(Matrix *m) {
-    free(m->data);
-    free(m);
+    if (m != NULL) {
+        free(m->data);
+        free(m);
+    }
 }
 
 void matrix_multiply(Matrix *result, const Matrix *a, const Matrix *b) {
@@ -187,7 +188,10 @@ void matrix_print(const Matrix *m) {
         for (j = 0; j < m->cols - 1; j++) {
             printf("%f,", matrix_get(m, i, j));
         }
-        printf("%f,\n ", matrix_get(m, i, j));
+        printf("%f,\n   ", matrix_get(m, i, j));
+    }
+    for (j = 0; j < m->cols - 1; j++) {
+        printf("%f,", matrix_get(m, i, j));
     }
     printf("%f]", matrix_get(m, i, j));
 }

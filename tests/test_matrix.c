@@ -71,7 +71,7 @@ void test_matrix_random() {
 }
 
 void test_matrix_identity() {
-    Matrix *m = matrix_identity(3, 3);
+    Matrix *m = matrix_identity(3);
     assert(m != NULL);
     assert(m->rows == 3);
     assert(m->cols == 3);
@@ -136,7 +136,7 @@ void test_matrix_multiply_identity() {
     matrix_set(a, 1, 0, 3.0f);
     matrix_set(a, 1, 1, 4.0f);
 
-    Matrix *identity = matrix_identity(2, 2);
+    Matrix *identity = matrix_identity(2);
     Matrix *result = matrix_create(2, 2);
 
     matrix_multiply(result, a, identity);
