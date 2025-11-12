@@ -28,14 +28,17 @@ TARGET = $(BIN_DIR)/neural_net
 TEST_TARGET = $(BIN_DIR)/test_runner
 
 # Default target
-all: directories $(TARGET)
+all: directories $(TARGET) $(TEST_TARGET)
 
 # Create necessary directories
 directories:
 	@mkdir -p $(BIN_DIR)
 	@mkdir -p $(OBJ_DIR)
-	@mkdir -p $(OBJ_DIR)/linalg
 	@mkdir -p $(OBJ_DIR)/activations
+	@mkdir -p $(OBJ_DIR)/data
+	@mkdir -p $(OBJ_DIR)/linalg
+	@mkdir -p $(OBJ_DIR)/nn
+	@mkdir -p $(OBJ_DIR)/training
 	@mkdir -p $(OBJ_DIR)/utils
 	@mkdir -p $(TEST_OBJ_DIR)
 

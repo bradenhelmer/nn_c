@@ -12,11 +12,14 @@
 #include "../linalg/vector.h"
 
 // Activation functions (singular)
-float sigmoid(float x);
-float sigmoid_derivative(float s);
-float relu(float x);
-float relu_derivative(float x);
-float tanh_derivative(float t);
+float sigmoid_scalar(float x);
+float sigmoid_scalar_derivative(float s);
+float relu_scalar(float x);
+float relu_scalar_derivative(float x);
+float tanh_scalar(float x);
+float tanh_scalar_derivative(float t);
+float linear_scalar(float x);
+float linear_scalar_derivative(float x);
 
 // Activation functions (element-wise)
 void vector_sigmoid(Vector *result, const Vector *input);
@@ -36,5 +39,20 @@ void matrix_sigmoid(Matrix *result, const Matrix *input);
 void matrix_sigmoid_derivative(Matrix *result, const Matrix *sigmoid_output);
 void matrix_relu(Matrix *result, const Matrix *input);
 void matrix_relu_derivative(Matrix *result, const Matrix *input);
+
+// Activation Types
+typedef float (*activation_func)(float);
+typedef float (*activation_derivative_func)(float);
+
+typedef struct {
+    activation_func forward;
+    activation_derivative_func derivative;
+    const char *name;
+} ActivationPair;
+
+extern const ActivationPair SIGMOID_ACTIVATION;
+extern const ActivationPair RELU_ACTIVATION;
+extern const ActivationPair TANH_ACTIVATION;
+extern const ActivationPair LINEAR_ACTIVATION;
 
 #endif /* ifndef ACTIVATIONS_H */

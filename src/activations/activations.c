@@ -4,65 +4,78 @@
 #include "activations.h"
 #include <assert.h>
 #include <math.h>
+#include <stdlib.h>
 
-float sigmoid(float x) {
+float sigmoid_scalar(float x) {
     return 1.f / (1.f + expf(-(x)));
 }
 
-float sigmoid_derivative(float s) {
+float sigmoid_scalar_derivative(float s) {
     return s * (1.f - s);
 }
 
-float relu(float x) {
+float relu_scalar(float x) {
     return x <= 0.f ? 0.f : x;
 }
 
-float relu_derivative(float x) {
+float relu_scalar_derivative(float x) {
     return x < 0.f ? 0.f : 1.f;
 }
 
-float tanh_derivative(float t) {
+float tanh_scalar(float x) {
+    return tanhf(x);
+}
+
+float tanh_scalar_derivative(float t) {
     return 1.f - (t * t);
+}
+
+float linear_scalar(float x) {
+    return x;
+}
+
+float linear_scalar_derivative(float x) {
+    return 1.0f;
 }
 
 void vector_sigmoid(Vector *result, const Vector *input) {
     assert(input->size == result->size);
     for (int i = 0; i < input->size; i++) {
-        result->data[i] = sigmoid(input->data[i]);
+        result->data[i] = sigmoid_scalar(input->data[i]);
     }
 }
 
 void vector_sigmoid_derivative(Vector *result, const Vector *sigmoid_output) {
     assert(sigmoid_output->size == result->size);
     for (int i = 0; i < sigmoid_output->size; i++) {
-        result->data[i] = sigmoid_derivative(sigmoid_output->data[i]);
+        result->data[i] = sigmoid_scalar_derivative(sigmoid_output->data[i]);
     }
 }
 
 void vector_relu(Vector *result, const Vector *input) {
     assert(input->size == result->size);
     for (int i = 0; i < input->size; i++) {
-        result->data[i] = relu(input->data[i]);
+        result->data[i] = relu_scalar(input->data[i]);
     }
 }
 
 void vector_relu_derivative(Vector *result, const Vector *input) {
     assert(input->size == result->size);
     for (int i = 0; i < input->size; i++) {
-        result->data[i] = relu_derivative(input->data[i]);
+        result->data[i] = relu_scalar_derivative(input->data[i]);
     }
 }
 
 void vector_tanh_activation(Vector *result, const Vector *input) {
     assert(result->size == input->size);
     for (int i = 0; i < input->size; i++) {
-        result->data[i] = tanhf(input->data[i]);
+        result->data[i] = tanh_scalar(input->data[i]);
     }
 }
 void vector_tanh_derivative(Vector *result, const Vector *tanh_output) {
     assert(result->size == tanh_output->size);
     for (int i = 0; i < tanh_output->size; i++) {
-        result->data[i] = tanh_derivative(tanh_output->data[i]);
+        result->data[i] = tanh_scalar_derivative(tanh_output->data[i]);
     }
 }
 
@@ -85,7 +98,7 @@ void matrix_sigmoid(Matrix *result, const Matrix *input) {
     assert(result->cols == input->cols);
     for (int i = 0; i < result->rows; i++) {
         for (int j = 0; j < result->cols; j++) {
-            matrix_set(result, i, j, sigmoid(matrix_get(input, i, j)));
+            matrix_set(result, i, j, sigmoid_scalar(matrix_get(input, i, j)));
         }
     }
 }
@@ -95,7 +108,7 @@ void matrix_sigmoid_derivative(Matrix *result, const Matrix *sigmoid_output) {
     assert(result->cols == sigmoid_output->cols);
     for (int i = 0; i < result->rows; i++) {
         for (int j = 0; j < result->cols; j++) {
-            matrix_set(result, i, j, sigmoid_derivative(matrix_get(sigmoid_output, i, j)));
+            matrix_set(result, i, j, sigmoid_scalar_derivative(matrix_get(sigmoid_output, i, j)));
         }
     }
 }
@@ -105,7 +118,7 @@ void matrix_relu(Matrix *result, const Matrix *input) {
     assert(result->cols == input->cols);
     for (int i = 0; i < result->rows; i++) {
         for (int j = 0; j < result->cols; j++) {
-            matrix_set(result, i, j, relu(matrix_get(input, i, j)));
+            matrix_set(result, i, j, relu_scalar(matrix_get(input, i, j)));
         }
     }
 }
@@ -114,7 +127,19 @@ void matrix_relu_derivative(Matrix *result, const Matrix *input) {
     assert(result->cols == input->cols);
     for (int i = 0; i < result->rows; i++) {
         for (int j = 0; j < result->cols; j++) {
-            matrix_set(result, i, j, relu_derivative(matrix_get(input, i, j)));
+            matrix_set(result, i, j, relu_scalar_derivative(matrix_get(input, i, j)));
         }
     }
 }
+
+const ActivationPair SIGMOID_ACTIVATION = {
+    .forward = sigmoid_scalar, .derivative = sigmoid_scalar_derivative, .name = "sigmoid"};
+
+const ActivationPair RELU_ACTIVATION = {
+    .forward = relu_scalar, .derivative = relu_scalar_derivative, .name = "sigmoid"};
+
+const ActivationPair TANH_ACTIVATION = {
+    .forward = tanh_scalar, .derivative = tanh_scalar_derivative, .name = "sigmoid"};
+
+const ActivationPair LINEAR_ACTIVATION = {
+    .forward = linear_scalar, .derivative = linear_scalar_derivative, .name = "sigmoid"};
