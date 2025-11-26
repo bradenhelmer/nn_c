@@ -49,7 +49,6 @@ nn_c/
 │   ├── training/         # Training algorithms (gradient descent)
 │   └── main.c            # Example application
 ├── tests/                # Unit tests for all components
-├── build/                # Build artifacts (generated)
 ├── Makefile              # Build configuration
 └── README.md             # This file
 ```
