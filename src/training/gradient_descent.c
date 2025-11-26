@@ -9,6 +9,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+void training_result_free(TrainingResult *result) {
+    free(result->loss_history);
+    free(result->accuracy_history);
+    free(result);
+}
+
 TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data, Dataset *val_data,
                                  TrainingConfig *config) {
 
@@ -41,6 +47,9 @@ TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data, Dataset *va
 
             // Train on sample
             perceptron_train_step(p, input, target);
+
+            // Free input vector
+            vector_free(input);
         }
 
         result->loss_history[epoch] = epoch_loss / train_data->num_samples;

@@ -79,9 +79,9 @@ static void perceptron_learning_logic_gates() {
     dataset_free(and_data);
     dataset_free(or_data);
     dataset_free(xor_data);
-    free(result_and);
-    free(result_or);
-    free(result_xor);
+    training_result_free(result_and);
+    training_result_free(result_or);
+    training_result_free(result_xor);
 }
 
 int main() {
