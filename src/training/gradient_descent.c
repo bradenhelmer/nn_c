@@ -52,9 +52,11 @@ TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data, Dataset *va
             vector_free(input);
         }
 
+        // Metrics Collection
         result->loss_history[epoch] = epoch_loss / train_data->num_samples;
         result->accuracy_history[epoch] = (float)correct / train_data->num_samples;
 
+        // Check for early stop
         if (fabsf(prev_loss - result->loss_history[epoch]) < config->tolerance) {
             result->epochs_completed = epoch + 1;
             break;
