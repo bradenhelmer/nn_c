@@ -56,6 +56,9 @@ inline void matrix_set(Matrix *m, int row, int col, float value) {
     m->data[row * m->cols + col] = value;
 }
 
+// Other getters
+Vector *get_row_as_vector(Matrix *m, int row);
+
 // Special operations for neural networks
 void matrix_sum_rows(Vector *result, const Matrix *m); // For gradient accumulation
 void matrix_sum_cols(Vector *result, const Matrix *m); // For batch operations

@@ -21,10 +21,6 @@ void dataset_free(Dataset *d);
 // Test datasets
 Dataset *create_and_gate_dataset();
 Dataset *create_or_gate_dataset();
-Dataset *create_xor_dataset();
-
-// Data splitting
-void dataset_shuffle(Dataset *d);
-void dataset_split(Dataset *source, Dataset *train, Dataset *test, float train_ratio);
+Dataset *create_xor_gate_dataset();
 
 #endif /* ifndef DATASET_H */

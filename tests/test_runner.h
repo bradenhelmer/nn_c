@@ -14,11 +14,11 @@
 #define TEST_FAILED printf("  ✗ %s FAILED\n", __func__)
 
 // Shared helper functions
-static int float_equals(float a, float b) {
+static inline int float_equals(float a, float b) {
     return fabs(a - b) < EPSILON;
 }
 
-static int matrix_equals(const Matrix *a, const Matrix *b) {
+static inline int matrix_equals(const Matrix *a, const Matrix *b) {
     if (a->rows != b->rows || a->cols != b->cols) {
         return 0;
     }
@@ -30,7 +30,7 @@ static int matrix_equals(const Matrix *a, const Matrix *b) {
     return 1;
 }
 
-static int vector_equals(const Vector *a, const Vector *b) {
+static inline int vector_equals(const Vector *a, const Vector *b) {
     if (a->size != b->size) {
         return 0;
     }
@@ -50,5 +50,8 @@ void run_matrix_tests(void);
 
 // Activation tests
 void run_activations_tests(void);
+
+// Perceptron tests
+void run_perceptron_tests(void);
 
 #endif /* TEST_RUNNER_H */

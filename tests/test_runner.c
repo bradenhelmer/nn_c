@@ -20,6 +20,9 @@ int main() {
     // Run activation tests
     run_activations_tests();
 
+    // Run perceptron tests
+    run_perceptron_tests();
+
     printf("\n");
     printf("=====================================\n");
     printf("   All Tests Passed Successfully!\n");

@@ -9,9 +9,5 @@
 
 // Singular predictions
 float mse_loss(float predicted, float target);
-float binary_cross_entropy(float predicted, float target);
-
-// Batches
-float compute_average_loss(float *predictions, float *targets, int size);
 
 #endif /* ifndef LOSS_H */

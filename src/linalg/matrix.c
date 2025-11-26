@@ -181,6 +181,13 @@ void matrix_copy(Matrix *dest, const Matrix *src) {
 extern inline float matrix_get(const Matrix *m, int row, int col);
 extern inline void matrix_set(Matrix *m, int row, int col, float value);
 
+Vector *get_row_as_vector(Matrix *m, int row) {
+    Vector *v = vector_create(m->cols);
+    float *row_start_ptr = &m->data[row * m->cols];
+    memcpy(v->data, row_start_ptr, sizeof(float) * m->cols);
+    return v;
+}
+
 void matrix_print(const Matrix *m) {
     int i, j;
     printf("[");

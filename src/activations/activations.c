@@ -4,7 +4,6 @@
 #include "activations.h"
 #include <assert.h>
 #include <math.h>
-#include <stdlib.h>
 
 float sigmoid_scalar(float x) {
     return 1.f / (1.f + expf(-(x)));
@@ -136,10 +135,10 @@ const ActivationPair SIGMOID_ACTIVATION = {
     .forward = sigmoid_scalar, .derivative = sigmoid_scalar_derivative, .name = "sigmoid"};
 
 const ActivationPair RELU_ACTIVATION = {
-    .forward = relu_scalar, .derivative = relu_scalar_derivative, .name = "sigmoid"};
+    .forward = relu_scalar, .derivative = relu_scalar_derivative, .name = "relu"};
 
 const ActivationPair TANH_ACTIVATION = {
-    .forward = tanh_scalar, .derivative = tanh_scalar_derivative, .name = "sigmoid"};
+    .forward = tanh_scalar, .derivative = tanh_scalar_derivative, .name = "tanh"};
 
 const ActivationPair LINEAR_ACTIVATION = {
-    .forward = linear_scalar, .derivative = linear_scalar_derivative, .name = "sigmoid"};
+    .forward = linear_scalar, .derivative = linear_scalar_derivative, .name = "linear"};
