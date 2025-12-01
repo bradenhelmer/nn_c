@@ -14,7 +14,7 @@ Dataset *dataset_create(int num_samples, int num_features) {
 }
 void dataset_free(Dataset *d) {
     matrix_free(d->X);
-    vector_free(d->y);
+    matrix_free(d->Y);
     free(d);
 }
 
@@ -31,24 +31,24 @@ static Matrix *_create_2bit_input_matrix() {
 Dataset *create_and_gate_dataset() {
     Dataset *d = dataset_create(4, 2);
     d->X = _create_2bit_input_matrix();
-    d->y = vector_zeros(4);
-    d->y->data[3] = 1;
+    d->Y = matrix_zeros(4, 1);
+    matrix_set(d->Y, 3, 0, 1);
     return d;
 }
 
 Dataset *create_or_gate_dataset() {
     Dataset *d = dataset_create(4, 2);
     d->X = _create_2bit_input_matrix();
-    d->y = vector_ones(4);
-    d->y->data[0] = 0;
+    d->Y = matrix_ones(4, 1);
+    matrix_set(d->Y, 0, 0, 0);
     return d;
 }
 
 Dataset *create_xor_gate_dataset() {
     Dataset *d = dataset_create(4, 2);
     d->X = _create_2bit_input_matrix();
-    d->y = vector_zeros(4);
-    d->y->data[1] = 1;
-    d->y->data[2] = 1;
+    d->Y = matrix_zeros(4, 1);
+    matrix_set(d->Y, 1, 0, 1);
+    matrix_set(d->Y, 2, 0, 1);
     return d;
 }

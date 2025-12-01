@@ -36,7 +36,7 @@ TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data, Dataset *va
 
             // Sample i
             Vector *input = get_row_as_vector(train_data->X, i);
-            float target = train_data->y->data[i];
+            float target = train_data->Y->data[i];
 
             // Get prediction before training for loss/accuracy tracking
             float prediction = perceptron_predict(p, input);
@@ -61,6 +61,61 @@ TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data, Dataset *va
             result->epochs_completed = epoch + 1;
             break;
         }
+        prev_loss = result->loss_history[epoch];
+
+        if (config->verbose) {
+            printf("Epoch %d: loss=%.4f, accuracy=%.2f%%\n", epoch, result->loss_history[epoch],
+                   result->accuracy_history[epoch] * 100);
+        }
+    }
+
+    result->final_loss = result->loss_history[result->epochs_completed - 1];
+    return result;
+}
+
+TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, Dataset *val_data,
+                          TrainingConfig *config) {
+
+    // 1. Result Tracking
+    TrainingResult *result = (TrainingResult *)malloc(sizeof(TrainingResult));
+    result->loss_history = malloc(config->max_epochs * sizeof(float));
+    result->accuracy_history = malloc(config->max_epochs * sizeof(float));
+    result->epochs_completed = config->max_epochs;
+
+    float prev_loss = INFINITY;
+
+    for (int epoch = 0; epoch < config->max_epochs; epoch++) {
+        float epoch_loss = 0.f;
+        int correct = 0;
+
+        for (int i = 0; i < train_data->num_samples; i++) {
+            mlp_zero_gradients(mlp);
+
+            Vector *input = get_row_as_vector(train_data->X, i);
+            Vector *target = get_row_as_vector(train_data->Y, i);
+            Vector *prediction = mlp_forward(mlp, input);
+            epoch_loss = mlp->loss.loss(prediction, target);
+
+            if (vector_equals(prediction, target)) {
+                correct++;
+            }
+
+            mlp_backward(mlp, target);
+            mlp_update_weights(mlp);
+
+            vector_free(input);
+            vector_free(target);
+            vector_free(prediction);
+        }
+
+        result->loss_history[epoch] = epoch_loss / train_data->num_samples;
+        result->accuracy_history[epoch] = (float)correct / train_data->num_samples;
+
+        if (fabsf(prev_loss - result->loss_history[epoch]) < config->tolerance) {
+            result->epochs_completed = epoch + 1;
+            break;
+        }
+
         prev_loss = result->loss_history[epoch];
 
         if (config->verbose) {

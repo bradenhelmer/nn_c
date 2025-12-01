@@ -337,6 +337,33 @@ void test_matrix_vector_multiply() {
     TEST_PASSED;
 }
 
+void test_matrix_transpose_vector_multiply() {
+    Matrix *m = matrix_create(2, 3);
+    matrix_set(m, 0, 0, 1.0f);
+    matrix_set(m, 0, 1, 2.0f);
+    matrix_set(m, 0, 2, 3.0f);
+    matrix_set(m, 1, 0, 4.0f);
+    matrix_set(m, 1, 1, 5.0f);
+    matrix_set(m, 1, 2, 6.0f);
+
+    Vector *v = vector_create(2);
+    v->data[0] = 1.0f;
+    v->data[1] = 2.0f;
+
+    Vector *result = vector_create(3);
+    matrix_transpose_vector_multiply(result, m, v);
+
+    // Expected: [1*1+4*2, 2*1+5*2, 3*1+6*2] = [7, 12, 15]
+    assert(float_equals(result->data[0], 9.0f));
+    assert(float_equals(result->data[1], 12.0f));
+    assert(float_equals(result->data[2], 15.0f));
+
+    matrix_free(m);
+    vector_free(v);
+    vector_free(result);
+    TEST_PASSED;
+}
+
 void test_matrix_add_vector() {
     Matrix *m = matrix_create(2, 3);
     matrix_set(m, 0, 0, 1.0f);
@@ -565,6 +592,7 @@ void run_matrix_tests(void) {
 
     printf("\n=== Matrix-Vector Operations Tests ===\n");
     test_matrix_vector_multiply();
+    test_matrix_transpose_vector_multiply();
     test_matrix_add_vector();
 
     printf("\n=== Matrix Utility Functions Tests ===\n");

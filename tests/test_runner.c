@@ -23,6 +23,9 @@ int main() {
     // Run perceptron tests
     run_perceptron_tests();
 
+    // Run loss tests
+    run_loss_tests();
+
     printf("\n");
     printf("=====================================\n");
     printf("   All Tests Passed Successfully!\n");

@@ -10,7 +10,7 @@
 
 typedef struct {
     Matrix *X;
-    Vector *y;
+    Matrix *Y;
     int num_samples;
     int num_features;
 } Dataset;

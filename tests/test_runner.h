@@ -6,41 +6,11 @@
 #define TEST_RUNNER_H
 #include "../src/linalg/matrix.h"
 #include "../src/linalg/vector.h"
-#include <math.h>
+#include "../src/utils/utils.h"
 
 // Shared constants.
-#define EPSILON 1e-6
 #define TEST_PASSED printf("  ✓ %s passed\n", __func__)
 #define TEST_FAILED printf("  ✗ %s FAILED\n", __func__)
-
-// Shared helper functions
-static inline int float_equals(float a, float b) {
-    return fabs(a - b) < EPSILON;
-}
-
-static inline int matrix_equals(const Matrix *a, const Matrix *b) {
-    if (a->rows != b->rows || a->cols != b->cols) {
-        return 0;
-    }
-    for (int i = 0; i < a->rows * a->cols; i++) {
-        if (!float_equals(a->data[i], b->data[i])) {
-            return 0;
-        }
-    }
-    return 1;
-}
-
-static inline int vector_equals(const Vector *a, const Vector *b) {
-    if (a->size != b->size) {
-        return 0;
-    }
-    for (int i = 0; i < a->size; i++) {
-        if (!float_equals(a->data[i], b->data[i])) {
-            return 0;
-        }
-    }
-    return 1;
-}
 
 // Vector tests
 void run_vector_tests(void);
@@ -53,5 +23,8 @@ void run_activations_tests(void);
 
 // Perceptron tests
 void run_perceptron_tests(void);
+
+// Loss tests
+void run_loss_tests(void);
 
 #endif /* TEST_RUNNER_H */

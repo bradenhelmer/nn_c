@@ -438,7 +438,7 @@ void test_perceptron_learns_and_gate() {
     for (int epoch = 0; epoch < 100; epoch++) {
         for (int i = 0; i < and_data->num_samples; i++) {
             Vector *input = get_row_as_vector(and_data->X, i);
-            float target = and_data->y->data[i];
+            float target = and_data->Y->data[i];
             perceptron_train_step(p, input, target);
             vector_free(input);
         }
@@ -450,7 +450,7 @@ void test_perceptron_learns_and_gate() {
         Vector *input = get_row_as_vector(and_data->X, i);
         float prediction = perceptron_predict(p, input);
         int classified = p->classifier(prediction);
-        float target = and_data->y->data[i];
+        float target = and_data->Y->data[i];
 
         if (float_equals((float)classified, target)) {
             correct++;
@@ -475,7 +475,7 @@ void test_perceptron_learns_or_gate() {
     for (int epoch = 0; epoch < 100; epoch++) {
         for (int i = 0; i < or_data->num_samples; i++) {
             Vector *input = get_row_as_vector(or_data->X, i);
-            float target = or_data->y->data[i];
+            float target = or_data->Y->data[i];
             perceptron_train_step(p, input, target);
             vector_free(input);
         }
@@ -487,7 +487,7 @@ void test_perceptron_learns_or_gate() {
         Vector *input = get_row_as_vector(or_data->X, i);
         float prediction = perceptron_predict(p, input);
         int classified = p->classifier(prediction);
-        float target = or_data->y->data[i];
+        float target = or_data->Y->data[i];
 
         if (float_equals((float)classified, target)) {
             correct++;

@@ -3,7 +3,9 @@
  */
 
 #include "matrix.h"
+#include "vector.h"
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -128,6 +130,14 @@ void matrix_scale(Matrix *result, const Matrix *m, float scalar) {
     }
 }
 
+void matrix_fill(Matrix *m, float scalar) {
+    for (int i = 0; i < m->rows; i++) {
+        for (int j = 0; j < m->cols; j++) {
+            matrix_set(m, i, j, scalar);
+        }
+    }
+}
+
 void matrix_multiply_elementwise(Matrix *result, const Matrix *a, const Matrix *b) {
     assert(a->rows == b->rows && b->rows == result->rows);
     assert(a->cols == b->cols && b->cols == result->cols);
@@ -158,6 +168,14 @@ void matrix_vector_multiply(Vector *result, const Matrix *m, const Vector *v) {
         }
         result->data[i] = acc;
     }
+}
+
+void matrix_transpose_vector_multiply(Vector *result, const Matrix *m, const Vector *v) {
+    assert(m->rows == v->size);
+    Matrix *m_t = matrix_create(m->rows, m->cols);
+    matrix_transpose(m_t, m);
+    matrix_vector_multiply(result, m_t, v);
+    matrix_free(m_t);
 }
 
 // Adds a vector to each row of the matrix
@@ -222,4 +240,16 @@ void matrix_sum_cols(Vector *result, const Matrix *m) {
         }
         result->data[j] = col_sum;
     }
+}
+
+int matrix_equals(const Matrix *a, const Matrix *b) {
+    if (a->rows != b->rows || a->cols != b->cols) {
+        return 0;
+    }
+    for (int i = 0; i < a->rows * a->cols; i++) {
+        if (fabs(a->data[i] - b->data[i]) >= 1e-6) {
+            return 0;
+        }
+    }
+    return 1;
 }

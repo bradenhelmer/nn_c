@@ -2,6 +2,7 @@
  * test_vector.c - Comprehensive tests for vector operations
  */
 
+#include "../src/linalg/matrix.h"
 #include "../src/linalg/vector.h"
 #include "test_runner.h"
 #include <assert.h>
@@ -192,7 +193,7 @@ void test_vector_multiply() {
     b->data[1] = 6.0f;
     b->data[2] = 7.0f;
 
-    vector_multiply(result, a, b);
+    vector_elementwise_multiply(result, a, b);
 
     assert(float_equals(result->data[0], 10.0f));
     assert(float_equals(result->data[1], 18.0f));
@@ -216,7 +217,7 @@ void test_vector_divide() {
     b->data[1] = 4.0f;
     b->data[2] = 5.0f;
 
-    vector_divide(result, a, b);
+    vector_elementwise_divide(result, a, b);
 
     assert(float_equals(result->data[0], 5.0f));
     assert(float_equals(result->data[1], 5.0f));
@@ -225,6 +226,36 @@ void test_vector_divide() {
     vector_free(a);
     vector_free(b);
     vector_free(result);
+    TEST_PASSED;
+}
+
+// =============================================================================
+// Other Functions Tests
+// =============================================================================
+
+void test_vector_outer_product() {
+    Vector *a = vector_create(3);
+    Vector *b = vector_create(2);
+    Matrix *result = matrix_create(3, 2);
+
+    a->data[0] = 10.0f;
+    a->data[1] = 20.0f;
+    a->data[2] = 30.0f;
+    b->data[0] = 2.0f;
+    b->data[1] = 4.0f;
+
+    vector_outer_product(result, a, b);
+
+    assert(float_equals(matrix_get(result, 0, 0), 20.0f));
+    assert(float_equals(matrix_get(result, 0, 1), 40.0f));
+    assert(float_equals(matrix_get(result, 1, 0), 40.0f));
+    assert(float_equals(matrix_get(result, 1, 1), 80.0f));
+    assert(float_equals(matrix_get(result, 2, 0), 60.0f));
+    assert(float_equals(matrix_get(result, 2, 1), 120.0f));
+
+    vector_free(a);
+    vector_free(b);
+    matrix_free(result);
     TEST_PASSED;
 }
 
@@ -427,6 +458,9 @@ void run_vector_tests(void) {
     test_vector_min();
     test_vector_max();
     test_vector_print();
+
+    printf("\n=== Vector Other Functions Tests ===\n");
+    test_vector_outer_product();
 
     printf("\n=== Vector Edge Cases Tests ===\n");
     test_vector_single_element();

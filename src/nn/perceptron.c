@@ -4,12 +4,11 @@
  * Perceptron function implementations.
  */
 #include "perceptron.h"
-#include "loss.h"
 #include <stdio.h>
 #include <stdlib.h>
 
 Perceptron *perceptron_create(int input_size, float min, float max, float learning_rate,
-                              ActivationPair activation, classifier_func classifier) {
+                              ScalarActivationPair activation, classifier_func classifier) {
     Perceptron *p = (Perceptron *)malloc(sizeof(Perceptron));
     p->weights = vector_random(input_size, min, max);
     p->bias = 0.f;
@@ -52,12 +51,11 @@ void perceptron_update_weights(Perceptron *p, const Vector *input, float error) 
 }
 
 void test_perceptron_on_dataset(Perceptron *p, Dataset *data, const char *name) {
-    printf("\nTesting %s:\n", name);
-    printf("-------------\n");
+    printf("\nTesting %s:\n\n", name);
 
     for (int i = 0; i < data->num_samples; i++) {
         Vector *input = get_row_as_vector(data->X, i);
-        float target = data->y->data[i];
+        float target = data->Y->data[i];
 
         float prediction = perceptron_predict(p, input);
         int classification = p->classifier(prediction);

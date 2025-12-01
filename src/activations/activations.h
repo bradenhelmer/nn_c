@@ -40,19 +40,35 @@ void matrix_sigmoid_derivative(Matrix *result, const Matrix *sigmoid_output);
 void matrix_relu(Matrix *result, const Matrix *input);
 void matrix_relu_derivative(Matrix *result, const Matrix *input);
 
-// Activation Types
-typedef float (*activation_func)(float);
-typedef float (*activation_derivative_func)(float);
+// Scalar Activation Types
+typedef float (*scalar_activation_func)(float);
+typedef float (*scalar_activation_derivative_func)(float);
 
+// Scalar Pairs
 typedef struct {
-    activation_func forward;
-    activation_derivative_func derivative;
+    scalar_activation_func forward;
+    scalar_activation_derivative_func derivative;
     const char *name;
-} ActivationPair;
+} ScalarActivationPair;
 
-extern const ActivationPair SIGMOID_ACTIVATION;
-extern const ActivationPair RELU_ACTIVATION;
-extern const ActivationPair TANH_ACTIVATION;
-extern const ActivationPair LINEAR_ACTIVATION;
+extern const ScalarActivationPair SIGMOID_ACTIVATION;
+extern const ScalarActivationPair RELU_ACTIVATION;
+extern const ScalarActivationPair TANH_ACTIVATION;
+extern const ScalarActivationPair LINEAR_ACTIVATION;
+
+// Vector Activation Types
+typedef void (*vector_activation_func)(Vector *, const Vector *);
+typedef void (*vector_activation_derivative_func)(Vector *, const Vector *);
+
+// Vector Pairs
+typedef struct {
+    vector_activation_func forward;
+    vector_activation_derivative_func derivative;
+    const char *name;
+} VectorActivationPair;
+
+extern const VectorActivationPair VECTOR_SIGMOID_ACTIVATION;
+extern const VectorActivationPair VECTOR_RELU_ACTIVATION;
+extern const VectorActivationPair VECTOR_TANH_ACTIVATION;
 
 #endif /* ifndef ACTIVATIONS_H */

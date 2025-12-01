@@ -2,8 +2,10 @@
  * vector.c - Vector operations implementation
  */
 #include "vector.h"
+#include "matrix.h"
 #include <assert.h>
 #include <float.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -80,7 +82,13 @@ float vector_dot(const Vector *a, const Vector *b) {
     return acc;
 }
 
-void vector_multiply(Vector *result, const Vector *a, const Vector *b) {
+void vector_fill(Vector *v, float scalar) {
+    for (int i = 0; i < v->size; i++) {
+        v->data[i] = scalar;
+    }
+}
+
+void vector_elementwise_multiply(Vector *result, const Vector *a, const Vector *b) {
     assert(a->size == b->size);
     assert(a->size == result->size);
     for (int i = 0; i < a->size; i++) {
@@ -88,7 +96,7 @@ void vector_multiply(Vector *result, const Vector *a, const Vector *b) {
     }
 }
 
-void vector_divide(Vector *result, const Vector *a, const Vector *b) {
+void vector_elementwise_divide(Vector *result, const Vector *a, const Vector *b) {
     assert(a->size == b->size);
     assert(a->size == result->size);
     for (int i = 0; i < a->size; i++) {
@@ -96,7 +104,17 @@ void vector_divide(Vector *result, const Vector *a, const Vector *b) {
     }
 }
 
-void vector_copy(Vector *dest, Vector *src) {
+void vector_outer_product(Matrix *result, const Vector *a, const Vector *b) {
+    assert(result->rows == a->size);
+    assert(result->cols == b->size);
+    for (int i = 0; i < a->size; i++) {
+        for (int j = 0; j < b->size; j++) {
+            matrix_set(result, i, j, a->data[i] * b->data[j]);
+        }
+    }
+}
+
+void vector_copy(Vector *dest, const Vector *src) {
     assert(dest->size == src->size);
     memcpy(dest->data, src->data, sizeof(float) * src->size);
 }
@@ -140,4 +158,16 @@ void vector_print(const Vector *v) {
         printf("%f,", v->data[i]);
     }
     printf("%f]", v->data[i]);
+}
+
+int vector_equals(const Vector *a, const Vector *b) {
+    if (a->size != b->size) {
+        return 0;
+    }
+    for (int i = 0; i < a->size; i++) {
+        if (fabs(a->data[i] - b->data[i]) >= 1e-6) {
+            return 0;
+        }
+    }
+    return 1;
 }

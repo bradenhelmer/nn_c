@@ -7,10 +7,13 @@
  */
 #ifndef MATRIX_H
 #define MATRIX_H
-#include "vector.h"
+
 #include <assert.h>
 
-typedef struct {
+// Forward declaration to avoid circular dependency
+struct Vector;
+
+typedef struct Matrix {
     float *data;
     int rows;
     int cols;
@@ -34,14 +37,18 @@ void matrix_scale(Matrix *result, const Matrix *m, float scalar);
 // Element-wise operations
 void matrix_multiply_elementwise(Matrix *result, const Matrix *a, const Matrix *b);
 void matrix_add_scalar(Matrix *result, const Matrix *m, float scalar);
+void matrix_fill(Matrix *m, float scalar);
 
 // Matrix-vector operations
-void matrix_vector_multiply(Vector *result, const Matrix *m, const Vector *v);
-void matrix_add_vector(Matrix *result, const Matrix *m, const Vector *v); // Broadcasting
+void matrix_vector_multiply(struct Vector *result, const Matrix *m, const struct Vector *v);
+void matrix_transpose_vector_multiply(struct Vector *result, const Matrix *m,
+                                      const struct Vector *v);
+void matrix_add_vector(Matrix *result, const Matrix *m, const struct Vector *v); // Broadcasting
 
 // Utility functions
 void matrix_copy(Matrix *dest, const Matrix *src);
 void matrix_print(const Matrix *m);
+int matrix_equals(const Matrix *a, const Matrix *b);
 
 // Inline accessor functions (defined in header for inlining)
 inline float matrix_get(const Matrix *m, int row, int col) {
@@ -57,10 +64,10 @@ inline void matrix_set(Matrix *m, int row, int col, float value) {
 }
 
 // Other getters
-Vector *get_row_as_vector(Matrix *m, int row);
+struct Vector *get_row_as_vector(Matrix *m, int row);
 
 // Special operations for neural networks
-void matrix_sum_rows(Vector *result, const Matrix *m); // For gradient accumulation
-void matrix_sum_cols(Vector *result, const Matrix *m); // For batch operations
+void matrix_sum_rows(struct Vector *result, const Matrix *m); // For gradient accumulation
+void matrix_sum_cols(struct Vector *result, const Matrix *m); // For batch operations
 
 #endif /* ifndef MATRIX_H */

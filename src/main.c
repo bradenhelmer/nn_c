@@ -4,10 +4,10 @@
 
 #include "activations/activations.h"
 #include "data/dataset.h"
+#include "nn/mlp.h"
 #include "nn/perceptron.h"
 #include "training/gradient_descent.h"
 #include <stdio.h>
-#include <stdlib.h>
 
 static int logic_gate_classifier(float prediction) {
     if (prediction <= 0.05) {
@@ -84,7 +84,45 @@ static void perceptron_learning_logic_gates() {
     training_result_free(result_xor);
 }
 
+static Vector *xor_classifier(Vector *prediction) {
+    if (prediction->data[0] <= 0.05) {
+        return vector_zeros(1);
+    }
+    if (prediction->data[0] >= 0.95) {
+        return vector_ones(1);
+    }
+    Vector *wrong = vector_create(1);
+    wrong->data[0] = -1.f;
+    return wrong;
+}
+
+static void mlp_learning_xor() {
+
+    printf("\n\nTraining XOR Gate with MLP...\n");
+
+    TrainingConfig config = {.max_epochs = 20000, .tolerance = 1e-7, .batch_size = 1, .verbose = 0};
+    Dataset *xor_data = create_xor_gate_dataset();
+
+    MLP *mlp_xor = mlp_create(2, 1.0f, VECTOR_MSE_LOSS, xor_classifier);
+    Layer *layer_1 = layer_create(2, 1, VECTOR_SIGMOID_ACTIVATION);
+    Layer *layer_2 = layer_create(1, 1, VECTOR_SIGMOID_ACTIVATION);
+    mlp_add_layer(mlp_xor, 0, layer_1);
+    mlp_add_layer(mlp_xor, 1, layer_2);
+
+    config.max_epochs = 100;
+
+    TrainingResult *result_xor = train_mlp(mlp_xor, xor_data, NULL, &config);
+
+    printf("\nXOR Gate Training stopped at %d epochs\n", result_xor->epochs_completed);
+    printf("Final loss: %.6f (should be high)\n", result_xor->final_loss);
+    printf("Final accuracy: %.2f%% (should be ~0%%)\n",
+           result_xor->accuracy_history[result_xor->epochs_completed - 1] * 100);
+
+    test_mlp_on_dataset(mlp_xor, xor_data, "XOR Gate");
+}
+
 int main() {
     perceptron_learning_logic_gates();
+    mlp_learning_xor();
     return 0;
 }

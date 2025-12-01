@@ -131,14 +131,23 @@ void matrix_relu_derivative(Matrix *result, const Matrix *input) {
     }
 }
 
-const ActivationPair SIGMOID_ACTIVATION = {
+const ScalarActivationPair SIGMOID_ACTIVATION = {
     .forward = sigmoid_scalar, .derivative = sigmoid_scalar_derivative, .name = "sigmoid"};
 
-const ActivationPair RELU_ACTIVATION = {
+const ScalarActivationPair RELU_ACTIVATION = {
     .forward = relu_scalar, .derivative = relu_scalar_derivative, .name = "relu"};
 
-const ActivationPair TANH_ACTIVATION = {
+const ScalarActivationPair TANH_ACTIVATION = {
     .forward = tanh_scalar, .derivative = tanh_scalar_derivative, .name = "tanh"};
 
-const ActivationPair LINEAR_ACTIVATION = {
+const ScalarActivationPair LINEAR_ACTIVATION = {
     .forward = linear_scalar, .derivative = linear_scalar_derivative, .name = "linear"};
+
+const VectorActivationPair VECTOR_SIGMOID_ACTIVATION = {
+    .forward = vector_sigmoid, .derivative = vector_sigmoid_derivative, .name = "vector_sigmoid"};
+
+const VectorActivationPair VECTOR_RELU_ACTIVATION = {
+    .forward = vector_relu, .derivative = vector_relu_derivative, .name = "vector_relu"};
+
+const VectorActivationPair VECTOR_TANH_ACTIVATION = {
+    .forward = vector_tanh_activation, .derivative = vector_tanh_derivative, .name = "vector_tanh"};

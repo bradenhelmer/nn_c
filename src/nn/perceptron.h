@@ -16,8 +16,8 @@ typedef struct {
     float bias;
     float learning_rate;
     int input_size;
-    activation_func activation;
-    activation_derivative_func activation_prime;
+    scalar_activation_func activation;
+    scalar_activation_derivative_func activation_prime;
     classifier_func classifier;
     float last_output;     // Last activation cache
     float last_raw_output; // Pre-activation cache (z)
@@ -25,7 +25,7 @@ typedef struct {
 
 // Creation, deletion, and initialization.
 Perceptron *perceptron_create(int input_size, float min, float max, float learning_rate,
-                              ActivationPair activation, classifier_func classifier);
+                              ScalarActivationPair activation, classifier_func classifier);
 void perceptron_free(Perceptron *p);
 
 // Forward pass
