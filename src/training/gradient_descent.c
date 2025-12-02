@@ -94,9 +94,10 @@ TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, Dataset *val_data,
             Vector *input = get_row_as_vector(train_data->X, i);
             Vector *target = get_row_as_vector(train_data->Y, i);
             Vector *prediction = mlp_forward(mlp, input);
-            epoch_loss = mlp->loss.loss(prediction, target);
+            Vector *classification = mlp->classifier(prediction);
 
-            if (vector_equals(prediction, target)) {
+            epoch_loss += mlp->loss.loss(prediction, target);
+            if (vector_equals(classification, target)) {
                 correct++;
             }
 
@@ -106,6 +107,7 @@ TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, Dataset *val_data,
             vector_free(input);
             vector_free(target);
             vector_free(prediction);
+            vector_free(classification);
         }
 
         result->loss_history[epoch] = epoch_loss / train_data->num_samples;

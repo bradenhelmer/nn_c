@@ -3,16 +3,18 @@
  *
  * Multi-layer (perceptron) network implementations.
  */
-#include "../data/dataset.h"
 #include "mlp.h"
+#include "../data/dataset.h"
 #include "layer.h"
 #include "loss.h"
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 // Lifecycle
 MLP *mlp_create(int num_layers, float learning_rate, VectorLossPair loss_pair,
                 mlp_classifier classifier) {
+    assert(num_layers > 1);
     MLP *mlp = (MLP *)malloc(sizeof(MLP));
     mlp->num_layers = num_layers;
     mlp->layers = (Layer **)malloc(sizeof(Layer *) * num_layers);
@@ -36,31 +38,38 @@ void mlp_free(MLP *mlp) {
 
 Vector *mlp_forward(MLP *mlp, const Vector *input) {
 
-    // Copy input into return vector.
-    Vector *current = vector_create(input->size);
-    vector_copy(current, input);
+    // Run first layer
+    Layer *prev = mlp->layers[0];
+    layer_forward(prev, input);
 
-    // Chain layer outputs
-    for (int i = 0; i < mlp->num_layers; i++) {
+    // Chain remaining layer outputs.
+    for (int i = 1; i < mlp->num_layers; i++) {
         Layer *layer = mlp->layers[i];
-        current = layer_forward(layer, current);
+        layer_forward(layer, prev->a);
+        prev = layer;
     }
 
-    // Return final output
-    return current;
+    Vector *output = vector_create(prev->a->size);
+    vector_copy(output, prev->a);
+    return output;
 }
 
 void mlp_backward(MLP *mlp, const Vector *target) {
 
     // 1. Compute initial gradient from loss
-    Vector *output = mlp->layers[mlp->num_layers - 1]->a;
+    Layer *prev = mlp->layers[mlp->num_layers - 1];
+    Vector *output = prev->a;
     Vector *gradient = vector_create(output->size);
     mlp->loss.loss_derivative(gradient, output, target);
 
+    // 2. Run first layer backward.
+    layer_backward(prev, gradient);
+
     // 2. Propagate backward through layers
-    for (int i = mlp->num_layers - 1; i >= 0; i--) {
+    for (int i = mlp->num_layers - 2; i >= 0; i--) {
         Layer *layer = mlp->layers[i];
-        gradient = layer_backward(layer, target);
+        layer_backward(layer, prev->downstream_gradient);
+        prev = layer;
     }
 
     vector_free(gradient);
@@ -71,6 +80,7 @@ void mlp_zero_gradients(MLP *mlp) {
         Layer *layer = mlp->layers[i];
         matrix_fill(layer->dW, 0.f);
         vector_fill(layer->db, 0.f);
+        vector_fill(layer->downstream_gradient, 0.f);
     }
 }
 
@@ -102,7 +112,7 @@ void test_mlp_on_dataset(MLP *mlp, Dataset *data, const char *name) {
         vector_print(input);
         printf(" -> Target: ");
         vector_print(target);
-        printf(" , Predicted: ");
+        printf(", Predicted: ");
         vector_print(classification);
         printf(" (raw: ");
         vector_print(prediction);

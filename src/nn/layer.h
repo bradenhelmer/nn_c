@@ -23,8 +23,9 @@ typedef struct {
     Vector *input; // cached input for weight gradients
 
     // Gradients
-    Matrix *dW; // Weight gradients
-    Vector *db; // Bias gradients
+    Matrix *dW;                  // Weight gradients
+    Vector *db;                  // Bias gradients
+    Vector *downstream_gradient; // Gradient to pass downstream -> dL/da_prev
 } Layer;
 
 // Lifecycle
@@ -32,8 +33,8 @@ Layer *layer_create(int input_size, int output_size, VectorActivationPair activa
 void layer_free(Layer *layer);
 
 // Forward/backward
-Vector *layer_forward(Layer *layer, const Vector *input);
-Vector *layer_backward(Layer *layer, const Vector *upstream_grad);
+void layer_forward(Layer *layer, const Vector *input);
+void layer_backward(Layer *layer, const Vector *upstream_grad);
 
 // Weight initialization
 void layer_init_xavier(Layer *layer);

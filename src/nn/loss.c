@@ -35,7 +35,7 @@ void vector_mse_derivative(Vector *result, const Vector *prediction, const Vecto
 float vector_cross_entropy(const Vector *prediction, const Vector *target) {
     assert(prediction->size == target->size);
     float sum = 0.f;
-    for (int i = 0; i <= prediction->size; i++) {
+    for (int i = 0; i < prediction->size; i++) {
         sum -= target->data[i] * logf(prediction->data[i] + EPSILON);
     }
     return sum;
@@ -45,7 +45,7 @@ void vector_cross_entropy_derivative(Vector *result, const Vector *prediction,
                                      const Vector *target) {
     assert(prediction->size == result->size);
     assert(target->size == result->size);
-    for (int i = 0; i <= prediction->size; i++) {
+    for (int i = 0; i < prediction->size; i++) {
         result->data[i] = -target->data[i] / (prediction->data[i] + EPSILON);
     }
 }

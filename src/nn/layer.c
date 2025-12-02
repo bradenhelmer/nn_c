@@ -5,9 +5,7 @@
  */
 #include "layer.h"
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
 Layer *layer_create(int input_size, int output_size, VectorActivationPair activation) {
     Layer *layer = (Layer *)malloc(sizeof(Layer));
@@ -25,6 +23,8 @@ Layer *layer_create(int input_size, int output_size, VectorActivationPair activa
 
     layer->dW = matrix_create(output_size, input_size);
     layer->db = vector_create(output_size);
+    layer->downstream_gradient = vector_create(input_size);
+
     return layer;
 }
 
@@ -38,16 +38,17 @@ void layer_free(Layer *layer) {
 
     matrix_free(layer->dW);
     vector_free(layer->db);
+    vector_free(layer->downstream_gradient);
 
     free(layer);
 }
 
 static void _layer_init(Layer *layer, float standard) {
-    srand(time(NULL));
+    float min = -standard, max = standard;
     for (int i = 0; i < layer->weights->rows; i++) {
         for (int j = 0; j < layer->weights->cols; j++) {
             float norm_rand = (float)rand() / (float)RAND_MAX;
-            matrix_set(layer->weights, i, j, 0.f + norm_rand * (standard - 0.f));
+            matrix_set(layer->weights, i, j, min + norm_rand * (standard - min));
         }
     }
 }
@@ -60,27 +61,24 @@ void layer_init_he(Layer *layer) {
 }
 
 // Forward/backward
-Vector *layer_forward(Layer *layer, const Vector *input) {
+void layer_forward(Layer *layer, const Vector *input) {
     // Cache input for weight gradient calculation.
     vector_copy(layer->input, input);
 
     // z = Wx + b
-    printf("z size: %d, weight rows: %d\n", layer->z->size, layer->weights->rows);
     matrix_vector_multiply(layer->z, layer->weights, input);
     vector_add(layer->z, layer->z, layer->biases);
 
     // a = f(z)
     layer->activation.forward(layer->a, layer->z);
-
-    return layer->a;
 }
 
-Vector *layer_backward(Layer *layer, const Vector *upstream_grad) {
+void layer_backward(Layer *layer, const Vector *upstream_grad) {
 
     // 1. Pre-activation -> dL/dz = dL/da ⊙ f'(z)
-    Vector *dz = vector_create(layer->z->size);
-    layer->activation.derivative(layer->z, layer->a);
-    vector_elementwise_multiply(dz, upstream_grad, layer->z);
+    Vector *dz = vector_create(layer->output_size);
+    layer->activation.derivative(dz, layer->a);
+    vector_elementwise_multiply(dz, upstream_grad, dz);
 
     // 2. Weights -> dL/dW = dz ⊗ input^T (outer product)
     vector_outer_product(layer->dW, dz, layer->input);
@@ -89,9 +87,6 @@ Vector *layer_backward(Layer *layer, const Vector *upstream_grad) {
     vector_copy(layer->db, dz);
 
     // 4. Downstream Gradient -> dL/da_prev = W^T
-    Vector *downstream_grad = vector_create(layer->z->size);
-    matrix_transpose_vector_multiply(downstream_grad, layer->weights, dz);
-
+    matrix_transpose_vector_multiply(layer->downstream_gradient, layer->weights, dz);
     vector_free(dz);
-    return downstream_grad;
 }
