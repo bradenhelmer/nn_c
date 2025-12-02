@@ -2,6 +2,7 @@
  * vector.c - Vector operations implementation
  */
 #include "vector.h"
+#include "../utils/utils.h"
 #include "matrix.h"
 #include <assert.h>
 #include <float.h>
@@ -39,8 +40,7 @@ Vector *vector_random(int size, float min, float max) {
 
     srand(time(NULL));
     for (int i = 0; i < size; i++) {
-        float norm_rand = (float)rand() / (float)RAND_MAX;
-        v->data[i] = min + norm_rand * (max - min);
+        v->data[i] = rand_rangef(min, max);
     }
     return v;
 }

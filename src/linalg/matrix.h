@@ -1,6 +1,5 @@
 /*
  * matrix.h - Matrix data structure and operations for linear algebra
- *
  * Provides core matrix operations including creation, multiplication,
  * transpose, element-wise operations, and matrix-vector operations
  * for neural network computations.
@@ -47,6 +46,7 @@ void matrix_add_vector(Matrix *result, const Matrix *m, const struct Vector *v);
 
 // Utility functions
 void matrix_copy(Matrix *dest, const Matrix *src);
+void matrix_copy_vector_into_row(Matrix *m, const struct Vector *v, int row_idx);
 void matrix_print(const Matrix *m);
 int matrix_equals(const Matrix *a, const Matrix *b);
 

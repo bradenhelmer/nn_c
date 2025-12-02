@@ -13,8 +13,10 @@ typedef struct {
     int size;
 } Batch;
 
+void batch_free(Batch *b);
+
 typedef struct {
-    Dataset *dataset;
+    Dataset *dataset; // REFERENCE POINTER
     int batch_size;
     int num_batches;
     int current_idx;
@@ -26,6 +28,5 @@ void batch_iterator_free(BatchIterator *batch_iter);
 void batch_iterator_shuffle(BatchIterator *batch_iter);
 void batch_iterator_reset(BatchIterator *batch_iter);  // Reset without shuffle
 Batch *batch_iterator_next(BatchIterator *batch_iter); // NULL when exhausted
-void batch_free(Batch *b);
 
 #endif /* ifndef BATCH_H*/

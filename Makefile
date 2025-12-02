@@ -129,6 +129,9 @@ lldb-test: test-debug
 memcheck: debug
 	valgrind --leak-check=full --show-leak-kinds=all $(DEBUG_TARGET)
 
+memcheck-test: $(TEST_DEBUG_TARGET)
+	valgrind --leak-check=full --show-leak-kinds=all $(TEST_DEBUG_TARGET)
+
 # Format code with clang-format
 format:
 	@echo "Formatting source files..."

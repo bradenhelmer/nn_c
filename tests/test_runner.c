@@ -26,6 +26,9 @@ int main() {
     // Run loss tests
     run_loss_tests();
 
+    // Run batch tests
+    run_batch_tests();
+
     printf("\n");
     printf("=====================================\n");
     printf("   All Tests Passed Successfully!\n");

@@ -27,4 +27,7 @@ void run_perceptron_tests(void);
 // Loss tests
 void run_loss_tests(void);
 
+// Batch tests
+void run_batch_tests(void);
+
 #endif /* TEST_RUNNER_H */

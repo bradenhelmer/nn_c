@@ -4,6 +4,7 @@
  * Single dense layer implementations.
  */
 #include "layer.h"
+#include "../utils/utils.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -47,8 +48,7 @@ static void _layer_init(Layer *layer, float standard) {
     float min = -standard, max = standard;
     for (int i = 0; i < layer->weights->rows; i++) {
         for (int j = 0; j < layer->weights->cols; j++) {
-            float norm_rand = (float)rand() / (float)RAND_MAX;
-            matrix_set(layer->weights, i, j, min + norm_rand * (standard - min));
+            matrix_set(layer->weights, i, j, rand_rangef(min, max));
         }
     }
 }

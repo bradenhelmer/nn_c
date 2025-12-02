@@ -3,6 +3,7 @@
  */
 
 #include "matrix.h"
+#include "../utils/utils.h"
 #include "vector.h"
 #include <assert.h>
 #include <math.h>
@@ -45,8 +46,7 @@ Matrix *matrix_random(int rows, int cols, float min, float max) {
     srand(time(NULL));
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
-            float norm_rand = (float)rand() / (float)RAND_MAX;
-            matrix_set(m, i, j, min + norm_rand * (max - min));
+            matrix_set(m, i, j, rand_rangef(min, max));
         }
     }
     return m;
@@ -193,6 +193,12 @@ void matrix_copy(Matrix *dest, const Matrix *src) {
     assert(dest->rows == src->rows);
     assert(dest->rows == src->rows);
     memcpy(dest->data, src->data, sizeof(float) * src->rows * src->cols);
+}
+
+void matrix_copy_vector_into_row(Matrix *m, const Vector *v, int row_idx) {
+    assert(v->size == m->cols);
+    assert(row_idx < m->rows);
+    memcpy(&m->data[m->cols * row_idx], v->data, sizeof(float) * v->size);
 }
 
 // External definitions for inline functions (C99 fallback)
