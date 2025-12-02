@@ -8,12 +8,18 @@
 #include "../data/dataset.h"
 #include "../nn/mlp.h"
 #include "../nn/perceptron.h"
+#include "optimizer.h"
+#include "scheduler.h"
 
 typedef struct {
     int max_epochs;
     float tolerance;
     int batch_size;
     int verbose;
+
+    Optimizer *optimizer;
+    Scheduler *scheduler;
+    float l2_lambda;
 } TrainingConfig;
 
 typedef struct {
