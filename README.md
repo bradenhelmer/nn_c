@@ -4,7 +4,7 @@ A from-scratch neural network implementation in C, built for learning and unders
 
 ## Overview
 
-This project implements a neural network library in C with custom linear algebra operations, activation functions, and training algorithms. Currently supports single-layer perceptrons with plans for multi-layer architectures.
+This project implements a neural network library in C with custom linear algebra operations, activation functions, and training algorithms. Supports both single-layer perceptrons and multi-layer perceptrons (MLPs) with backpropagation.
 
 ## Features
 
@@ -24,7 +24,14 @@ All activation functions include their derivatives for backpropagation.
 
 ### Neural Network Components
 - **Perceptron**: Single-layer perceptron with configurable activation functions
-- **Loss Functions**: Mean Squared Error (MSE)
+- **Multi-Layer Perceptron (MLP)**: Fully-connected feedforward neural networks with:
+  - Arbitrary number of hidden layers
+  - Configurable layer sizes and activations
+  - Backpropagation for gradient computation
+  - Xavier and He weight initialization
+- **Loss Functions**:
+  - Mean Squared Error (MSE) with derivatives
+  - Cross-Entropy Loss with derivatives
 - **Training**: Gradient descent with configurable:
   - Learning rate
   - Batch size
@@ -45,7 +52,11 @@ nn_c/
 │   ├── activations/       # Activation functions and derivatives
 │   ├── data/             # Dataset creation and management
 │   ├── linalg/           # Linear algebra (matrix and vector operations)
-│   ├── nn/               # Neural network components (perceptron, loss)
+│   ├── nn/               # Neural network components
+│   │   ├── perceptron.c  # Single-layer perceptron
+│   │   ├── mlp.c         # Multi-layer perceptron
+│   │   ├── layer.c       # Dense layer implementation
+│   │   └── loss.c        # Loss functions (MSE, Cross-Entropy)
 │   ├── training/         # Training algorithms (gradient descent)
 │   └── main.c            # Example application
 ├── tests/                # Unit tests for all components
@@ -94,12 +105,19 @@ The compiled binary will be in `build/bin/neural_net`.
 ./build/bin/neural_net
 ```
 
-The default application demonstrates perceptron learning on logic gates:
+The default application demonstrates neural network learning on logic gates:
+
+**Phase 1: Perceptron Learning**
 - **AND Gate**: Successfully learns (linearly separable)
 - **OR Gate**: Successfully learns (linearly separable)
 - **XOR Gate**: Fails to converge (not linearly separable)
 
-The XOR failure demonstrates the fundamental limitation of single-layer perceptrons, motivating the need for multi-layer architectures.
+The XOR failure demonstrates the fundamental limitation of single-layer perceptrons.
+
+**Phase 2: MLP Learning**
+- **XOR Gate**: Successfully learns using a 2-2-1 architecture (2 inputs, 2 hidden neurons, 1 output)
+
+This demonstrates how multi-layer networks can learn non-linearly separable functions.
 
 ## Testing
 
@@ -114,6 +132,9 @@ Tests cover:
 - Matrix operations
 - Activation functions
 - Perceptron forward and backward passes
+- Layer forward and backward passes
+- MLP gradient computation
+- Loss function derivatives
 
 ## Example Output
 
@@ -137,6 +158,19 @@ Final accuracy: 0.00% (should be ~0%)
 
 Note: XOR is not linearly separable - single perceptron cannot learn it!
 This motivates Phase 3: Multi-layer perceptrons.
+
+
+Training XOR Gate with MLP...
+
+XOR Gate Training stopped at 8234 epochs
+Final loss: 0.000012
+Final accuracy: 100.00%
+
+Testing MLP on XOR Gate:
+Input: [0.00, 0.00] -> Output: 0.02 (Expected: 0.00) ✓
+Input: [0.00, 1.00] -> Output: 0.98 (Expected: 1.00) ✓
+Input: [1.00, 0.00] -> Output: 0.97 (Expected: 1.00) ✓
+Input: [1.00, 1.00] -> Output: 0.03 (Expected: 0.00) ✓
 ```
 
 ## Development Phases
@@ -153,11 +187,21 @@ This motivates Phase 3: Multi-layer perceptrons.
 - Dataset handling
 - Logic gate demonstrations
 
-### Phase 3: Multi-Layer Perceptron (Planned)
-- Hidden layers
+### Phase 3: Multi-Layer Perceptron (Complete)
+- Dense layer implementation with forward and backward passes
 - Backpropagation algorithm
-- More complex datasets
-- Network architecture configuration
+- Xavier and He weight initialization
+- Multiple loss functions (MSE, Cross-Entropy)
+- Configurable network architectures
+- Successfully learns XOR and other non-linearly separable functions
+
+### Future Enhancements
+- Batch gradient descent and mini-batch support
+- Additional optimizers (SGD with momentum, Adam, RMSprop)
+- Regularization techniques (L1/L2, dropout)
+- More activation functions (Leaky ReLU, ELU, Swish)
+- Convolutional layers
+- More complex datasets (MNIST, etc.)
 
 ## Code Style
 
