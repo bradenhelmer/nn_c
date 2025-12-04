@@ -127,9 +127,39 @@ static void mlp_learning_xor() {
     training_result_free(result_xor);
 }
 
+static void mlp_learning_xor_batched() {
+
+    printf("\n\nTraining XOR Gate with Batched MLP...\n");
+
+    TrainingConfig config = {.max_epochs = 50000, .tolerance = 1e-8, .batch_size = 1, .verbose = 0};
+    Dataset *xor_data = create_xor_gate_dataset();
+
+    MLP *mlp_xor = mlp_create(2, 0.3f, VECTOR_MSE_LOSS, xor_classifier);
+    Layer *layer_1 = layer_create(2, 2, VECTOR_SIGMOID_ACTIVATION);
+    layer_init_xavier(layer_1);
+    Layer *layer_2 = layer_create(2, 1, VECTOR_SIGMOID_ACTIVATION);
+    layer_init_xavier(layer_2);
+    mlp_add_layer(mlp_xor, 0, layer_1);
+    mlp_add_layer(mlp_xor, 1, layer_2);
+
+    TrainingResult *result_xor = train_mlp_batch(mlp_xor, xor_data, NULL, &config);
+
+    printf("\nBatched XOR Gate Training stopped at %d epochs\n", result_xor->epochs_completed);
+    printf("Final loss: %.6f\n", result_xor->final_loss);
+    printf("Final accuracy: %.2f%%\n",
+           result_xor->accuracy_history[result_xor->epochs_completed - 1] * 100);
+
+    test_mlp_on_dataset(mlp_xor, xor_data, "XOR Gate");
+
+    mlp_free(mlp_xor);
+    dataset_free(xor_data);
+    training_result_free(result_xor);
+}
+
 int main() {
     srand(time(NULL));
-    perceptron_learning_logic_gates();
-    mlp_learning_xor();
+    // perceptron_learning_logic_gates();
+    // mlp_learning_xor();
+    mlp_learning_xor_batched();
     return 0;
 }

@@ -36,4 +36,7 @@ TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data, Dataset *va
 
 TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, Dataset *val_data, TrainingConfig *config);
 
+TrainingResult *train_mlp_batch(MLP *mlp, Dataset *train_data, Dataset *val_data,
+                                TrainingConfig *config);
+
 #endif /* ifndef GRADIENT_DESCENT_H */

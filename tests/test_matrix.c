@@ -418,6 +418,30 @@ void test_matrix_copy() {
     TEST_PASSED;
 }
 
+void test_matrix_copy_vector_into_row() {
+    Matrix *dest = matrix_create(2, 3);
+    Vector *row_1 = vector_create(3);
+    row_1->data[0] = 1.0f;
+    row_1->data[1] = 2.0f;
+    row_1->data[2] = 3.0f;
+    Vector *row_2 = vector_create(3);
+    row_2->data[0] = 4.0f;
+    row_2->data[1] = 5.0f;
+    row_2->data[2] = 6.0f;
+    matrix_copy_vector_into_row(dest, row_1, 0);
+    matrix_copy_vector_into_row(dest, row_2, 1);
+    assert(float_equals(matrix_get(dest, 0, 0), 1.0f));
+    assert(float_equals(matrix_get(dest, 0, 1), 2.0f));
+    assert(float_equals(matrix_get(dest, 0, 2), 3.0f));
+    assert(float_equals(matrix_get(dest, 1, 0), 4.0f));
+    assert(float_equals(matrix_get(dest, 1, 1), 5.0f));
+    assert(float_equals(matrix_get(dest, 1, 2), 6.0f));
+    matrix_free(dest);
+    vector_free(row_1);
+    vector_free(row_2);
+    TEST_PASSED;
+}
+
 void test_matrix_get_set() {
     Matrix *m = matrix_create(3, 3);
 
@@ -597,6 +621,7 @@ void run_matrix_tests(void) {
 
     printf("\n=== Matrix Utility Functions Tests ===\n");
     test_matrix_copy();
+    test_matrix_copy_vector_into_row();
     test_matrix_get_set();
     test_matrix_print();
 

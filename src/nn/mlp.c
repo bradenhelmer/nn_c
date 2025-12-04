@@ -98,6 +98,14 @@ void mlp_update_weights(MLP *mlp) {
     }
 }
 
+void mlp_scale_gradients(MLP *mlp, float scale) {
+    for (int l = 0; l < mlp->num_layers; l++) {
+        Layer *layer = mlp->layers[l];
+        matrix_scale(layer->dW, layer->dW, scale);
+        vector_scale(layer->db, layer->db, scale);
+    }
+}
+
 void test_mlp_on_dataset(MLP *mlp, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
 

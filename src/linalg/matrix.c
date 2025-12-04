@@ -16,18 +16,12 @@ Matrix *matrix_create(int rows, int cols) {
     Matrix *mat = (Matrix *)malloc(sizeof(Matrix));
     mat->rows = rows;
     mat->cols = cols;
-    mat->data = (float *)malloc(sizeof(float) * rows * cols);
+    mat->data = (float *)calloc(rows * cols, sizeof(float));
     return mat;
 }
 
 Matrix *matrix_zeros(int rows, int cols) {
-    Matrix *m = matrix_create(rows, cols);
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            matrix_set(m, i, j, 0.f);
-        }
-    }
-    return m;
+    return matrix_create(rows, cols);
 }
 
 Matrix *matrix_ones(int rows, int cols) {

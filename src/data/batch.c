@@ -21,6 +21,9 @@ BatchIterator *batch_iterator_create(Dataset *data, int batch_size) {
     batch_iter->num_batches = ceil((double)(data->num_samples) / (double)(batch_size));
     batch_iter->current_idx = 0;
     batch_iter->indices = (int *)malloc(sizeof(int) * data->num_samples);
+    for (int i = 0; i < data->num_samples; i++) {
+        batch_iter->indices[i] = i;
+    }
     return batch_iter;
 }
 
@@ -32,7 +35,7 @@ void batch_iterator_free(BatchIterator *batch_iter) {
 void batch_iterator_shuffle(BatchIterator *batch_iter) {
 
     // Fisher-Yates shuffle
-    for (int i = batch_iter->dataset->num_samples - 1; i <= 1; i--) {
+    for (int i = batch_iter->dataset->num_samples - 1; i >= 1; i--) {
         int j = rand_range(0, i);
 
         // Swap i & j
@@ -62,9 +65,10 @@ Batch *batch_iterator_next(BatchIterator *batch_iter) {
     batch->X = matrix_create(actual_size, batch_iter->dataset->num_features);
     batch->Y =
         matrix_create(actual_size, batch_iter->dataset->Y->cols); // (actual_size, num_outputs)
+    batch->size = actual_size;
 
     // Copy rows using shuffled indices.
-    for (int i = 0; i < actual_size - 1; i++) {
+    for (int i = 0; i < actual_size; i++) {
         int sample_idx = batch_iter->indices[start + i];
         Vector *data_row_x = get_row_as_vector(batch_iter->dataset->X, sample_idx);
         matrix_copy_vector_into_row(batch->X, data_row_x, i);

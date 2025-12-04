@@ -15,16 +15,12 @@
 Vector *vector_create(int size) {
     Vector *v = (Vector *)malloc(sizeof(Vector));
     v->size = size;
-    v->data = (float *)malloc(sizeof(float) * size);
+    v->data = (float *)calloc(size, sizeof(float));
     return v;
 }
 
 Vector *vector_zeros(int size) {
-    Vector *v = vector_create(size);
-    for (int i = 0; i < size; i++) {
-        v->data[i] = 0.f;
-    }
-    return v;
+    return vector_create(size);
 }
 
 Vector *vector_ones(int size) {

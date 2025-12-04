@@ -34,6 +34,7 @@ float mlp_loss(MLP *mlp, const Vector *target);
 // Training
 void mlp_zero_gradients(MLP *mlp);
 void mlp_update_weights(MLP *mlp);
+void mlp_scale_gradients(MLP *mlp, float scale);
 
 // Convenience
 MLP *mlp_create_sequential(int *layer_sizes, ScalarActivationPair *activations, int num_layers);

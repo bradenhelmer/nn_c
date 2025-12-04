@@ -33,7 +33,7 @@ float linear_scalar(float x) {
     return x;
 }
 
-float linear_scalar_derivative(float x) {
+float linear_scalar_derivative(__attribute__((unused)) float x) {
     return 1.0f;
 }
 

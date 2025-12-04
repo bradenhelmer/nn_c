@@ -121,13 +121,13 @@ lldb: debug
 	@lldb $(DEBUG_TARGET)
 
 # Debug tests with lldb
-lldb-test: test-debug
+lldb-test: $(TEST_DEBUG_TARGET)
 	@echo "Launching lldb for tests..."
 	@lldb $(TEST_DEBUG_TARGET)
 
 # Memory check with valgrind (if installed)
 memcheck: debug
-	valgrind --leak-check=full --show-leak-kinds=all $(DEBUG_TARGET)
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes $(DEBUG_TARGET)
 
 memcheck-test: $(TEST_DEBUG_TARGET)
 	valgrind --leak-check=full --show-leak-kinds=all $(TEST_DEBUG_TARGET)

@@ -80,11 +80,14 @@ void layer_backward(Layer *layer, const Vector *upstream_grad) {
     layer->activation.derivative(dz, layer->a);
     vector_elementwise_multiply(dz, upstream_grad, dz);
 
-    // 2. Weights -> dL/dW = dz ⊗ input^T (outer product)
-    vector_outer_product(layer->dW, dz, layer->input);
+    // 2. Weights -> dL/dW = dz ⊗ input^T (outer product) - accumulate
+    Matrix *dW_sample = matrix_create(layer->output_size, layer->input_size);
+    vector_outer_product(dW_sample, dz, layer->input);
+    matrix_add(layer->dW, layer->dW, dW_sample);
+    matrix_free(dW_sample);
 
-    // 3. Bias -> dL/db = dz
-    vector_copy(layer->db, dz);
+    // 3. Bias -> dL/db = dz - accumulate
+    vector_add(layer->db, layer->db, dz);
 
     // 4. Downstream Gradient -> dL/da_prev = W^T
     matrix_transpose_vector_multiply(layer->downstream_gradient, layer->weights, dz);
