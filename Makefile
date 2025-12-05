@@ -42,6 +42,7 @@ directories:
 	@mkdir -p $(BIN_DIR)
 	@mkdir -p $(OBJ_DIR)
 	@mkdir -p $(OBJ_DIR)/activations
+	@mkdir -p $(OBJ_DIR)/examples
 	@mkdir -p $(OBJ_DIR)/data
 	@mkdir -p $(OBJ_DIR)/linalg
 	@mkdir -p $(OBJ_DIR)/nn
@@ -49,6 +50,7 @@ directories:
 	@mkdir -p $(OBJ_DIR)/utils
 	@mkdir -p $(DEBUG_OBJ_DIR)
 	@mkdir -p $(DEBUG_OBJ_DIR)/activations
+	@mkdir -p $(DEBUG_OBJ_DIR)/examples
 	@mkdir -p $(DEBUG_OBJ_DIR)/data
 	@mkdir -p $(DEBUG_OBJ_DIR)/linalg
 	@mkdir -p $(DEBUG_OBJ_DIR)/nn
