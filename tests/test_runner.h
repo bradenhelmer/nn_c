@@ -30,4 +30,7 @@ void run_loss_tests(void);
 // Batch tests
 void run_batch_tests(void);
 
+// Optimizer tests
+void run_optimizer_tests(void);
+
 #endif /* TEST_RUNNER_H */

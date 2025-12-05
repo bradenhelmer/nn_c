@@ -29,6 +29,9 @@ int main() {
     // Run batch tests
     run_batch_tests();
 
+    // Run optimizer tests
+    run_optimizer_tests();
+
     printf("\n");
     printf("=====================================\n");
     printf("   All Tests Passed Successfully!\n");

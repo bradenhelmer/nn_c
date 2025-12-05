@@ -47,6 +47,7 @@ Optimizer *optimizer_create_adam(float learning_rate, float beta, float beta1, f
     opt->beta2 = beta2;
     opt->epsilon = epsilon;
     opt->timestep = timestep;
+    return opt;
 }
 
 void optimizer_init(Optimizer *opt, MLP *mlp) {
@@ -124,9 +125,43 @@ float optimizer_get_lr(Optimizer *opt) {
 }
 
 static void step_sgd(Optimizer *opt, MLP *mlp) {
+    for (int i = 0; i < mlp->num_layers; i++) {
+        Layer *layer = mlp->layers[i];
+
+        // 1. Update weights -> W = W - (lr * dW)
+        matrix_scale(layer->dW, layer->dW, opt->learning_rate);
+        matrix_subtract(layer->weights, layer->weights, layer->dW);
+
+        // 2. Update biases -> b = b - (lr * db)
+        vector_scale(layer->db, layer->db, opt->learning_rate);
+        vector_subtract(layer->biases, layer->biases, layer->db);
+    }
 }
+
 static void step_momentum(Optimizer *opt, MLP *mlp) {
+    for (int i = 0; i < opt->num_layers; ++i) {
+        Layer *layer = mlp->layers[i];
+        Matrix *vW = opt->v_weights[i];
+        Vector *vb = opt->v_biases[i];
+
+        // Update weights: vW = beta * vW + dW, then W = W - lr * vW
+        matrix_scale(vW, vW, opt->beta);
+        matrix_add(vW, vW, layer->dW);
+        Matrix *scaled_vW = matrix_create(vW->rows, vW->cols);
+        matrix_scale(scaled_vW, vW, opt->learning_rate);
+        matrix_subtract(layer->weights, layer->weights, scaled_vW);
+        matrix_free(scaled_vW);
+
+        // Update biases: vb = beta * vb + db, then b = b - lr * vb
+        vector_scale(vb, vb, opt->beta);
+        vector_add(vb, vb, layer->db);
+        Vector *scaled_vb = vector_create(vb->size);
+        vector_scale(scaled_vb, vb, opt->learning_rate);
+        vector_subtract(layer->biases, layer->biases, scaled_vb);
+        vector_free(scaled_vb);
+    }
 }
+
 static void step_adam(Optimizer *opt, MLP *mlp) {
 }
 
