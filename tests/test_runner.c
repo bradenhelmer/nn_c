@@ -32,6 +32,9 @@ int main() {
     // Run optimizer tests
     run_optimizer_tests();
 
+    // Run tensor tests
+    run_tensor_tests();
+
     printf("\n");
     printf("=====================================\n");
     printf("   All Tests Passed Successfully!\n");

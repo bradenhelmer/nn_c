@@ -33,4 +33,7 @@ void run_batch_tests(void);
 // Optimizer tests
 void run_optimizer_tests(void);
 
+// Tensor tests
+void run_tensor_tests(void);
+
 #endif /* TEST_RUNNER_H */

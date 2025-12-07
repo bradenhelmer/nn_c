@@ -48,6 +48,7 @@ directories:
 	@mkdir -p $(OBJ_DIR)/nn
 	@mkdir -p $(OBJ_DIR)/training
 	@mkdir -p $(OBJ_DIR)/utils
+	@mkdir -p $(OBJ_DIR)/tensor
 	@mkdir -p $(DEBUG_OBJ_DIR)
 	@mkdir -p $(DEBUG_OBJ_DIR)/activations
 	@mkdir -p $(DEBUG_OBJ_DIR)/examples
@@ -56,6 +57,7 @@ directories:
 	@mkdir -p $(DEBUG_OBJ_DIR)/nn
 	@mkdir -p $(DEBUG_OBJ_DIR)/training
 	@mkdir -p $(DEBUG_OBJ_DIR)/utils
+	@mkdir -p $(DEBUG_OBJ_DIR)/tensor
 	@mkdir -p $(TEST_OBJ_DIR)
 	@mkdir -p $(TEST_DEBUG_OBJ_DIR)
 

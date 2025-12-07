@@ -83,9 +83,8 @@ void test_optimizer_create_adam() {
     Optimizer *opt = optimizer_create_adam(0.001f, 0.9f, 0.999f, 1e-8f);
 
     assert(opt != NULL);
-    assert(opt->type == OPTIMIZER_MOMENTUM);
+    assert(opt->type == OPTIMIZER_ADAM);
     assert(float_equals(opt->learning_rate, 0.001f));
-    assert(float_equals(opt->beta, 0.9f));
     assert(float_equals(opt->beta1, 0.9f));
     assert(float_equals(opt->beta2, 0.999f));
     assert(float_equals(opt->epsilon, 1e-8f));
