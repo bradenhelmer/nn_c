@@ -115,6 +115,10 @@ void vector_copy(Vector *dest, const Vector *src) {
     memcpy(dest->data, src->data, sizeof(float) * src->size);
 }
 
+void vector_zero(const Vector *v) {
+    memset(v->data, 0, sizeof(float) * v->size);
+}
+
 float vector_sum(const Vector *v) {
     float sum = 0.f;
     for (int i = 0; i < v->size; i++) {

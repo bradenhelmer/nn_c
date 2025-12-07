@@ -86,6 +86,11 @@ TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, __attribute__((unused))
 
     float prev_loss = INFINITY;
 
+    // Pre-allocate vectors for reuse
+    Vector *input = vector_create(train_data->X->cols);
+    Vector *target = vector_create(train_data->Y->cols);
+    Vector *classification = vector_create(train_data->Y->cols);
+
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
         float epoch_loss = 0.f;
         int correct = 0;
@@ -93,10 +98,10 @@ TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, __attribute__((unused))
         for (int i = 0; i < train_data->num_samples; i++) {
             mlp_zero_gradients(mlp);
 
-            Vector *input = get_row_as_vector(train_data->X, i);
-            Vector *target = get_row_as_vector(train_data->Y, i);
+            matrix_copy_row_to_vector(input, train_data->X, i);
+            matrix_copy_row_to_vector(target, train_data->Y, i);
             Vector *prediction = mlp_forward(mlp, input);
-            Vector *classification = mlp->classifier(prediction);
+            mlp->classifier(classification, prediction);
 
             epoch_loss += mlp->loss.loss(prediction, target);
             if (vector_equals(classification, target)) {
@@ -105,11 +110,6 @@ TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, __attribute__((unused))
 
             mlp_backward(mlp, target);
             mlp_update_weights(mlp);
-
-            vector_free(input);
-            vector_free(target);
-            vector_free(prediction);
-            vector_free(classification);
         }
 
         result->loss_history[epoch] = epoch_loss / train_data->num_samples;
@@ -127,6 +127,10 @@ TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, __attribute__((unused))
                    result->accuracy_history[epoch] * 100);
         }
     }
+
+    vector_free(input);
+    vector_free(target);
+    vector_free(classification);
 
     result->final_loss = result->loss_history[result->epochs_completed - 1];
     return result;
@@ -146,6 +150,11 @@ TrainingResult *train_mlp_batch(MLP *mlp, Dataset *train_data,
     // 2. Batch iterator
     BatchIterator *batch_iter = batch_iterator_create(train_data, config->batch_size);
 
+    // Pre-allocate vectors for reuse
+    Vector *input = vector_create(train_data->X->cols);
+    Vector *target = vector_create(train_data->Y->cols);
+    Vector *classification = vector_create(train_data->Y->cols);
+
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
         float epoch_loss = 0.f;
         int correct = 0;
@@ -160,10 +169,10 @@ TrainingResult *train_mlp_batch(MLP *mlp, Dataset *train_data,
 
             // 4. Accumulate over batch samples
             for (int i = 0; i < batch->size; i++) {
-                Vector *input = get_row_as_vector(batch->X, i);
-                Vector *target = get_row_as_vector(batch->Y, i);
+                matrix_copy_row_to_vector(input, batch->X, i);
+                matrix_copy_row_to_vector(target, batch->Y, i);
                 Vector *prediction = mlp_forward(mlp, input);
-                Vector *classification = mlp->classifier(prediction);
+                mlp->classifier(classification, prediction);
 
                 epoch_loss += mlp->loss.loss(prediction, target);
                 if (vector_equals(classification, target)) {
@@ -171,10 +180,6 @@ TrainingResult *train_mlp_batch(MLP *mlp, Dataset *train_data,
                 }
 
                 mlp_backward(mlp, target);
-                vector_free(input);
-                vector_free(target);
-                vector_free(prediction);
-                vector_free(classification);
             }
 
             samples_seen += batch->size;
@@ -205,6 +210,10 @@ TrainingResult *train_mlp_batch(MLP *mlp, Dataset *train_data,
         }
     }
 
+    vector_free(input);
+    vector_free(target);
+    vector_free(classification);
+
     batch_iterator_free(batch_iter);
     result->final_loss = result->loss_history[result->epochs_completed - 1];
     return result;
@@ -220,7 +229,12 @@ TrainingResult *train_mlp_batch_opt(MLP *mlp, Dataset *train_data,
     result->accuracy_history = malloc(config->max_epochs * sizeof(float));
     result->epochs_completed = config->max_epochs;
 
-    float prev_loss = INFINITY;
+    // Pre-allocate vector buffers
+    int input_size = train_data->X->cols;
+    int output_size = train_data->Y->cols;
+    Vector *input = vector_create(input_size);
+    Vector *target = vector_create(output_size);
+    Vector *classification = vector_create(output_size);
 
     // 2. Batch iterator
     BatchIterator *batch_iter = batch_iterator_create(train_data, config->batch_size);
@@ -239,10 +253,10 @@ TrainingResult *train_mlp_batch_opt(MLP *mlp, Dataset *train_data,
 
             // 4. Accumulate over batch samples
             for (int i = 0; i < batch->size; i++) {
-                Vector *input = get_row_as_vector(batch->X, i);
-                Vector *target = get_row_as_vector(batch->Y, i);
+                matrix_copy_row_to_vector(input, batch->X, i);
+                matrix_copy_row_to_vector(target, batch->Y, i);
                 Vector *prediction = mlp_forward(mlp, input);
-                Vector *classification = mlp->classifier(prediction);
+                mlp->classifier(classification, prediction);
 
                 epoch_loss += mlp->loss.loss(prediction, target);
                 if (vector_equals(classification, target)) {
@@ -250,16 +264,18 @@ TrainingResult *train_mlp_batch_opt(MLP *mlp, Dataset *train_data,
                 }
 
                 mlp_backward(mlp, target);
-                vector_free(input);
-                vector_free(target);
-                vector_free(prediction);
-                vector_free(classification);
             }
 
             samples_seen += batch->size;
 
             // 5. Average gradients and update weights using optimizer
             mlp_scale_gradients(mlp, 1.0f / batch->size);
+
+            // L2 Regularization
+            if (config->l2_lambda > 0.0f) {
+                mlp_add_l2_gradient(mlp, config->l2_lambda);
+            }
+
             optimizer_step(config->optimizer, mlp);
             batch_free(batch);
         }
@@ -268,21 +284,23 @@ TrainingResult *train_mlp_batch_opt(MLP *mlp, Dataset *train_data,
         result->loss_history[epoch] = epoch_loss / samples_seen;
         result->accuracy_history[epoch] = (float)correct / samples_seen;
 
-        // 7. Early stop same as before.
-        if (fabsf(prev_loss - result->loss_history[epoch]) < config->tolerance) {
-            result->epochs_completed = epoch + 1;
-            break;
-        }
-
         batch_iterator_reset(batch_iter);
 
-        prev_loss = result->loss_history[epoch];
+        // Update learning rate if scheduler present.
+        if (config->scheduler != NULL) {
+            scheduler_step(config->scheduler);
+            optimizer_set_lr(config->optimizer, scheduler_get_lr(config->scheduler));
+        }
 
         if (config->verbose) {
             printf("Epoch %d: loss=%.4f, accuracy=%.2f%%\n", epoch, result->loss_history[epoch],
                    result->accuracy_history[epoch] * 100);
         }
     }
+
+    vector_free(input);
+    vector_free(target);
+    vector_free(classification);
 
     batch_iterator_free(batch_iter);
     result->final_loss = result->loss_history[result->epochs_completed - 1];

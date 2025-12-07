@@ -9,16 +9,16 @@
 #include "../training/gradient_descent.h"
 #include <stdio.h>
 
-static Vector *xor_classifier(Vector *prediction) {
+static void xor_classifier(Vector *dest, const Vector *prediction) {
     if (prediction->data[0] <= 0.05) {
-        return vector_zeros(1);
+        dest->data[0] = 0.0f;
+        return;
     }
     if (prediction->data[0] >= 0.95) {
-        return vector_ones(1);
+        dest->data[0] = 1.0f;
+        return;
     }
-    Vector *wrong = vector_create(1);
-    wrong->data[0] = -1.f;
-    return wrong;
+    dest->data[0] = -1.f;
 }
 
 void mlp_learning_xor() {

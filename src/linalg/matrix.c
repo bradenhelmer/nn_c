@@ -195,6 +195,11 @@ void matrix_copy_vector_into_row(Matrix *m, const Vector *v, int row_idx) {
     memcpy(&m->data[m->cols * row_idx], v->data, sizeof(float) * v->size);
 }
 
+void matrix_copy_row_to_vector(Vector *dest, const Matrix *src, int row_idx) {
+    assert(dest->size == src->cols);
+    memcpy(dest->data, &src->data[src->cols * row_idx], sizeof(float) * src->cols);
+}
+
 // External definitions for inline functions (C99 fallback)
 extern inline float matrix_get(const Matrix *m, int row, int col);
 extern inline void matrix_set(Matrix *m, int row, int col, float value);

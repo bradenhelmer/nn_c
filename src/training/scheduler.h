@@ -18,6 +18,7 @@ typedef struct {
     SchedulerType type;
     float initial_lr;
     float current_lr;
+    int current_epoch;
 
     // Step decay params
     int step_size; // decay every N epochs
@@ -29,20 +30,15 @@ typedef struct {
     // Cosine annealing
     float min_lr;
     int T_max; // total epochs
-
-    int current_epoch;
-
 } Scheduler;
 
-Scheduler *scheduler_create(SchedulerType type, float initial_lr);
+Scheduler *scheduler_create_constant(float initial_lr);
+Scheduler *scheduler_create_step(float initial_lr, int step_size, float gamma);
+Scheduler *scheduler_create_exponential(float initial_lr, float decay_rate);
+Scheduler *scheduler_create_cosine(float initial_lr, float min_lr, int T_max);
 void scheduler_free(Scheduler *s);
 
-float scheduler_get_lr(Scheduler *s);
 void scheduler_step(Scheduler *s); // Call after each epoch
-
-// Config
-void scheduler_set_step_decay(Scheduler *s, int step_size, float gamma);
-void scheduler_set_exponential(Scheduler *s, float decay_rate);
-void scheduler_set_cosine(Scheduler *s, float min_lr, int T_max);
+float scheduler_get_lr(Scheduler *s);
 
 #endif /* ifndef SCHEDULER_H */

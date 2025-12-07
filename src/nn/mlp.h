@@ -10,7 +10,7 @@
 #include "layer.h"
 #include "loss.h"
 
-typedef Vector *(*mlp_classifier)(Vector *);
+typedef void (*mlp_classifier)(Vector *, const Vector *);
 
 typedef struct {
     Layer **layers;
@@ -35,6 +35,7 @@ float mlp_loss(MLP *mlp, const Vector *target);
 void mlp_zero_gradients(MLP *mlp);
 void mlp_update_weights(MLP *mlp);
 void mlp_scale_gradients(MLP *mlp, float scale);
+void mlp_add_l2_gradient(MLP *mlp, float lambda);
 
 // Convenience
 MLP *mlp_create_sequential(int *layer_sizes, ScalarActivationPair *activations, int num_layers);

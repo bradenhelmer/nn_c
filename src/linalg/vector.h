@@ -44,6 +44,7 @@ void vector_copy(Vector *dest, const Vector *src);
 float vector_sum(const Vector *v);
 float vector_min(const Vector *v);
 float vector_max(const Vector *v);
+void vector_zero(const Vector *v);
 void vector_print(const Vector *v);
 int vector_equals(const Vector *a, const Vector *b);
 

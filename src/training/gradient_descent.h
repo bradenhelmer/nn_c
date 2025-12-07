@@ -16,7 +16,6 @@ typedef struct {
     float tolerance;
     int batch_size;
     int verbose;
-
     Optimizer *optimizer;
     Scheduler *scheduler;
     float l2_lambda;

@@ -38,20 +38,16 @@ void mlp_free(MLP *mlp) {
 
 Vector *mlp_forward(MLP *mlp, const Vector *input) {
 
-    // Run first layer
-    Layer *prev = mlp->layers[0];
-    layer_forward(prev, input);
+    const Vector *current = input;
 
     // Chain remaining layer outputs.
-    for (int i = 1; i < mlp->num_layers; i++) {
+    for (int i = 0; i < mlp->num_layers; i++) {
         Layer *layer = mlp->layers[i];
-        layer_forward(layer, prev->a);
-        prev = layer;
+        layer_forward(layer, current);
+        current = (const Vector *)layer->a;
     }
 
-    Vector *output = vector_create(prev->a->size);
-    vector_copy(output, prev->a);
-    return output;
+    return (Vector *)current;
 }
 
 void mlp_backward(MLP *mlp, const Vector *target) {
@@ -111,15 +107,30 @@ void mlp_scale_gradients(MLP *mlp, float scale) {
     }
 }
 
+void mlp_add_l2_gradient(MLP *mlp, float lambda) {
+    for (int i = 0; i < mlp->num_layers; ++i) {
+        Layer *layer = mlp->layers[i];
+        int size = layer->weights->rows * layer->weights->cols;
+        for (int j = 0; j < size; j++) {
+            layer->dW->data[j] += lambda * layer->weights->data[j];
+        }
+    }
+}
+
 void test_mlp_on_dataset(MLP *mlp, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
 
+    // Pre-allocate vectors for reuse
+    Vector *input = vector_create(data->X->cols);
+    Vector *target = vector_create(data->Y->cols);
+    Vector *classification = vector_create(data->Y->cols);
+
     for (int i = 0; i < data->num_samples; i++) {
-        Vector *input = get_row_as_vector(data->X, i);
-        Vector *target = get_row_as_vector(data->Y, i);
+        matrix_copy_row_to_vector(input, data->X, i);
+        matrix_copy_row_to_vector(target, data->Y, i);
 
         Vector *prediction = mlp_forward(mlp, input);
-        Vector *classification = mlp->classifier(prediction);
+        mlp->classifier(classification, prediction);
 
         printf("Input: ");
         vector_print(input);
@@ -131,9 +142,10 @@ void test_mlp_on_dataset(MLP *mlp, Dataset *data, const char *name) {
         vector_print(prediction);
         printf(")\n");
 
-        vector_free(input);
-        vector_free(target);
         vector_free(prediction);
-        vector_free(classification);
     }
+
+    vector_free(input);
+    vector_free(target);
+    vector_free(classification);
 }

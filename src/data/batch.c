@@ -67,16 +67,20 @@ Batch *batch_iterator_next(BatchIterator *batch_iter) {
         matrix_create(actual_size, batch_iter->dataset->Y->cols); // (actual_size, num_outputs)
     batch->size = actual_size;
 
-    // Copy rows using shuffled indices.
+    // Copy rows using shuffled indices with pre-allocated buffers
+    Vector *row_buffer_x = vector_create(batch_iter->dataset->X->cols);
+    Vector *row_buffer_y = vector_create(batch_iter->dataset->Y->cols);
+
     for (int i = 0; i < actual_size; i++) {
         int sample_idx = batch_iter->indices[start + i];
-        Vector *data_row_x = get_row_as_vector(batch_iter->dataset->X, sample_idx);
-        matrix_copy_vector_into_row(batch->X, data_row_x, i);
-        vector_free(data_row_x);
-        Vector *data_row_y = get_row_as_vector(batch_iter->dataset->Y, sample_idx);
-        matrix_copy_vector_into_row(batch->Y, data_row_y, i);
-        vector_free(data_row_y);
+        matrix_copy_row_to_vector(row_buffer_x, batch_iter->dataset->X, sample_idx);
+        matrix_copy_vector_into_row(batch->X, row_buffer_x, i);
+        matrix_copy_row_to_vector(row_buffer_y, batch_iter->dataset->Y, sample_idx);
+        matrix_copy_vector_into_row(batch->Y, row_buffer_y, i);
     }
+
+    vector_free(row_buffer_x);
+    vector_free(row_buffer_y);
 
     batch_iter->current_idx = end;
     return batch;

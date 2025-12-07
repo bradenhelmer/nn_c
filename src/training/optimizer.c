@@ -51,7 +51,7 @@ Optimizer *optimizer_create_adam(float learning_rate, float beta1, float beta2, 
 
 void optimizer_init(Optimizer *opt, MLP *mlp) {
     opt->num_layers = mlp->num_layers;
-    if (opt->type == OPTIMIZER_MOMENTUM || opt->type == OPTIMIZER_ADAM) {
+    if (opt->type == OPTIMIZER_MOMENTUM) {
         opt->v_weights = (Matrix **)malloc(sizeof(Matrix *) * mlp->num_layers);
         opt->v_biases = (Vector **)malloc(sizeof(Vector *) * mlp->num_layers);
 
@@ -61,20 +61,20 @@ void optimizer_init(Optimizer *opt, MLP *mlp) {
             opt->v_weights[i] = matrix_create(layer->weights->rows, layer->weights->cols);
             opt->v_biases[i] = vector_create(layer->biases->size);
         }
+    }
 
-        if (opt->type == OPTIMIZER_ADAM) {
-            opt->m_weights = (Matrix **)malloc(sizeof(Matrix *) * mlp->num_layers);
-            opt->s_weights = (Matrix **)malloc(sizeof(Matrix *) * mlp->num_layers);
-            opt->m_biases = (Vector **)malloc(sizeof(Vector *) * mlp->num_layers);
-            opt->s_biases = (Vector **)malloc(sizeof(Vector *) * mlp->num_layers);
+    if (opt->type == OPTIMIZER_ADAM) {
+        opt->m_weights = (Matrix **)malloc(sizeof(Matrix *) * mlp->num_layers);
+        opt->s_weights = (Matrix **)malloc(sizeof(Matrix *) * mlp->num_layers);
+        opt->m_biases = (Vector **)malloc(sizeof(Vector *) * mlp->num_layers);
+        opt->s_biases = (Vector **)malloc(sizeof(Vector *) * mlp->num_layers);
 
-            for (int i = 0; i < mlp->num_layers; ++i) {
-                Layer *layer = mlp->layers[i];
-                opt->m_weights[i] = matrix_create(layer->weights->rows, layer->weights->cols);
-                opt->s_weights[i] = matrix_create(layer->weights->rows, layer->weights->cols);
-                opt->m_biases[i] = vector_create(layer->biases->size);
-                opt->s_biases[i] = vector_create(layer->biases->size);
-            }
+        for (int i = 0; i < mlp->num_layers; ++i) {
+            Layer *layer = mlp->layers[i];
+            opt->m_weights[i] = matrix_create(layer->weights->rows, layer->weights->cols);
+            opt->s_weights[i] = matrix_create(layer->weights->rows, layer->weights->cols);
+            opt->m_biases[i] = vector_create(layer->biases->size);
+            opt->s_biases[i] = vector_create(layer->biases->size);
         }
     }
 }
@@ -95,15 +95,11 @@ void optimizer_free(Optimizer *opt) {
     }
     case OPTIMIZER_ADAM: {
         for (int i = 0; i < opt->num_layers; ++i) {
-            matrix_free(opt->v_weights[i]);
-            vector_free(opt->v_biases[i]);
             matrix_free(opt->m_weights[i]);
             vector_free(opt->m_biases[i]);
             matrix_free(opt->s_weights[i]);
             vector_free(opt->s_biases[i]);
         }
-        free(opt->v_weights);
-        free(opt->v_biases);
         free(opt->m_weights);
         free(opt->m_biases);
         free(opt->s_weights);

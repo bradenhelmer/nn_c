@@ -18,14 +18,15 @@ extern void mlp_learning_xor_batched(void);
 extern void mnist_sgd();
 extern void mnist_momentum();
 extern void mnist_adam();
+extern void mnist_aggressive();
 
 int main() {
     srand(time(NULL));
     // perceptron_learning_logic_gates();
     // mlp_learning_xor();
     // mlp_learning_xor_batched();
-    mnist_sgd();
-    mnist_momentum();
-    mnist_adam();
+    // mnist_sgd();
+    // mnist_momentum();
+    mnist_aggressive();
     return 0;
 }
