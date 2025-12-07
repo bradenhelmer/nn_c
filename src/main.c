@@ -25,5 +25,7 @@ int main() {
     // mlp_learning_xor();
     // mlp_learning_xor_batched();
     mnist_sgd();
+    mnist_momentum();
+    mnist_adam();
     return 0;
 }
