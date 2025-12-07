@@ -4,6 +4,7 @@
  * Loss function implementations.
  */
 #include "loss.h"
+#include "../activations/activations.h"
 #include <assert.h>
 #include <math.h>
 
@@ -30,6 +31,9 @@ void vector_mse_derivative(Vector *result, const Vector *prediction, const Vecto
     }
 }
 
+const VectorLossPair VECTOR_MSE_LOSS = {.loss = vector_mse,
+                                        .loss_derivative = vector_mse_derivative};
+
 #define EPSILON 1e-7f
 
 float vector_cross_entropy(const Vector *prediction, const Vector *target) {
@@ -50,8 +54,39 @@ void vector_cross_entropy_derivative(Vector *result, const Vector *prediction,
     }
 }
 
-const VectorLossPair VECTOR_MSE_LOSS = {.loss = vector_mse,
-                                        .loss_derivative = vector_mse_derivative};
-
 const VectorLossPair VECTOR_CROSS_ENTROPY_LOSS = {
     .loss = vector_cross_entropy, .loss_derivative = vector_cross_entropy_derivative};
+
+// Softmax cross-entropy loss: applies softmax to logits, then cross-entropy
+float vector_softmax_cross_entropy(const Vector *logits, const Vector *target) {
+    assert(logits->size == target->size);
+
+    // Apply softmax to logits
+    Vector *softmax_output = vector_create(logits->size);
+    vector_softmax(softmax_output, logits);
+
+    // Compute cross-entropy: -sum(target * log(softmax))
+    float loss = vector_cross_entropy(softmax_output, target);
+
+    vector_free(softmax_output);
+    return loss;
+}
+
+// Gradient of softmax cross-entropy w.r.t. logits: softmax(logits) - target
+void vector_softmax_cross_entropy_derivative(Vector *result, const Vector *logits,
+                                             const Vector *target) {
+    assert(logits->size == result->size);
+    assert(target->size == result->size);
+
+    // Apply softmax to logits
+    vector_softmax(result, logits);
+
+    // Gradient: softmax(logits) - target
+    for (int i = 0; i < result->size; i++) {
+        result->data[i] -= target->data[i];
+    }
+}
+
+const VectorLossPair VECTOR_SOFTMAX_CROSS_ENTROPY_LOSS = {
+    .loss = vector_softmax_cross_entropy,
+    .loss_derivative = vector_softmax_cross_entropy_derivative};

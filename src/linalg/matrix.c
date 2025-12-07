@@ -211,14 +211,14 @@ void matrix_print(const Matrix *m) {
     printf("[");
     for (i = 0; i < m->rows - 1; i++) {
         for (j = 0; j < m->cols - 1; j++) {
-            printf("%f,", matrix_get(m, i, j));
+            printf("%.3f,", matrix_get(m, i, j));
         }
-        printf("%f,\n   ", matrix_get(m, i, j));
+        printf("%.3f,\n   ", matrix_get(m, i, j));
     }
     for (j = 0; j < m->cols - 1; j++) {
-        printf("%f,", matrix_get(m, i, j));
+        printf("%.3f,", matrix_get(m, i, j));
     }
-    printf("%f]", matrix_get(m, i, j));
+    printf("%.3f]", matrix_get(m, i, j));
 }
 
 void matrix_sum_rows(Vector *result, const Matrix *m) {

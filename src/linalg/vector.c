@@ -151,9 +151,9 @@ void vector_print(const Vector *v) {
     int i;
     printf("[");
     for (i = 0; i < (v->size - 1); i++) {
-        printf("%f,", v->data[i]);
+        printf("%.3f,", v->data[i]);
     }
-    printf("%f]", v->data[i]);
+    printf("%.3f]", v->data[i]);
 }
 
 int vector_equals(const Vector *a, const Vector *b) {

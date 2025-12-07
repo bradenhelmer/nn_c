@@ -14,9 +14,15 @@ float mse_loss(float predicted, float target);
 // Vector functions.
 float vector_mse(const Vector *prediction, const Vector *target);
 void vector_mse_derivative(Vector *result, const Vector *prediction, const Vector *target);
+
+// Cross Entropy
 float vector_cross_entropy(const Vector *prediction, const Vector *target);
 void vector_cross_entropy_derivative(Vector *result, const Vector *prediction,
                                      const Vector *target);
+
+// Softmax cross entropy
+void vector_softmax_cross_entropy_derivative(Vector *result, const Vector *prediction,
+                                             const Vector *target);
 
 typedef float (*vector_loss_function)(const Vector *, const Vector *);
 typedef void (*vector_loss_function_derivative)(Vector *, const Vector *, const Vector *);
@@ -28,5 +34,6 @@ typedef struct {
 
 extern const VectorLossPair VECTOR_MSE_LOSS;
 extern const VectorLossPair VECTOR_CROSS_ENTROPY_LOSS;
+extern const VectorLossPair VECTOR_SOFTMAX_CROSS_ENTROPY_LOSS;
 
 #endif /* ifndef LOSS_H */

@@ -303,17 +303,6 @@ void test_batch_iterator_shuffle() {
     // Shuffle
     batch_iterator_shuffle(iter);
 
-    // Note: This test is probabilistic - there's a small chance
-    // the shuffle results in the same order. For a 4-element array,
-    // the probability is 1/24 ≈ 4.2%
-    // In practice, this should almost always pass
-    int same_count = 0;
-    for (int i = 0; i < 4; i++) {
-        if (iter->indices[i] == original[i]) {
-            same_count++;
-        }
-    }
-
     // All indices should still be present (no duplicates/missing values)
     int found[4] = {0};
     for (int i = 0; i < 4; i++) {

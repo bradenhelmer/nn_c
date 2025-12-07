@@ -78,6 +78,20 @@ void vector_tanh_derivative(Vector *result, const Vector *tanh_output) {
     }
 }
 
+void vector_linear(Vector *result, const Vector *input) {
+    assert(result->size == input->size);
+    for (int i = 0; i < input->size; i++) {
+        result->data[i] = input->data[i];
+    }
+}
+
+void vector_linear_derivative(Vector *result, const Vector *input) {
+    assert(result->size == input->size);
+    for (int i = 0; i < input->size; i++) {
+        result->data[i] = 1.0f;
+    }
+}
+
 void vector_softmax(Vector *result, const Vector *input) {
     assert(result->size == input->size);
     float max_val = vector_max(input);
@@ -151,3 +165,6 @@ const VectorActivationPair VECTOR_RELU_ACTIVATION = {
 
 const VectorActivationPair VECTOR_TANH_ACTIVATION = {
     .forward = vector_tanh_activation, .derivative = vector_tanh_derivative, .name = "vector_tanh"};
+
+const VectorActivationPair VECTOR_LINEAR_ACTIVATION = {
+    .forward = vector_linear, .derivative = vector_linear_derivative, .name = "vector_linear"};

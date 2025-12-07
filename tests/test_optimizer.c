@@ -80,7 +80,7 @@ void test_optimizer_create_momentum() {
 }
 
 void test_optimizer_create_adam() {
-    Optimizer *opt = optimizer_create_adam(0.001f, 0.9f, 0.9f, 0.999f, 1e-8f, 0);
+    Optimizer *opt = optimizer_create_adam(0.001f, 0.9f, 0.999f, 1e-8f);
 
     assert(opt != NULL);
     assert(opt->type == OPTIMIZER_MOMENTUM);

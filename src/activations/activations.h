@@ -31,6 +31,9 @@ void vector_relu_derivative(Vector *result, const Vector *input);
 void vector_tanh_activation(Vector *result, const Vector *input);
 void vector_tanh_derivative(Vector *result, const Vector *tanh_output);
 
+void vector_linear(Vector *result, const Vector *input);
+void vector_linear_derivative(Vector *result, const Vector *input);
+
 // Softmax (special - operates on whole vector)
 void vector_softmax(Vector *result, const Vector *input);
 
@@ -70,5 +73,6 @@ typedef struct {
 extern const VectorActivationPair VECTOR_SIGMOID_ACTIVATION;
 extern const VectorActivationPair VECTOR_RELU_ACTIVATION;
 extern const VectorActivationPair VECTOR_TANH_ACTIVATION;
+extern const VectorActivationPair VECTOR_LINEAR_ACTIVATION;
 
 #endif /* ifndef ACTIVATIONS_H */
