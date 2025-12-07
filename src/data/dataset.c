@@ -61,7 +61,7 @@ Dataset *create_xor_gate_dataset() {
 static Dataset *load_mnist_file(const char *image_path, const char *label_path,
                                 const int image_count) {
 
-    // Create initial train dataset and X matrix (60,0000 x 784 pixels)
+    // Create initial train dataset and X matrix (60,000 x 784 pixels)
     Dataset *d = dataset_create(image_count, MNIST_IMG_PIXEL_COUNT);
     d->X = matrix_create(image_count, MNIST_IMG_PIXEL_COUNT);
 
