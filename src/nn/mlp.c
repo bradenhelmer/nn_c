@@ -88,13 +88,18 @@ void mlp_update_weights(MLP *mlp) {
     for (int i = 0; i < mlp->num_layers; i++) {
         Layer *layer = mlp->layers[i];
 
-        // 1. Update weights -> W = W - (lr * dW)
-        matrix_scale(layer->dW, layer->dW, mlp->learning_rate);
-        matrix_subtract(layer->weights, layer->weights, layer->dW);
+        // Update weights: W = W - (lr * dW)
+        for (int row = 0; row < layer->weights->rows; ++row) {
+            for (int col = 0; col < layer->weights->cols; ++col) {
+                int idx = row * layer->weights->cols + col;
+                layer->weights->data[idx] -= mlp->learning_rate * layer->dW->data[idx];
+            }
+        }
 
-        // 2. Update biases -> b = b - (lr * db)
-        vector_scale(layer->db, layer->db, mlp->learning_rate);
-        vector_subtract(layer->biases, layer->biases, layer->db);
+        // Update biases: b = b - (lr * db)
+        for (int j = 0; j < layer->biases->size; ++j) {
+            layer->biases->data[j] -= mlp->learning_rate * layer->db->data[j];
+        }
     }
 }
 

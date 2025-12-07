@@ -37,8 +37,8 @@ typedef struct Optimizer {
 // Creation
 Optimizer *optimizer_create_sgd(float learning_rate);
 Optimizer *optimizer_create_momentum(float learning_rate, float beta);
-Optimizer *optimizer_create_adam(float learning_rate, float beta, float beta1, float beta2,
-                                 float epsilon, int timestep);
+Optimizer *optimizer_create_adam(float learning_rate, float beta1, float beta2, float epsilon);
+
 void optimizer_free(Optimizer *opt);
 
 // Call after MLP is built, before training

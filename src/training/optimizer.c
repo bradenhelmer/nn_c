@@ -4,6 +4,7 @@
  * Optimizer implementations
  */
 #include "optimizer.h"
+#include <math.h>
 #include <stdlib.h>
 
 static Optimizer *optimizer_create_base(float learning_rate) {
@@ -38,15 +39,13 @@ Optimizer *optimizer_create_momentum(float learning_rate, float beta) {
     return opt;
 }
 
-Optimizer *optimizer_create_adam(float learning_rate, float beta, float beta1, float beta2,
-                                 float epsilon, int timestep) {
+Optimizer *optimizer_create_adam(float learning_rate, float beta1, float beta2, float epsilon) {
     Optimizer *opt = optimizer_create_base(learning_rate);
-    opt->type = OPTIMIZER_MOMENTUM;
-    opt->beta = beta;
+    opt->type = OPTIMIZER_ADAM;
     opt->beta1 = beta1;
     opt->beta2 = beta2;
     opt->epsilon = epsilon;
-    opt->timestep = timestep;
+    opt->timestep = 0;
     return opt;
 }
 
@@ -128,13 +127,18 @@ static void step_sgd(Optimizer *opt, MLP *mlp) {
     for (int i = 0; i < mlp->num_layers; i++) {
         Layer *layer = mlp->layers[i];
 
-        // 1. Update weights -> W = W - (lr * dW)
-        matrix_scale(layer->dW, layer->dW, opt->learning_rate);
-        matrix_subtract(layer->weights, layer->weights, layer->dW);
+        // Update weights: W = W - (lr * dW)
+        for (int row = 0; row < layer->weights->rows; ++row) {
+            for (int col = 0; col < layer->weights->cols; ++col) {
+                int idx = row * layer->weights->cols + col;
+                layer->weights->data[idx] -= opt->learning_rate * layer->dW->data[idx];
+            }
+        }
 
-        // 2. Update biases -> b = b - (lr * db)
-        vector_scale(layer->db, layer->db, opt->learning_rate);
-        vector_subtract(layer->biases, layer->biases, layer->db);
+        // Update biases: b = b - (lr * db)
+        for (int j = 0; j < layer->biases->size; ++j) {
+            layer->biases->data[j] -= opt->learning_rate * layer->db->data[j];
+        }
     }
 }
 
@@ -145,24 +149,68 @@ static void step_momentum(Optimizer *opt, MLP *mlp) {
         Vector *vb = opt->v_biases[i];
 
         // Update weights: vW = beta * vW + dW, then W = W - lr * vW
-        matrix_scale(vW, vW, opt->beta);
-        matrix_add(vW, vW, layer->dW);
-        Matrix *scaled_vW = matrix_create(vW->rows, vW->cols);
-        matrix_scale(scaled_vW, vW, opt->learning_rate);
-        matrix_subtract(layer->weights, layer->weights, scaled_vW);
-        matrix_free(scaled_vW);
+        for (int row = 0; row < vW->rows; ++row) {
+            for (int col = 0; col < vW->cols; ++col) {
+                int idx = row * vW->cols + col;
+                vW->data[idx] = opt->beta * vW->data[idx] + layer->dW->data[idx];
+                layer->weights->data[idx] -= opt->learning_rate * vW->data[idx];
+            }
+        }
 
         // Update biases: vb = beta * vb + db, then b = b - lr * vb
-        vector_scale(vb, vb, opt->beta);
-        vector_add(vb, vb, layer->db);
-        Vector *scaled_vb = vector_create(vb->size);
-        vector_scale(scaled_vb, vb, opt->learning_rate);
-        vector_subtract(layer->biases, layer->biases, scaled_vb);
-        vector_free(scaled_vb);
+        for (int j = 0; j < vb->size; ++j) {
+            vb->data[j] = opt->beta * vb->data[j] + layer->db->data[j];
+            layer->biases->data[j] -= opt->learning_rate * vb->data[j];
+        }
     }
 }
 
 static void step_adam(Optimizer *opt, MLP *mlp) {
+    opt->timestep += 1;
+
+    // Precompute bias corrections: (1 - β^t)
+    float bc1 = 1 - powf(opt->beta1, opt->timestep);
+    float bc2 = 1 - powf(opt->beta2, opt->timestep);
+
+    for (int i = 0; i < opt->num_layers; ++i) {
+        Layer *layer = mlp->layers[i];
+        Matrix *mW = opt->m_weights[i];
+        Matrix *sW = opt->s_weights[i];
+        Vector *mb = opt->m_biases[i];
+        Vector *sb = opt->s_biases[i];
+
+        // Update weights: m = β₁m + (1-β₁)g, s = β₂s + (1-β₂)g², W = W - lr·m̂/(√ŝ + ε)
+        for (int row = 0; row < layer->weights->rows; row++) {
+            for (int col = 0; col < layer->weights->cols; col++) {
+                int idx = row * layer->weights->cols + col;
+                float grad = layer->dW->data[idx];
+
+                // Update moments
+                mW->data[idx] = opt->beta1 * mW->data[idx] + (1 - opt->beta1) * grad;
+                sW->data[idx] = opt->beta2 * sW->data[idx] + (1 - opt->beta2) * grad * grad;
+
+                // Bias correction and parameter update
+                float m_hat = mW->data[idx] / bc1;
+                float s_hat = sW->data[idx] / bc2;
+                layer->weights->data[idx] -=
+                    opt->learning_rate * m_hat / (sqrtf(s_hat) + opt->epsilon);
+            }
+        }
+
+        // Update biases: m = β₁m + (1-β₁)g, s = β₂s + (1-β₂)g², b = b - lr·m̂/(√ŝ + ε)
+        for (int j = 0; j < layer->biases->size; j++) {
+            float grad = layer->db->data[j];
+
+            // Update moments
+            mb->data[j] = opt->beta1 * mb->data[j] + (1 - opt->beta1) * grad;
+            sb->data[j] = opt->beta2 * sb->data[j] + (1 - opt->beta2) * grad * grad;
+
+            // Bias correction and parameter update
+            float m_hat = mb->data[j] / bc1;
+            float s_hat = sb->data[j] / bc2;
+            layer->biases->data[j] -= opt->learning_rate * m_hat / (sqrtf(s_hat) + opt->epsilon);
+        }
+    }
 }
 
 void optimizer_step(Optimizer *opt, MLP *mlp) {
