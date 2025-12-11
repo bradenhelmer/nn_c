@@ -24,7 +24,7 @@ Tensor *tensor_create(int ndim, int *shape) {
     }
 
     t->size = t->strides[0] * shape[0];
-    t->data = (float *)malloc(t->size * sizeof(float));
+    t->data = (float *)calloc(t->size, sizeof(float));
     return t;
 }
 

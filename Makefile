@@ -70,7 +70,7 @@ $(TARGET): $(OBJS)
 # Build object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@echo "Compiling $<..."
-	@$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -I$(SRC_DIR) -c $< -o $@
 
 # Build debug executable
 $(DEBUG_TARGET): $(DEBUG_OBJS)
@@ -81,7 +81,7 @@ $(DEBUG_TARGET): $(DEBUG_OBJS)
 # Build debug object files
 $(DEBUG_OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@echo "Compiling (debug) $<..."
-	@$(CC) $(CFLAGS) $(DEBUGFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) $(DEBUGFLAGS) -I$(SRC_DIR) -c $< -o $@
 
 # Test target
 test: directories $(TEST_TARGET)

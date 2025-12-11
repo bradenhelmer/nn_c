@@ -4,6 +4,8 @@
  * Convolutional Layer Implementations.
  */
 #include "conv_layer.h"
+#include "utils/utils.h"
+#include <math.h>
 #include <stdlib.h>
 
 ConvLayer *conv_layer_create(int in_channels, int out_channels, int kernel_size, int stride,
@@ -37,8 +39,19 @@ void conv_layer_free(ConvLayer *layer) {
     free(layer);
 }
 
-void conv_layer_init_weights(ConvLayer *layer);
+// Xavier weight initialization
+void conv_layer_init_weights(ConvLayer *layer) {
+    int kernel_squared = layer->kernel_size * layer->kernel_size;
+    int fan_in = layer->in_channels * kernel_squared;
+    int fan_out = layer->out_channels * kernel_squared;
+    float standard = sqrtf((2.f / (fan_in + fan_out)));
+    for (int i = 0; i < layer->kernels->size; ++i) {
+        layer->kernels->data[i] = rand_rangef(-standard, standard);
+    }
+}
 
 // Forward/backward
-Tensor *conv_layer_forward(ConvLayer *layer, Tensor *input);
-Tensor *conv_layer_backward(ConvLayer *layer, Tensor *upstream_grad);
+Tensor *conv_layer_forward(ConvLayer *layer, Tensor *input) {
+}
+Tensor *conv_layer_backward(ConvLayer *layer, Tensor *upstream_grad) {
+}
