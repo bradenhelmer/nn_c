@@ -36,4 +36,7 @@ void run_optimizer_tests(void);
 // Tensor tests
 void run_tensor_tests(void);
 
+// Conv layer tests
+void run_conv_tests(void);
+
 #endif /* TEST_RUNNER_H */

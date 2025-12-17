@@ -39,19 +39,19 @@ void tensor_free(Tensor *t) {
     free(t);
 }
 
-float tensor_get3d(Tensor *t, int i, int j, int k) {
+float tensor_get3d(const Tensor *t, int i, int j, int k) {
     return t->data[tensor_index3d(t, i, j, k)];
 }
 
-void tensor_set3d(Tensor *t, int i, int j, int k, float value) {
+void tensor_set3d(const Tensor *t, int i, int j, int k, float value) {
     t->data[tensor_index3d(t, i, j, k)] = value;
 }
 
-float tensor_get4d(Tensor *t, int i, int j, int k, int l) {
+float tensor_get4d(const Tensor *t, int i, int j, int k, int l) {
     return t->data[tensor_index4d(t, i, j, k, l)];
 }
 
-void tensor_set4d(Tensor *t, int i, int j, int k, int l, float value) {
+void tensor_set4d(const Tensor *t, int i, int j, int k, int l, float value) {
     t->data[tensor_index4d(t, i, j, k, l)] = value;
 }
 
@@ -84,4 +84,41 @@ void tensor_print_shape(const Tensor *t) {
     printf("%d}", t->shape[i]);
 }
 
-Tensor *tensor_pad2d(const Tensor *t, int padding);
+Tensor *tensor_pad2d(const Tensor *t, int padding) {
+    int C = t->shape[0];
+    int H = t->shape[1];
+    int W = t->shape[2];
+
+    int new_shape[] = {C, H + 2 * padding, W + 2 * padding};
+    Tensor *padded = tensor_zeros(3, new_shape);
+
+    for (int c = 0; c < C; c++) {
+        for (int h = 0; h < H; h++) {
+            for (int w = 0; w < W; w++) {
+                float val = tensor_get3d(t, c, h, w);
+                tensor_set3d(padded, c, h + padding, w + padding, val);
+            }
+        }
+    }
+
+    return padded;
+}
+
+Tensor *tensor_unpad2d(const Tensor *t, int padding) {
+    int C = t->shape[0];
+    int H = t->shape[1];
+    int W = t->shape[2];
+
+    int new_shape[] = {C, H - 2 * padding, W - 2 * padding};
+    Tensor *unpadded = tensor_zeros(3, new_shape);
+
+    for (int c = 0; c < C; c++) {
+        for (int h = 0; h < H; h++) {
+            for (int w = 0; w < W; w++) {
+                float val = tensor_get3d(t, c, h + padding, w + padding);
+                tensor_set3d(unpadded, c, h, w, val);
+            }
+        }
+    }
+    return unpadded;
+}

@@ -35,6 +35,9 @@ int main() {
     // Run tensor tests
     run_tensor_tests();
 
+    // Run conv layer tests
+    run_conv_tests();
+
     printf("\n");
     printf("=====================================\n");
     printf("   All Tests Passed Successfully!\n");
