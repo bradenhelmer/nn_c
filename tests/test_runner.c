@@ -38,6 +38,9 @@ int main() {
     // Run conv layer tests
     run_conv_tests();
 
+    // Run pool layer tests
+    run_pool_tests();
+
     printf("\n");
     printf("=====================================\n");
     printf("   All Tests Passed Successfully!\n");
