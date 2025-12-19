@@ -39,6 +39,14 @@ void tensor_free(Tensor *t) {
     free(t);
 }
 
+float tensor_get2d(const Tensor *t, int i, int j) {
+    return t->data[tensor_index2d(t, i, j)];
+}
+
+void tensor_set2d(const Tensor *t, int i, int j, float value) {
+    t->data[tensor_index2d(t, i, j)] = value;
+}
+
 float tensor_get3d(const Tensor *t, int i, int j, int k) {
     return t->data[tensor_index3d(t, i, j, k)];
 }
