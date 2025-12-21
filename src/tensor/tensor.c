@@ -132,17 +132,36 @@ Tensor *tensor_unpad2d(const Tensor *t, int padding) {
 }
 
 Tensor *tensor_flatten(Tensor *t) {
-    int new_shape[1] = {1};
+    int total = 1;
     for (int i = 0; i < t->ndim; i++) {
-        new_shape[0] *= t->shape[i];
+        total *= t->shape[i];
     }
-    t->shape = new_shape;
+
+    free(t->shape);
+    free(t->strides);
+
     t->ndim = 1;
+    t->shape = (int *)malloc(sizeof(int));
+    t->shape[0] = total;
+    t->strides = (int *)malloc(sizeof(int));
+    t->strides[0] = 1;
+
     return t;
 }
 
 Tensor *tensor_unflatten(Tensor *t, int ndim, int *new_shape) {
-    t->ndim = ndim,
-    t->shape = new_shape;
+    free(t->shape);
+    free(t->strides);
+
+    t->ndim = ndim;
+    t->shape = (int *)malloc(ndim * sizeof(int));
+    memcpy(t->shape, new_shape, ndim * sizeof(int));
+
+    t->strides = (int *)malloc(ndim * sizeof(int));
+    t->strides[ndim - 1] = 1;
+    for (int i = ndim - 2; i >= 0; i--) {
+        t->strides[i] = t->strides[i + 1] * new_shape[i + 1];
+    }
+
     return t;
 }

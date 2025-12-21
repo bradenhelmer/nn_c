@@ -30,7 +30,7 @@ void fc_layer_free(FCLayer *layer) {
     tensor_free(layer->weights);
     tensor_free(layer->biases);
 
-    if (layer->input == NULL) {
+    if (layer->input != NULL) {
         tensor_free(layer->input);
     }
 
@@ -42,7 +42,7 @@ void fc_layer_free(FCLayer *layer) {
 void fc_layer_init_weights(FCLayer *layer) {
     float standard = sqrtf(2.f / (layer->input_size + layer->output_size));
     for (int i = 0; i < layer->weights->size; i++) {
-        layer->d_weights->data[i] = rand_rangef(-standard, standard);
+        layer->weights->data[i] = rand_rangef(-standard, standard);
     }
 }
 
@@ -57,7 +57,7 @@ Tensor *fc_layer_forward(FCLayer *layer, Tensor *input) {
         }
         y->data[i] = sum;
     }
-    layer->input = y;
+    layer->input = tensor_clone(input);
     return y;
 }
 
@@ -77,7 +77,7 @@ Tensor *fc_layer_backward(FCLayer *layer, Tensor *upstream_grad) {
     for (int j = 0; j < layer->input_size; j++) {
         float sum = 0.0f;
         for (int i = 0; i < layer->output_size; i++) {
-            sum += tensor_get2d(layer->weights, i, j) * upstream_grad->data[j];
+            sum += tensor_get2d(layer->weights, i, j) * upstream_grad->data[i];
         }
         dx->data[j] = sum;
     }
