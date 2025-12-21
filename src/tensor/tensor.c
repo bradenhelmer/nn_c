@@ -130,3 +130,19 @@ Tensor *tensor_unpad2d(const Tensor *t, int padding) {
     }
     return unpadded;
 }
+
+Tensor *tensor_flatten(Tensor *t) {
+    int new_shape[1] = {1};
+    for (int i = 0; i < t->ndim; i++) {
+        new_shape[0] *= t->shape[i];
+    }
+    t->shape = new_shape;
+    t->ndim = 1;
+    return t;
+}
+
+Tensor *tensor_unflatten(Tensor *t, int ndim, int *new_shape) {
+    t->ndim = ndim,
+    t->shape = new_shape;
+    return t;
+}

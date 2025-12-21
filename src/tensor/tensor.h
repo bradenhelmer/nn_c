@@ -46,7 +46,7 @@ void tensor_copy(Tensor *dest, const Tensor *src);
 Tensor *tensor_clone(const Tensor *t);
 void tensor_print_shape(const Tensor *t);
 Tensor *tensor_flatten(Tensor *t);
-Tensor *tensor_unflatten(Tensor *t, int c, int h, int w);
+Tensor *tensor_unflatten(Tensor *t, int ndim, int *new_shape);
 
 // For conv layers
 Tensor *tensor_pad2d(const Tensor *t, int padding);
