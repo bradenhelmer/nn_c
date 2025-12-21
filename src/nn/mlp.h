@@ -13,7 +13,7 @@
 typedef void (*mlp_classifier)(Vector *, const Vector *);
 
 typedef struct {
-    Layer **layers;
+    LinearLayer **layers;
     int num_layers;
     float learning_rate;
     VectorLossPair loss;
@@ -23,7 +23,7 @@ typedef struct {
 // Lifecycle
 MLP *mlp_create(int num_layers, float learning_rate, VectorLossPair loss_pair,
                 mlp_classifier classifier);
-void mlp_add_layer(MLP *mlp, int index, Layer *layer);
+void mlp_add_layer(MLP *mlp, int index, LinearLayer *layer);
 void mlp_free(MLP *mlp);
 
 // Forward/Backward

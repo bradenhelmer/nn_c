@@ -29,10 +29,10 @@ void mlp_learning_xor() {
     Dataset *xor_data = create_xor_gate_dataset();
 
     MLP *mlp_xor = mlp_create(2, 0.5f, VECTOR_MSE_LOSS, xor_classifier);
-    Layer *layer_1 = layer_create(2, 2, VECTOR_SIGMOID_ACTIVATION);
-    layer_init_xavier(layer_1);
-    Layer *layer_2 = layer_create(2, 1, VECTOR_SIGMOID_ACTIVATION);
-    layer_init_xavier(layer_2);
+    LinearLayer *layer_1 = linear_layer_create(2, 2, VECTOR_SIGMOID_ACTIVATION);
+    linear_layer_init_xavier(layer_1);
+    LinearLayer *layer_2 = linear_layer_create(2, 1, VECTOR_SIGMOID_ACTIVATION);
+    linear_layer_init_xavier(layer_2);
     mlp_add_layer(mlp_xor, 0, layer_1);
     mlp_add_layer(mlp_xor, 1, layer_2);
 
@@ -58,10 +58,10 @@ void mlp_learning_xor_batched() {
     Dataset *xor_data = create_xor_gate_dataset();
 
     MLP *mlp_xor = mlp_create(2, 0.3f, VECTOR_MSE_LOSS, xor_classifier);
-    Layer *layer_1 = layer_create(2, 2, VECTOR_SIGMOID_ACTIVATION);
-    layer_init_xavier(layer_1);
-    Layer *layer_2 = layer_create(2, 1, VECTOR_SIGMOID_ACTIVATION);
-    layer_init_xavier(layer_2);
+    LinearLayer *layer_1 = linear_layer_create(2, 2, VECTOR_SIGMOID_ACTIVATION);
+    linear_layer_init_xavier(layer_1);
+    LinearLayer *layer_2 = linear_layer_create(2, 1, VECTOR_SIGMOID_ACTIVATION);
+    linear_layer_init_xavier(layer_2);
     mlp_add_layer(mlp_xor, 0, layer_1);
     mlp_add_layer(mlp_xor, 1, layer_2);
 

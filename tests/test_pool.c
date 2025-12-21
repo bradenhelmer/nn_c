@@ -4,7 +4,7 @@
  * Uses a worked example to verify forward and backward pass.
  */
 
-#include "../src/nn/pool_layer.h"
+#include "../src/nn/layer.h"
 #include "../src/tensor/tensor.h"
 #include "../src/utils/utils.h"
 #include "test_runner.h"

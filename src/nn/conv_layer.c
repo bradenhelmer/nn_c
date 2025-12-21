@@ -3,7 +3,7 @@
  *
  * Convolutional Layer Implementations.
  */
-#include "conv_layer.h"
+#include "layer.h"
 #include "tensor/tensor.h"
 #include "utils/utils.h"
 #include <math.h>

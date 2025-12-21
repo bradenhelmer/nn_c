@@ -20,8 +20,8 @@ static MLP *create_test_mlp(void) {
     // Create a simple network: 3 -> 4 -> 2
     MLP *mlp = mlp_create(2, 0.01f, VECTOR_MSE_LOSS, NULL);
 
-    Layer *layer1 = layer_create(3, 4, VECTOR_TANH_ACTIVATION);
-    Layer *layer2 = layer_create(4, 2, VECTOR_SIGMOID_ACTIVATION);
+    LinearLayer *layer1 = linear_layer_create(3, 4, VECTOR_TANH_ACTIVATION);
+    LinearLayer *layer2 = linear_layer_create(4, 2, VECTOR_SIGMOID_ACTIVATION);
 
     mlp_add_layer(mlp, 0, layer1);
     mlp_add_layer(mlp, 1, layer2);
@@ -32,7 +32,7 @@ static MLP *create_test_mlp(void) {
 // Set up gradients for testing (simulate a backward pass)
 static void set_test_gradients(MLP *mlp) {
     for (int i = 0; i < mlp->num_layers; i++) {
-        Layer *layer = mlp->layers[i];
+        LinearLayer *layer = mlp->layers[i];
 
         // Set some non-zero gradients
         for (int row = 0; row < layer->dW->rows; row++) {
@@ -126,7 +126,7 @@ void test_optimizer_init_momentum() {
 
     // Check that velocity matrices are allocated with correct dimensions
     for (int i = 0; i < mlp->num_layers; i++) {
-        Layer *layer = mlp->layers[i];
+        LinearLayer *layer = mlp->layers[i];
         assert(opt->v_weights[i] != NULL);
         assert(opt->v_weights[i]->rows == layer->weights->rows);
         assert(opt->v_weights[i]->cols == layer->weights->cols);

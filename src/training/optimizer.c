@@ -56,7 +56,7 @@ void optimizer_init(Optimizer *opt, MLP *mlp) {
         opt->v_biases = (Vector **)malloc(sizeof(Vector *) * mlp->num_layers);
 
         for (int i = 0; i < mlp->num_layers; ++i) {
-            Layer *layer = mlp->layers[i];
+            LinearLayer *layer = mlp->layers[i];
 
             opt->v_weights[i] = matrix_create(layer->weights->rows, layer->weights->cols);
             opt->v_biases[i] = vector_create(layer->biases->size);
@@ -70,7 +70,7 @@ void optimizer_init(Optimizer *opt, MLP *mlp) {
         opt->s_biases = (Vector **)malloc(sizeof(Vector *) * mlp->num_layers);
 
         for (int i = 0; i < mlp->num_layers; ++i) {
-            Layer *layer = mlp->layers[i];
+            LinearLayer *layer = mlp->layers[i];
             opt->m_weights[i] = matrix_create(layer->weights->rows, layer->weights->cols);
             opt->s_weights[i] = matrix_create(layer->weights->rows, layer->weights->cols);
             opt->m_biases[i] = vector_create(layer->biases->size);
@@ -121,7 +121,7 @@ float optimizer_get_lr(Optimizer *opt) {
 
 static void step_sgd(Optimizer *opt, MLP *mlp) {
     for (int i = 0; i < mlp->num_layers; i++) {
-        Layer *layer = mlp->layers[i];
+        LinearLayer *layer = mlp->layers[i];
 
         // Update weights: W = W - (lr * dW)
         for (int row = 0; row < layer->weights->rows; ++row) {
@@ -140,7 +140,7 @@ static void step_sgd(Optimizer *opt, MLP *mlp) {
 
 static void step_momentum(Optimizer *opt, MLP *mlp) {
     for (int i = 0; i < opt->num_layers; ++i) {
-        Layer *layer = mlp->layers[i];
+        LinearLayer *layer = mlp->layers[i];
         Matrix *vW = opt->v_weights[i];
         Vector *vb = opt->v_biases[i];
 
@@ -169,7 +169,7 @@ static void step_adam(Optimizer *opt, MLP *mlp) {
     float bc2 = 1 - powf(opt->beta2, opt->timestep);
 
     for (int i = 0; i < opt->num_layers; ++i) {
-        Layer *layer = mlp->layers[i];
+        LinearLayer *layer = mlp->layers[i];
         Matrix *mW = opt->m_weights[i];
         Matrix *sW = opt->s_weights[i];
         Vector *mb = opt->m_biases[i];

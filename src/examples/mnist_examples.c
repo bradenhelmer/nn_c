@@ -67,10 +67,10 @@ void mnist_sgd() {
                              .optimizer = optimizer_create_sgd(0.1f)};
 
     MLP *mlp_mnist = mlp_create(2, 0.5f, VECTOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
-    Layer *layer_1 = layer_create(784, 128, VECTOR_RELU_ACTIVATION);
-    layer_init_he(layer_1);
-    Layer *layer_2 = layer_create(128, 10, VECTOR_LINEAR_ACTIVATION);
-    layer_init_xavier(layer_2);
+    LinearLayer *layer_1 = linear_layer_create(784, 128, VECTOR_RELU_ACTIVATION);
+    linear_layer_init_he(layer_1);
+    LinearLayer *layer_2 = linear_layer_create(128, 10, VECTOR_LINEAR_ACTIVATION);
+    linear_layer_init_xavier(layer_2);
     mlp_add_layer(mlp_mnist, 0, layer_1);
     mlp_add_layer(mlp_mnist, 1, layer_2);
     optimizer_init(config.optimizer, mlp_mnist);
@@ -105,10 +105,10 @@ void mnist_momentum() {
                              .optimizer = optimizer_create_momentum(0.01f, 0.9f)};
 
     MLP *mlp_mnist = mlp_create(2, 0.5f, VECTOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
-    Layer *layer_1 = layer_create(784, 128, VECTOR_RELU_ACTIVATION);
-    layer_init_he(layer_1);
-    Layer *layer_2 = layer_create(128, 10, VECTOR_LINEAR_ACTIVATION);
-    layer_init_xavier(layer_2);
+    LinearLayer *layer_1 = linear_layer_create(784, 128, VECTOR_RELU_ACTIVATION);
+    linear_layer_init_he(layer_1);
+    LinearLayer *layer_2 = linear_layer_create(128, 10, VECTOR_LINEAR_ACTIVATION);
+    linear_layer_init_xavier(layer_2);
     mlp_add_layer(mlp_mnist, 0, layer_1);
     mlp_add_layer(mlp_mnist, 1, layer_2);
     optimizer_init(config.optimizer, mlp_mnist);
@@ -142,10 +142,10 @@ void mnist_adam() {
                              .optimizer = optimizer_create_adam(0.001f, 0.9f, 0.999f, 1e-8)};
 
     MLP *mlp_mnist = mlp_create(2, 0.5f, VECTOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
-    Layer *layer_1 = layer_create(784, 128, VECTOR_RELU_ACTIVATION);
-    layer_init_he(layer_1);
-    Layer *layer_2 = layer_create(128, 10, VECTOR_LINEAR_ACTIVATION);
-    layer_init_xavier(layer_2);
+    LinearLayer *layer_1 = linear_layer_create(784, 128, VECTOR_RELU_ACTIVATION);
+    linear_layer_init_he(layer_1);
+    LinearLayer *layer_2 = linear_layer_create(128, 10, VECTOR_LINEAR_ACTIVATION);
+    linear_layer_init_xavier(layer_2);
     mlp_add_layer(mlp_mnist, 0, layer_1);
     mlp_add_layer(mlp_mnist, 1, layer_2);
     optimizer_init(config.optimizer, mlp_mnist);
@@ -182,10 +182,10 @@ void mnist_aggressive() {
                              .l2_lambda = 1e-4f};
 
     MLP *mlp_mnist = mlp_create(2, 0.5f, VECTOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
-    Layer *layer_1 = layer_create(784, 128, VECTOR_RELU_ACTIVATION);
-    layer_init_he(layer_1);
-    Layer *layer_2 = layer_create(128, 10, VECTOR_LINEAR_ACTIVATION);
-    layer_init_xavier(layer_2);
+    LinearLayer *layer_1 = linear_layer_create(784, 128, VECTOR_RELU_ACTIVATION);
+    linear_layer_init_he(layer_1);
+    LinearLayer *layer_2 = linear_layer_create(128, 10, VECTOR_LINEAR_ACTIVATION);
+    linear_layer_init_xavier(layer_2);
     mlp_add_layer(mlp_mnist, 0, layer_1);
     mlp_add_layer(mlp_mnist, 1, layer_2);
     optimizer_init(config.optimizer, mlp_mnist);

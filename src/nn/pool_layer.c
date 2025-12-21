@@ -5,7 +5,7 @@
  */
 
 // Lifecycle
-#include "nn/pool_layer.h"
+#include "layer.h"
 #include "tensor/tensor.h"
 #include <math.h>
 #include <stdlib.h>

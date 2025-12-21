@@ -1,5 +1,5 @@
 /*
- * activeations.c - Activation functions implementations
+ * activations.c - Activation functions implementations
  */
 #include "activations.h"
 #include <assert.h>

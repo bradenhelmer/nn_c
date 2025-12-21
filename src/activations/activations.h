@@ -10,6 +10,7 @@
 #define ACTIVATIONS_H
 #include "../linalg/matrix.h"
 #include "../linalg/vector.h"
+#include "tensor/tensor.h"
 
 // Activation functions (singular)
 float sigmoid_scalar(float x);
@@ -42,6 +43,11 @@ void matrix_sigmoid(Matrix *result, const Matrix *input);
 void matrix_sigmoid_derivative(Matrix *result, const Matrix *sigmoid_output);
 void matrix_relu(Matrix *result, const Matrix *input);
 void matrix_relu_derivative(Matrix *result, const Matrix *input);
+
+// Tensor Activations
+void tensor_relu_forward(Tensor *output, const Tensor *input);
+void tensor_relu_backward(Tensor *grad_input, const Tensor *grad_output,
+                          const Tensor *cached_forward_output);
 
 // Scalar Activation Types
 typedef float (*scalar_activation_func)(float);
