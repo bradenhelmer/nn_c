@@ -5,12 +5,11 @@
  */
 #ifndef DATASET_H
 #define DATASET_H
-#include "../linalg/matrix.h"
-#include "../linalg/vector.h"
+#include "../tensor/tensor.h"
 
 typedef struct {
-    Matrix *X;
-    Matrix *Y;
+    Tensor *X; // 2D: (num_samples, num_features)
+    Tensor *Y; // 2D: (num_samples, num_outputs)
     int num_samples;
     int num_features;
 } Dataset;

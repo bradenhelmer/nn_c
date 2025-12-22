@@ -9,8 +9,8 @@
 #include <stdlib.h>
 
 void batch_free(Batch *b) {
-    matrix_free(b->X);
-    matrix_free(b->Y);
+    tensor_free(b->X);
+    tensor_free(b->Y);
     free(b);
 }
 
@@ -60,27 +60,30 @@ Batch *batch_iterator_next(BatchIterator *batch_iter) {
     int end = fmin(start + batch_iter->batch_size, N);
     int actual_size = end - start;
 
-    // Allocate batch matrices.
+    // Allocate batch tensors
     Batch *batch = (Batch *)malloc(sizeof(Batch));
-    batch->X = matrix_create(actual_size, batch_iter->dataset->num_features);
-    batch->Y =
-        matrix_create(actual_size, batch_iter->dataset->Y->cols); // (actual_size, num_outputs)
+    int x_shape[] = {actual_size, batch_iter->dataset->num_features};
+    int y_shape[] = {actual_size, batch_iter->dataset->Y->shape[1]}; // (actual_size, num_outputs)
+    batch->X = tensor_zeros(2, x_shape);
+    batch->Y = tensor_zeros(2, y_shape);
     batch->size = actual_size;
 
     // Copy rows using shuffled indices with pre-allocated buffers
-    Vector *row_buffer_x = vector_create(batch_iter->dataset->X->cols);
-    Vector *row_buffer_y = vector_create(batch_iter->dataset->Y->cols);
+    int row_x_shape[] = {batch_iter->dataset->X->shape[1]};
+    int row_y_shape[] = {batch_iter->dataset->Y->shape[1]};
+    Tensor *row_buffer_x = tensor_zeros(1, row_x_shape);
+    Tensor *row_buffer_y = tensor_zeros(1, row_y_shape);
 
     for (int i = 0; i < actual_size; i++) {
         int sample_idx = batch_iter->indices[start + i];
-        matrix_copy_row_to_vector(row_buffer_x, batch_iter->dataset->X, sample_idx);
-        matrix_copy_vector_into_row(batch->X, row_buffer_x, i);
-        matrix_copy_row_to_vector(row_buffer_y, batch_iter->dataset->Y, sample_idx);
-        matrix_copy_vector_into_row(batch->Y, row_buffer_y, i);
+        tensor_get_row(row_buffer_x, batch_iter->dataset->X, sample_idx);
+        tensor_set_row(batch->X, row_buffer_x, i);
+        tensor_get_row(row_buffer_y, batch_iter->dataset->Y, sample_idx);
+        tensor_set_row(batch->Y, row_buffer_y, i);
     }
 
-    vector_free(row_buffer_x);
-    vector_free(row_buffer_y);
+    tensor_free(row_buffer_x);
+    tensor_free(row_buffer_y);
 
     batch_iter->current_idx = end;
     return batch;

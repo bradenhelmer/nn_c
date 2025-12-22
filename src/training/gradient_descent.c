@@ -28,6 +28,10 @@ TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data,
 
     float prev_loss = INFINITY;
 
+    // Pre-allocate input tensor
+    int input_shape[] = {train_data->X->shape[1]};
+    Tensor *input = tensor_zeros(1, input_shape);
+
     // 2. Main training loop
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
         float epoch_loss = 0.f;
@@ -37,8 +41,8 @@ TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data,
         for (int i = 0; i < train_data->num_samples; i++) {
 
             // Sample i
-            Vector *input = get_row_as_vector(train_data->X, i);
-            float target = train_data->Y->data[i];
+            tensor_get_row(input, train_data->X, i);
+            float target = tensor_get2d(train_data->Y, i, 0);
 
             // Get prediction before training for loss/accuracy tracking
             float prediction = perceptron_predict(p, input);
@@ -49,9 +53,6 @@ TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data,
 
             // Train on sample
             perceptron_train_step(p, input, target);
-
-            // Free input vector
-            vector_free(input);
         }
 
         // Metrics Collection
@@ -71,6 +72,7 @@ TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data,
         }
     }
 
+    tensor_free(input);
     result->final_loss = result->loss_history[result->epochs_completed - 1];
     return result;
 }
@@ -86,10 +88,12 @@ TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, __attribute__((unused))
 
     float prev_loss = INFINITY;
 
-    // Pre-allocate vectors for reuse
-    Vector *input = vector_create(train_data->X->cols);
-    Vector *target = vector_create(train_data->Y->cols);
-    Vector *classification = vector_create(train_data->Y->cols);
+    // Pre-allocate tensors for reuse
+    int input_shape[] = {train_data->X->shape[1]};
+    int output_shape[] = {train_data->Y->shape[1]};
+    Tensor *input = tensor_zeros(1, input_shape);
+    Tensor *target = tensor_zeros(1, output_shape);
+    Tensor *classification = tensor_zeros(1, output_shape);
 
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
         float epoch_loss = 0.f;
@@ -98,13 +102,13 @@ TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, __attribute__((unused))
         for (int i = 0; i < train_data->num_samples; i++) {
             mlp_zero_gradients(mlp);
 
-            matrix_copy_row_to_vector(input, train_data->X, i);
-            matrix_copy_row_to_vector(target, train_data->Y, i);
-            Vector *prediction = mlp_forward(mlp, input);
+            tensor_get_row(input, train_data->X, i);
+            tensor_get_row(target, train_data->Y, i);
+            Tensor *prediction = mlp_forward(mlp, input);
             mlp->classifier(classification, prediction);
 
             epoch_loss += mlp->loss.loss(prediction, target);
-            if (vector_equals(classification, target)) {
+            if (tensor_equals(classification, target)) {
                 correct++;
             }
 
@@ -128,9 +132,9 @@ TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, __attribute__((unused))
         }
     }
 
-    vector_free(input);
-    vector_free(target);
-    vector_free(classification);
+    tensor_free(input);
+    tensor_free(target);
+    tensor_free(classification);
 
     result->final_loss = result->loss_history[result->epochs_completed - 1];
     return result;
@@ -150,10 +154,12 @@ TrainingResult *train_mlp_batch(MLP *mlp, Dataset *train_data,
     // 2. Batch iterator
     BatchIterator *batch_iter = batch_iterator_create(train_data, config->batch_size);
 
-    // Pre-allocate vectors for reuse
-    Vector *input = vector_create(train_data->X->cols);
-    Vector *target = vector_create(train_data->Y->cols);
-    Vector *classification = vector_create(train_data->Y->cols);
+    // Pre-allocate tensors for reuse
+    int input_shape[] = {train_data->X->shape[1]};
+    int output_shape[] = {train_data->Y->shape[1]};
+    Tensor *input = tensor_zeros(1, input_shape);
+    Tensor *target = tensor_zeros(1, output_shape);
+    Tensor *classification = tensor_zeros(1, output_shape);
 
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
         float epoch_loss = 0.f;
@@ -169,13 +175,13 @@ TrainingResult *train_mlp_batch(MLP *mlp, Dataset *train_data,
 
             // 4. Accumulate over batch samples
             for (int i = 0; i < batch->size; i++) {
-                matrix_copy_row_to_vector(input, batch->X, i);
-                matrix_copy_row_to_vector(target, batch->Y, i);
-                Vector *prediction = mlp_forward(mlp, input);
+                tensor_get_row(input, batch->X, i);
+                tensor_get_row(target, batch->Y, i);
+                Tensor *prediction = mlp_forward(mlp, input);
                 mlp->classifier(classification, prediction);
 
                 epoch_loss += mlp->loss.loss(prediction, target);
-                if (vector_equals(classification, target)) {
+                if (tensor_equals(classification, target)) {
                     correct++;
                 }
 
@@ -210,9 +216,9 @@ TrainingResult *train_mlp_batch(MLP *mlp, Dataset *train_data,
         }
     }
 
-    vector_free(input);
-    vector_free(target);
-    vector_free(classification);
+    tensor_free(input);
+    tensor_free(target);
+    tensor_free(classification);
 
     batch_iterator_free(batch_iter);
     result->final_loss = result->loss_history[result->epochs_completed - 1];
@@ -229,12 +235,12 @@ TrainingResult *train_mlp_batch_opt(MLP *mlp, Dataset *train_data,
     result->accuracy_history = malloc(config->max_epochs * sizeof(float));
     result->epochs_completed = config->max_epochs;
 
-    // Pre-allocate vector buffers
-    int input_size = train_data->X->cols;
-    int output_size = train_data->Y->cols;
-    Vector *input = vector_create(input_size);
-    Vector *target = vector_create(output_size);
-    Vector *classification = vector_create(output_size);
+    // Pre-allocate tensor buffers
+    int input_shape[] = {train_data->X->shape[1]};
+    int output_shape[] = {train_data->Y->shape[1]};
+    Tensor *input = tensor_zeros(1, input_shape);
+    Tensor *target = tensor_zeros(1, output_shape);
+    Tensor *classification = tensor_zeros(1, output_shape);
 
     // 2. Batch iterator
     BatchIterator *batch_iter = batch_iterator_create(train_data, config->batch_size);
@@ -253,13 +259,13 @@ TrainingResult *train_mlp_batch_opt(MLP *mlp, Dataset *train_data,
 
             // 4. Accumulate over batch samples
             for (int i = 0; i < batch->size; i++) {
-                matrix_copy_row_to_vector(input, batch->X, i);
-                matrix_copy_row_to_vector(target, batch->Y, i);
-                Vector *prediction = mlp_forward(mlp, input);
+                tensor_get_row(input, batch->X, i);
+                tensor_get_row(target, batch->Y, i);
+                Tensor *prediction = mlp_forward(mlp, input);
                 mlp->classifier(classification, prediction);
 
                 epoch_loss += mlp->loss.loss(prediction, target);
-                if (vector_equals(classification, target)) {
+                if (tensor_equals(classification, target)) {
                     correct++;
                 }
 
@@ -298,9 +304,9 @@ TrainingResult *train_mlp_batch_opt(MLP *mlp, Dataset *train_data,
         }
     }
 
-    vector_free(input);
-    vector_free(target);
-    vector_free(classification);
+    tensor_free(input);
+    tensor_free(target);
+    tensor_free(classification);
 
     batch_iterator_free(batch_iter);
     result->final_loss = result->loss_history[result->epochs_completed - 1];

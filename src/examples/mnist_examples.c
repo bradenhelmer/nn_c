@@ -5,24 +5,13 @@
 
 #include "../activations/activations.h"
 #include "../data/dataset.h"
-#include "../linalg/vector.h"
 #include "../nn/mlp.h"
 #include "../training/gradient_descent.h"
 #include <stdio.h>
 
-static void mnist_classifier(Vector *dest, const Vector *prediction) {
-
-    vector_zero(dest);
-
-    float max = 0.f, curr;
-    int max_index = 0;
-    for (int i = 0; i < prediction->size; i++) {
-        curr = prediction->data[i];
-        if (curr > max) {
-            max = curr;
-            max_index = i;
-        }
-    }
+static void mnist_classifier(Tensor *dest, const Tensor *prediction) {
+    tensor_fill(dest, 0.0f);
+    int max_index = tensor_argmax(prediction);
     dest->data[max_index] = 1.0f;
 }
 
@@ -30,28 +19,28 @@ static void test_mnist(MLP *mlp, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
     int correct = 0;
 
-    int input_size = data->X->cols;
-    int output_size = data->Y->cols;
-    Vector *input = vector_create(input_size);
-    Vector *target = vector_create(output_size);
-    Vector *classification = vector_create(output_size);
+    int input_shape[] = {data->X->shape[1]};
+    int output_shape[] = {data->Y->shape[1]};
+    Tensor *input = tensor_zeros(1, input_shape);
+    Tensor *target = tensor_zeros(1, output_shape);
+    Tensor *classification = tensor_zeros(1, output_shape);
 
     for (int i = 0; i < data->num_samples; i++) {
-        matrix_copy_row_to_vector(input, data->X, i);
-        matrix_copy_row_to_vector(target, data->Y, i);
-        Vector *prediction = mlp_forward(mlp, input);
+        tensor_get_row(input, data->X, i);
+        tensor_get_row(target, data->Y, i);
+        Tensor *prediction = mlp_forward(mlp, input);
         mlp->classifier(classification, prediction);
 
-        if (vector_equals(classification, target)) {
+        if (tensor_equals(classification, target)) {
             correct++;
         }
     }
 
-    vector_free(input);
-    vector_free(target);
-    vector_free(classification);
+    tensor_free(input);
+    tensor_free(target);
+    tensor_free(classification);
 
-    printf("Final imags correctly classified: %d\n", correct);
+    printf("Final images correctly classified: %d\n", correct);
 }
 
 void mnist_sgd() {
@@ -66,10 +55,10 @@ void mnist_sgd() {
                              .verbose = 1,
                              .optimizer = optimizer_create_sgd(0.1f)};
 
-    MLP *mlp_mnist = mlp_create(2, 0.5f, VECTOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
-    LinearLayer *layer_1 = linear_layer_create(784, 128, VECTOR_RELU_ACTIVATION);
+    MLP *mlp_mnist = mlp_create(2, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
+    LinearLayer *layer_1 = linear_layer_create(784, 128, TENSOR_RELU_ACTIVATION);
     linear_layer_init_he(layer_1);
-    LinearLayer *layer_2 = linear_layer_create(128, 10, VECTOR_LINEAR_ACTIVATION);
+    LinearLayer *layer_2 = linear_layer_create(128, 10, TENSOR_LINEAR_ACTIVATION);
     linear_layer_init_xavier(layer_2);
     mlp_add_layer(mlp_mnist, 0, layer_1);
     mlp_add_layer(mlp_mnist, 1, layer_2);
@@ -104,10 +93,10 @@ void mnist_momentum() {
                              .verbose = 1,
                              .optimizer = optimizer_create_momentum(0.01f, 0.9f)};
 
-    MLP *mlp_mnist = mlp_create(2, 0.5f, VECTOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
-    LinearLayer *layer_1 = linear_layer_create(784, 128, VECTOR_RELU_ACTIVATION);
+    MLP *mlp_mnist = mlp_create(2, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
+    LinearLayer *layer_1 = linear_layer_create(784, 128, TENSOR_RELU_ACTIVATION);
     linear_layer_init_he(layer_1);
-    LinearLayer *layer_2 = linear_layer_create(128, 10, VECTOR_LINEAR_ACTIVATION);
+    LinearLayer *layer_2 = linear_layer_create(128, 10, TENSOR_LINEAR_ACTIVATION);
     linear_layer_init_xavier(layer_2);
     mlp_add_layer(mlp_mnist, 0, layer_1);
     mlp_add_layer(mlp_mnist, 1, layer_2);
@@ -141,10 +130,10 @@ void mnist_adam() {
                              .verbose = 1,
                              .optimizer = optimizer_create_adam(0.001f, 0.9f, 0.999f, 1e-8)};
 
-    MLP *mlp_mnist = mlp_create(2, 0.5f, VECTOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
-    LinearLayer *layer_1 = linear_layer_create(784, 128, VECTOR_RELU_ACTIVATION);
+    MLP *mlp_mnist = mlp_create(2, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
+    LinearLayer *layer_1 = linear_layer_create(784, 128, TENSOR_RELU_ACTIVATION);
     linear_layer_init_he(layer_1);
-    LinearLayer *layer_2 = linear_layer_create(128, 10, VECTOR_LINEAR_ACTIVATION);
+    LinearLayer *layer_2 = linear_layer_create(128, 10, TENSOR_LINEAR_ACTIVATION);
     linear_layer_init_xavier(layer_2);
     mlp_add_layer(mlp_mnist, 0, layer_1);
     mlp_add_layer(mlp_mnist, 1, layer_2);
@@ -181,10 +170,10 @@ void mnist_aggressive() {
                              .scheduler = scheduler_create_cosine(0.001f, 1e-5f, 20),
                              .l2_lambda = 1e-4f};
 
-    MLP *mlp_mnist = mlp_create(2, 0.5f, VECTOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
-    LinearLayer *layer_1 = linear_layer_create(784, 128, VECTOR_RELU_ACTIVATION);
+    MLP *mlp_mnist = mlp_create(2, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
+    LinearLayer *layer_1 = linear_layer_create(784, 128, TENSOR_RELU_ACTIVATION);
     linear_layer_init_he(layer_1);
-    LinearLayer *layer_2 = linear_layer_create(128, 10, VECTOR_LINEAR_ACTIVATION);
+    LinearLayer *layer_2 = linear_layer_create(128, 10, TENSOR_LINEAR_ACTIVATION);
     linear_layer_init_xavier(layer_2);
     mlp_add_layer(mlp_mnist, 0, layer_1);
     mlp_add_layer(mlp_mnist, 1, layer_2);

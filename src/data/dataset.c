@@ -6,50 +6,57 @@
 #include "dataset.h"
 #include <stdio.h>
 #include <stdlib.h>
+
 Dataset *dataset_create(int num_samples, int num_features) {
     Dataset *d = (Dataset *)malloc(sizeof(Dataset));
     d->num_samples = num_samples;
     d->num_features = num_features;
     return d;
 }
+
 void dataset_free(Dataset *d) {
-    matrix_free(d->X);
-    matrix_free(d->Y);
+    tensor_free(d->X);
+    tensor_free(d->Y);
     free(d);
 }
 
-static Matrix *_create_2bit_input_matrix() {
-    Matrix *m = matrix_zeros(4, 2);
-    matrix_set(m, 1, 1, 1);
-    matrix_set(m, 2, 0, 1);
-    matrix_set(m, 3, 0, 1);
-    matrix_set(m, 3, 1, 1);
-    return m;
+static Tensor *_create_2bit_input_tensor() {
+    int shape[] = {4, 2};
+    Tensor *t = tensor_zeros(2, shape);
+    tensor_set2d(t, 1, 1, 1);
+    tensor_set2d(t, 2, 0, 1);
+    tensor_set2d(t, 3, 0, 1);
+    tensor_set2d(t, 3, 1, 1);
+    return t;
 }
 
 // Test datasets
 Dataset *create_and_gate_dataset() {
     Dataset *d = dataset_create(4, 2);
-    d->X = _create_2bit_input_matrix();
-    d->Y = matrix_zeros(4, 1);
-    matrix_set(d->Y, 3, 0, 1);
+    d->X = _create_2bit_input_tensor();
+    int y_shape[] = {4, 1};
+    d->Y = tensor_zeros(2, y_shape);
+    tensor_set2d(d->Y, 3, 0, 1);
     return d;
 }
 
 Dataset *create_or_gate_dataset() {
     Dataset *d = dataset_create(4, 2);
-    d->X = _create_2bit_input_matrix();
-    d->Y = matrix_ones(4, 1);
-    matrix_set(d->Y, 0, 0, 0);
+    d->X = _create_2bit_input_tensor();
+    int y_shape[] = {4, 1};
+    d->Y = tensor_zeros(2, y_shape);
+    tensor_fill(d->Y, 1.0f);
+    tensor_set2d(d->Y, 0, 0, 0);
     return d;
 }
 
 Dataset *create_xor_gate_dataset() {
     Dataset *d = dataset_create(4, 2);
-    d->X = _create_2bit_input_matrix();
-    d->Y = matrix_zeros(4, 1);
-    matrix_set(d->Y, 1, 0, 1);
-    matrix_set(d->Y, 2, 0, 1);
+    d->X = _create_2bit_input_tensor();
+    int y_shape[] = {4, 1};
+    d->Y = tensor_zeros(2, y_shape);
+    tensor_set2d(d->Y, 1, 0, 1);
+    tensor_set2d(d->Y, 2, 0, 1);
     return d;
 }
 
@@ -61,9 +68,10 @@ Dataset *create_xor_gate_dataset() {
 static Dataset *load_mnist_file(const char *image_path, const char *label_path,
                                 const int image_count) {
 
-    // Create initial train dataset and X matrix (60,000 x 784 pixels)
+    // Create initial train dataset and X tensor (image_count x 784 pixels)
     Dataset *d = dataset_create(image_count, MNIST_IMG_PIXEL_COUNT);
-    d->X = matrix_create(image_count, MNIST_IMG_PIXEL_COUNT);
+    int x_shape[] = {image_count, MNIST_IMG_PIXEL_COUNT};
+    d->X = tensor_zeros(2, x_shape);
 
     // Open file, seek past magic number (16 bytes).
     FILE *train_img_file = fopen(image_path, "rb");
@@ -106,8 +114,9 @@ static Dataset *load_mnist_file(const char *image_path, const char *label_path,
 
     free(img_batch);
 
-    // Create Y (label matrix) (60,000 img x 10 outputs)
-    d->Y = matrix_create(image_count, MNIST_OUTPUT_SIZE);
+    // Create Y (label tensor) (image_count x 10 outputs)
+    int y_shape[] = {image_count, MNIST_OUTPUT_SIZE};
+    d->Y = tensor_zeros(2, y_shape);
 
     // Open file, seek past magic number (8 bytes).
     FILE *train_label_file = fopen(label_path, "rb");

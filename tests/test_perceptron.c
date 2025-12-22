@@ -6,6 +6,7 @@
 #include "../src/data/dataset.h"
 #include "../src/nn/perceptron.h"
 #include "test_runner.h"
+#include "utils/utils.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -97,7 +98,7 @@ void test_perceptron_predict_basic() {
     p->weights->data[1] = -0.3f;
     p->bias = 0.2f;
 
-    Vector *input = vector_create(2);
+    Tensor *input = tensor_zeros(1, (int[]){2});
     input->data[0] = 1.0f;
     input->data[1] = 2.0f;
 
@@ -112,7 +113,7 @@ void test_perceptron_predict_basic() {
     assert(float_equals(p->last_output, expected_output));
     assert(float_equals(prediction, expected_output));
 
-    vector_free(input);
+    tensor_free(input);
     perceptron_free(p);
     TEST_PASSED;
 }
@@ -121,7 +122,7 @@ void test_perceptron_predict_zero_input() {
     Perceptron *p = perceptron_create(3, -1.0f, 1.0f, 0.1f, SIGMOID_ACTIVATION, binary_classifier);
     p->bias = 0.5f;
 
-    Vector *input = vector_zeros(3);
+    Tensor *input = tensor_zeros(1, (int[]){3});
     float prediction = perceptron_predict(p, input);
 
     // With zero input, output should be sigmoid(bias)
@@ -129,7 +130,7 @@ void test_perceptron_predict_zero_input() {
     assert(float_equals(prediction, expected));
     assert(float_equals(p->last_raw_output, 0.5f));
 
-    vector_free(input);
+    tensor_free(input);
     perceptron_free(p);
     TEST_PASSED;
 }
@@ -141,7 +142,7 @@ void test_perceptron_predict_with_relu() {
     p->weights->data[1] = 1.0f;
     p->bias = -1.5f;
 
-    Vector *input = vector_create(2);
+    Tensor *input = tensor_zeros(1, (int[]){2});
     input->data[0] = 1.0f;
     input->data[1] = 1.0f;
 
@@ -152,7 +153,7 @@ void test_perceptron_predict_with_relu() {
     assert(float_equals(p->last_raw_output, 0.5f));
     assert(float_equals(prediction, 0.5f));
 
-    vector_free(input);
+    tensor_free(input);
     perceptron_free(p);
     TEST_PASSED;
 }
@@ -164,7 +165,7 @@ void test_perceptron_predict_caching() {
     p->weights->data[1] = -1.0f;
     p->bias = 0.0f;
 
-    Vector *input = vector_create(2);
+    Tensor *input = tensor_zeros(1, (int[]){2});
     input->data[0] = 0.5f;
     input->data[1] = 0.5f;
 
@@ -189,7 +190,7 @@ void test_perceptron_predict_caching() {
     assert(float_equals(p->last_output, tanh_scalar(1.0f)));
     assert(float_equals(pred2, tanh_scalar(1.0f)));
 
-    vector_free(input);
+    tensor_free(input);
     perceptron_free(p);
     TEST_PASSED;
 }
@@ -209,7 +210,7 @@ void test_perceptron_update_weights_basic() {
     // Simulate a prediction (linear activation, derivative = 1)
     p->last_output = 0.8f;
 
-    Vector *input = vector_create(2);
+    Tensor *input = tensor_zeros(1, (int[]){2});
     input->data[0] = 1.0f;
     input->data[1] = 2.0f;
 
@@ -232,7 +233,7 @@ void test_perceptron_update_weights_basic() {
     assert(float_equals(p->weights->data[1], w1_initial - 0.1f * 0.3f * 2.0f));
     assert(float_equals(p->bias, b_initial - 0.1f * 0.3f));
 
-    vector_free(input);
+    tensor_free(input);
     perceptron_free(p);
     TEST_PASSED;
 }
@@ -244,7 +245,7 @@ void test_perceptron_update_weights_with_sigmoid() {
     p->weights->data[1] = 1.0f;
     p->bias = 0.0f;
 
-    Vector *input = vector_create(2);
+    Tensor *input = tensor_zeros(1, (int[]){2});
     input->data[0] = 0.5f;
     input->data[1] = 0.5f;
 
@@ -271,7 +272,7 @@ void test_perceptron_update_weights_with_sigmoid() {
     assert(p->weights->data[0] < w0_before);
     assert(p->weights->data[1] < w1_before);
 
-    vector_free(input);
+    tensor_free(input);
     perceptron_free(p);
     TEST_PASSED;
 }
@@ -284,7 +285,7 @@ void test_perceptron_update_weights_zero_error() {
     p->bias = 0.2f;
     p->last_output = 0.7f;
 
-    Vector *input = vector_create(2);
+    Tensor *input = tensor_zeros(1, (int[]){2});
     input->data[0] = 1.0f;
     input->data[1] = 1.0f;
 
@@ -299,7 +300,7 @@ void test_perceptron_update_weights_zero_error() {
     assert(float_equals(p->weights->data[1], w1_before));
     assert(float_equals(p->bias, b_before));
 
-    vector_free(input);
+    tensor_free(input);
     perceptron_free(p);
     TEST_PASSED;
 }
@@ -315,7 +316,7 @@ void test_perceptron_train_step_basic() {
     p->weights->data[1] = 0.0f;
     p->bias = 0.0f;
 
-    Vector *input = vector_create(2);
+    Tensor *input = tensor_zeros(1, (int[]){2});
     input->data[0] = 1.0f;
     input->data[1] = 1.0f;
 
@@ -333,7 +334,7 @@ void test_perceptron_train_step_basic() {
     assert(p->weights->data[0] > w0_before);
     assert(p->weights->data[1] > w1_before);
 
-    vector_free(input);
+    tensor_free(input);
     perceptron_free(p);
     TEST_PASSED;
 }
@@ -346,7 +347,7 @@ void test_perceptron_train_step_convergence_direction() {
     p->weights->data[1] = 2.0f;
     p->bias = 0.0f;
 
-    Vector *input = vector_create(2);
+    Tensor *input = tensor_zeros(1, (int[]){2});
     input->data[0] = 1.0f;
     input->data[1] = 1.0f;
 
@@ -362,7 +363,7 @@ void test_perceptron_train_step_convergence_direction() {
     assert(p->weights->data[0] < w0_before);
     assert(p->weights->data[1] < w1_before);
 
-    vector_free(input);
+    tensor_free(input);
     perceptron_free(p);
     TEST_PASSED;
 }
@@ -376,27 +377,27 @@ void test_perceptron_learns_simple_pattern() {
     Perceptron *p = perceptron_create(2, -0.5f, 0.5f, 0.5f, SIGMOID_ACTIVATION, binary_classifier);
 
     // Training data: simple linearly separable pattern
-    Vector *inputs[4];
+    Tensor *inputs[4];
     float targets[4];
 
     // Class 0: both inputs small
-    inputs[0] = vector_create(2);
+    inputs[0] = tensor_zeros(1, (int[]){2});
     inputs[0]->data[0] = 0.0f;
     inputs[0]->data[1] = 0.0f;
     targets[0] = 0.0f;
 
-    inputs[1] = vector_create(2);
+    inputs[1] = tensor_zeros(1, (int[]){2});
     inputs[1]->data[0] = 0.0f;
     inputs[1]->data[1] = 1.0f;
     targets[1] = 0.0f;
 
     // Class 1: sum is large
-    inputs[2] = vector_create(2);
+    inputs[2] = tensor_zeros(1, (int[]){2});
     inputs[2]->data[0] = 1.0f;
     inputs[2]->data[1] = 1.0f;
     targets[2] = 1.0f;
 
-    inputs[3] = vector_create(2);
+    inputs[3] = tensor_zeros(1, (int[]){2});
     inputs[3]->data[0] = 2.0f;
     inputs[3]->data[1] = 2.0f;
     targets[3] = 1.0f;
@@ -423,7 +424,7 @@ void test_perceptron_learns_simple_pattern() {
 
     // Cleanup
     for (int i = 0; i < 4; i++) {
-        vector_free(inputs[i]);
+        tensor_free(inputs[i]);
     }
     perceptron_free(p);
     TEST_PASSED;
@@ -433,21 +434,21 @@ void test_perceptron_learns_and_gate() {
     Perceptron *p = perceptron_create(2, -1.0f, 1.0f, 0.5f, SIGMOID_ACTIVATION, binary_classifier);
 
     Dataset *and_data = create_and_gate_dataset();
+    Tensor *input = tensor_zeros(1, (int[]){2});
 
     // Train for multiple epochs
     for (int epoch = 0; epoch < 100; epoch++) {
         for (int i = 0; i < and_data->num_samples; i++) {
-            Vector *input = get_row_as_vector(and_data->X, i);
+            tensor_get_row(input, and_data->X, i);
             float target = and_data->Y->data[i];
             perceptron_train_step(p, input, target);
-            vector_free(input);
         }
     }
 
     // Test accuracy
     int correct = 0;
     for (int i = 0; i < and_data->num_samples; i++) {
-        Vector *input = get_row_as_vector(and_data->X, i);
+        tensor_get_row(input, and_data->X, i);
         float prediction = perceptron_predict(p, input);
         int classified = p->classifier(prediction);
         float target = and_data->Y->data[i];
@@ -455,12 +456,12 @@ void test_perceptron_learns_and_gate() {
         if (float_equals((float)classified, target)) {
             correct++;
         }
-        vector_free(input);
     }
 
     // AND gate is linearly separable, should get 100% accuracy
     assert(correct == 4);
 
+    tensor_free(input);
     dataset_free(and_data);
     perceptron_free(p);
     TEST_PASSED;
@@ -470,21 +471,21 @@ void test_perceptron_learns_or_gate() {
     Perceptron *p = perceptron_create(2, -1.0f, 1.0f, 0.5f, SIGMOID_ACTIVATION, binary_classifier);
 
     Dataset *or_data = create_or_gate_dataset();
+    Tensor *input = tensor_zeros(1, (int[]){2});
 
     // Train for multiple epochs
     for (int epoch = 0; epoch < 100; epoch++) {
         for (int i = 0; i < or_data->num_samples; i++) {
-            Vector *input = get_row_as_vector(or_data->X, i);
+            tensor_get_row(input, or_data->X, i);
             float target = or_data->Y->data[i];
             perceptron_train_step(p, input, target);
-            vector_free(input);
         }
     }
 
     // Test accuracy
     int correct = 0;
     for (int i = 0; i < or_data->num_samples; i++) {
-        Vector *input = get_row_as_vector(or_data->X, i);
+        tensor_get_row(input, or_data->X, i);
         float prediction = perceptron_predict(p, input);
         int classified = p->classifier(prediction);
         float target = or_data->Y->data[i];
@@ -492,12 +493,12 @@ void test_perceptron_learns_or_gate() {
         if (float_equals((float)classified, target)) {
             correct++;
         }
-        vector_free(input);
     }
 
     // OR gate is linearly separable, should get 100% accuracy
     assert(correct == 4);
 
+    tensor_free(input);
     dataset_free(or_data);
     perceptron_free(p);
     TEST_PASSED;
@@ -518,7 +519,7 @@ void test_perceptron_with_different_learning_rates() {
     p_slow->bias = 0.0f;
     p_fast->bias = 0.0f;
 
-    Vector *input = vector_create(2);
+    Tensor *input = tensor_zeros(1, (int[]){2});
     input->data[0] = 1.0f;
     input->data[1] = 1.0f;
     float target = 1.0f;
@@ -537,7 +538,7 @@ void test_perceptron_with_different_learning_rates() {
     assert(slow_change > 0.0f);        // Slow learner still updates
     assert(fast_change > slow_change); // Fast learner updates more
 
-    vector_free(input);
+    tensor_free(input);
     perceptron_free(p_slow);
     perceptron_free(p_fast);
     TEST_PASSED;
@@ -553,7 +554,7 @@ void test_perceptron_zero_learning_rate() {
     p->weights->data[0] = 0.5f;
     p->weights->data[1] = -0.3f;
 
-    Vector *input = vector_create(2);
+    Tensor *input = tensor_zeros(1, (int[]){2});
     input->data[0] = 1.0f;
     input->data[1] = 1.0f;
 
@@ -567,7 +568,7 @@ void test_perceptron_zero_learning_rate() {
     assert(float_equals(p->weights->data[0], w0_before));
     assert(float_equals(p->weights->data[1], w1_before));
 
-    vector_free(input);
+    tensor_free(input);
     perceptron_free(p);
     TEST_PASSED;
 }
@@ -579,7 +580,7 @@ void test_perceptron_negative_inputs() {
     p->weights->data[1] = 1.0f;
     p->bias = 0.0f;
 
-    Vector *input = vector_create(2);
+    Tensor *input = tensor_zeros(1, (int[]){2});
     input->data[0] = -1.0f;
     input->data[1] = -1.0f;
 
@@ -590,7 +591,7 @@ void test_perceptron_negative_inputs() {
     assert(float_equals(p->last_raw_output, -2.0f));
     assert(prediction < 0.0f);
 
-    vector_free(input);
+    tensor_free(input);
     perceptron_free(p);
     TEST_PASSED;
 }
@@ -599,7 +600,7 @@ void test_perceptron_single_input_dimension() {
     // Test with 1D input (simple threshold)
     Perceptron *p = perceptron_create(1, -1.0f, 1.0f, 0.3f, SIGMOID_ACTIVATION, binary_classifier);
 
-    Vector *input = vector_create(1);
+    Tensor *input = tensor_zeros(1, (int[]){1});
 
     // Train to recognize values > 0.5
     float training_data[4] = {0.0f, 1.0f, 0.3f, 0.8f};
@@ -615,7 +616,7 @@ void test_perceptron_single_input_dimension() {
     // Test that it learned something (weight should be positive)
     assert(p->weights->data[0] != 0.0f);
 
-    vector_free(input);
+    tensor_free(input);
     perceptron_free(p);
     TEST_PASSED;
 }
@@ -629,7 +630,7 @@ void test_perceptron_bias_learning() {
     p->weights->data[1] = 0.0f;
     p->bias = 0.0f;
 
-    Vector *input = vector_zeros(2);
+    Tensor *input = tensor_zeros(1, (int[]){2});
     float target = 1.0f; // Want output to be 1 even with zero input
 
     float bias_before = p->bias;
@@ -646,7 +647,7 @@ void test_perceptron_bias_learning() {
     float final_prediction = perceptron_predict(p, input);
     assert(final_prediction > 0.5f); // Should be classified as 1
 
-    vector_free(input);
+    tensor_free(input);
     perceptron_free(p);
     TEST_PASSED;
 }

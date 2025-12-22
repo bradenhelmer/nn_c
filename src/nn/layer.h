@@ -7,8 +7,7 @@
 #define LAYER_H
 
 #include "../activations/activations.h"
-#include "../linalg/matrix.h"
-#include "../linalg/vector.h"
+#include "../tensor/tensor.h"
 
 // =============================================================================
 // LAYER GENERICS
@@ -40,28 +39,28 @@ void layer_init_weights(Layer *layer);
 typedef struct {
     int input_size;
     int output_size;
-    Matrix *weights; // shape: (output_size, input_size)
-    Vector *biases;  // shape: (output_size,)
-    VectorActivationPair activation;
+    Tensor *weights; // shape: (output_size, input_size)
+    Tensor *biases;  // shape: (output_size,)
+    TensorActivationPair activation;
 
     // Cached for back propagation
-    Vector *z;     // pre-activation: Wx + b
-    Vector *a;     // post-activation: f(z)
-    Vector *input; // cached input for weight gradients
+    Tensor *z;     // pre-activation: Wx + b
+    Tensor *a;     // post-activation: f(z)
+    Tensor *input; // cached input for weight gradients
 
     // Gradients
-    Matrix *dW;                  // Weight gradients
-    Vector *db;                  // Bias gradients
-    Vector *downstream_gradient; // Gradient to pass downstream -> dL/da_prev
+    Tensor *dW;                  // Weight gradients
+    Tensor *db;                  // Bias gradients
+    Tensor *downstream_gradient; // Gradient to pass downstream -> dL/da_prev
 } LinearLayer;
 
 // Lifecycle
-LinearLayer *linear_layer_create(int input_size, int output_size, VectorActivationPair activation);
+LinearLayer *linear_layer_create(int input_size, int output_size, TensorActivationPair activation);
 void linear_layer_free(LinearLayer *layer);
 
 // Forward/backward
-void linear_layer_forward(LinearLayer *layer, const Vector *input);
-void linear_layer_backward(LinearLayer *layer, const Vector *upstream_grad);
+void linear_layer_forward(LinearLayer *layer, const Tensor *input);
+void linear_layer_backward(LinearLayer *layer, const Tensor *upstream_grad);
 
 // Weight initialization
 void linear_layer_init_xavier(LinearLayer *layer);

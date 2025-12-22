@@ -4,6 +4,7 @@
  * Tensor implementations.
  */
 #include "tensor.h"
+#include "../utils/utils.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +31,14 @@ Tensor *tensor_create(int ndim, int *shape) {
 
 Tensor *tensor_zeros(int ndim, int *shape) {
     return tensor_create(ndim, shape);
+}
+
+Tensor *tensor_random(int ndim, int *shape, float min, float max) {
+    Tensor *t = tensor_create(ndim, shape);
+    for (int i = 0; i < t->size; i++) {
+        t->data[i] = rand_rangef(min, max);
+    }
+    return t;
 }
 
 void tensor_free(Tensor *t) {
@@ -90,6 +99,167 @@ void tensor_print_shape(const Tensor *t) {
         printf("%d, ", t->shape[i]);
     }
     printf("%d}", t->shape[i]);
+}
+
+void tensor_print(const Tensor *t) {
+    printf("[");
+    for (int i = 0; i < t->size; i++) {
+        printf("%.4f", t->data[i]);
+        if (i < t->size - 1) {
+            printf(", ");
+        }
+    }
+    printf("]");
+}
+
+void tensor_get_row(Tensor *dest, const Tensor *src, int row_idx) {
+    assert(src->ndim == 2);
+    assert(dest->ndim == 1);
+    assert(dest->shape[0] == src->shape[1]);
+    int cols = src->shape[1];
+    memcpy(dest->data, &src->data[row_idx * cols], cols * sizeof(float));
+}
+
+void tensor_set_row(Tensor *dest, const Tensor *src, int row_idx) {
+    assert(dest->ndim == 2);
+    assert(src->ndim == 1);
+    assert(src->shape[0] == dest->shape[1]);
+    int cols = dest->shape[1];
+    memcpy(&dest->data[row_idx * cols], src->data, cols * sizeof(float));
+}
+
+int tensor_equals(const Tensor *a, const Tensor *b) {
+    if (a->ndim != b->ndim || a->size != b->size) {
+        return 0;
+    }
+    for (int i = 0; i < a->ndim; i++) {
+        if (a->shape[i] != b->shape[i]) {
+            return 0;
+        }
+    }
+    for (int i = 0; i < a->size; i++) {
+        if (a->data[i] != b->data[i]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+void tensor_scale(Tensor *dest, const Tensor *src, float scalar) {
+    assert(dest->size == src->size);
+    for (int i = 0; i < src->size; i++) {
+        dest->data[i] = src->data[i] * scalar;
+    }
+}
+
+float tensor_dot(const Tensor *a, const Tensor *b) {
+    assert(a->ndim == 1 && b->ndim == 1);
+    assert(a->shape[0] == b->shape[0]);
+    float sum = 0.0f;
+    for (int i = 0; i < a->shape[0]; i++) {
+        sum += a->data[i] * b->data[i];
+    }
+    return sum;
+}
+
+float tensor_sum(const Tensor *t) {
+    float sum = 0.0f;
+    for (int i = 0; i < t->size; i++) {
+        sum += t->data[i];
+    }
+    return sum;
+}
+
+float tensor_max(const Tensor *t) {
+    float max = t->data[0];
+    for (int i = 1; i < t->size; i++) {
+        if (t->data[i] > max) {
+            max = t->data[i];
+        }
+    }
+    return max;
+}
+
+int tensor_argmax(const Tensor *t) {
+    int max_idx = 0;
+    float max = t->data[0];
+    for (int i = 1; i < t->size; i++) {
+        if (t->data[i] > max) {
+            max = t->data[i];
+            max_idx = i;
+        }
+    }
+    return max_idx;
+}
+
+void tensor_add(Tensor *dest, const Tensor *a, const Tensor *b) {
+    assert(dest->size == a->size && a->size == b->size);
+    for (int i = 0; i < dest->size; i++) {
+        dest->data[i] = a->data[i] + b->data[i];
+    }
+}
+
+void tensor_elementwise_mul(Tensor *dest, const Tensor *a, const Tensor *b) {
+    assert(dest->size == a->size && a->size == b->size);
+    for (int i = 0; i < dest->size; i++) {
+        dest->data[i] = a->data[i] * b->data[i];
+    }
+}
+
+void tensor_matvec_mul(Tensor *dest, const Tensor *mat, const Tensor *vec) {
+    assert(mat->ndim == 2);
+    assert(vec->ndim == 1);
+    assert(dest->ndim == 1);
+    assert(mat->shape[1] == vec->shape[0]);
+    assert(dest->shape[0] == mat->shape[0]);
+
+    int m = mat->shape[0];
+    int n = mat->shape[1];
+
+    for (int i = 0; i < m; i++) {
+        float sum = 0.0f;
+        for (int j = 0; j < n; j++) {
+            sum += tensor_get2d(mat, i, j) * vec->data[j];
+        }
+        dest->data[i] = sum;
+    }
+}
+
+void tensor_matvec_mul_transpose(Tensor *dest, const Tensor *mat, const Tensor *vec) {
+    assert(mat->ndim == 2);
+    assert(vec->ndim == 1);
+    assert(dest->ndim == 1);
+    assert(mat->shape[0] == vec->shape[0]);
+    assert(dest->shape[0] == mat->shape[1]);
+
+    int m = mat->shape[0];
+    int n = mat->shape[1];
+
+    // Zero dest first since we accumulate
+    tensor_fill(dest, 0.0f);
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            dest->data[j] += tensor_get2d(mat, i, j) * vec->data[i];
+        }
+    }
+}
+
+void tensor_outer_product(Tensor *dest, const Tensor *a, const Tensor *b) {
+    assert(a->ndim == 1);
+    assert(b->ndim == 1);
+    assert(dest->ndim == 2);
+    assert(dest->shape[0] == a->shape[0]);
+    assert(dest->shape[1] == b->shape[0]);
+
+    int m = a->shape[0];
+    int n = b->shape[0];
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            tensor_set2d(dest, i, j, a->data[i] * b->data[j]);
+        }
+    }
 }
 
 Tensor *tensor_pad2d(const Tensor *t, int padding) {

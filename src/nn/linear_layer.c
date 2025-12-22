@@ -7,47 +7,53 @@
 #include <math.h>
 #include <stdlib.h>
 
-LinearLayer *linear_layer_create(int input_size, int output_size, VectorActivationPair activation) {
+LinearLayer *linear_layer_create(int input_size, int output_size, TensorActivationPair activation) {
     LinearLayer *layer = (LinearLayer *)malloc(sizeof(LinearLayer));
 
     layer->input_size = input_size;
     layer->output_size = output_size;
     layer->activation = activation;
 
-    layer->weights = matrix_create(output_size, input_size);
-    layer->biases = vector_zeros(output_size);
+    int weights_shape[] = {output_size, input_size};
+    int bias_shape[] = {output_size};
+    int input_shape[] = {input_size};
 
-    layer->z = vector_create(output_size);
-    layer->a = vector_create(output_size);
-    layer->input = vector_create(input_size);
+    layer->weights = tensor_zeros(2, weights_shape);
+    layer->biases = tensor_zeros(1, bias_shape);
 
-    layer->dW = matrix_create(output_size, input_size);
-    layer->db = vector_create(output_size);
-    layer->downstream_gradient = vector_create(input_size);
+    layer->z = tensor_zeros(1, bias_shape);
+    layer->a = tensor_zeros(1, bias_shape);
+    layer->input = tensor_zeros(1, input_shape);
+
+    layer->dW = tensor_zeros(2, weights_shape);
+    layer->db = tensor_zeros(1, bias_shape);
+    layer->downstream_gradient = tensor_zeros(1, input_shape);
 
     return layer;
 }
 
 void linear_layer_free(LinearLayer *layer) {
-    matrix_free(layer->weights);
-    vector_free(layer->biases);
+    tensor_free(layer->weights);
+    tensor_free(layer->biases);
 
-    vector_free(layer->z);
-    vector_free(layer->a);
-    vector_free(layer->input);
+    tensor_free(layer->z);
+    tensor_free(layer->a);
+    tensor_free(layer->input);
 
-    matrix_free(layer->dW);
-    vector_free(layer->db);
-    vector_free(layer->downstream_gradient);
+    tensor_free(layer->dW);
+    tensor_free(layer->db);
+    tensor_free(layer->downstream_gradient);
 
     free(layer);
 }
 
 static void _layer_init(LinearLayer *layer, float standard) {
     float min = -standard, max = standard;
-    for (int i = 0; i < layer->weights->rows; i++) {
-        for (int j = 0; j < layer->weights->cols; j++) {
-            matrix_set(layer->weights, i, j, rand_rangef(min, max));
+    int rows = layer->weights->shape[0];
+    int cols = layer->weights->shape[1];
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            tensor_set2d(layer->weights, i, j, rand_rangef(min, max));
         }
     }
 }
@@ -60,35 +66,36 @@ void linear_layer_init_he(LinearLayer *layer) {
 }
 
 // Forward/backward
-void linear_layer_forward(LinearLayer *layer, const Vector *input) {
+void linear_layer_forward(LinearLayer *layer, const Tensor *input) {
     // Cache input for weight gradient calculation.
-    vector_copy(layer->input, input);
+    tensor_copy(layer->input, input);
 
     // z = Wx + b
-    matrix_vector_multiply(layer->z, layer->weights, input);
-    vector_add(layer->z, layer->z, layer->biases);
+    tensor_matvec_mul(layer->z, layer->weights, input);
+    tensor_add(layer->z, layer->z, layer->biases);
 
     // a = f(z)
     layer->activation.forward(layer->a, layer->z);
 }
 
-void linear_layer_backward(LinearLayer *layer, const Vector *upstream_grad) {
+void linear_layer_backward(LinearLayer *layer, const Tensor *upstream_grad) {
 
     // 1. Pre-activation -> dL/dz = dL/da ⊙ f'(z)
-    Vector *dz = vector_create(layer->output_size);
+    Tensor *dz = tensor_clone(layer->a);
     layer->activation.derivative(dz, layer->a);
-    vector_elementwise_multiply(dz, upstream_grad, dz);
+    tensor_elementwise_mul(dz, upstream_grad, dz);
 
     // 2. Weights -> dL/dW = dz ⊗ input^T (outer product) - accumulate
-    Matrix *dW_sample = matrix_create(layer->output_size, layer->input_size);
-    vector_outer_product(dW_sample, dz, layer->input);
-    matrix_add(layer->dW, layer->dW, dW_sample);
-    matrix_free(dW_sample);
+    int dw_shape[] = {layer->output_size, layer->input_size};
+    Tensor *dW_sample = tensor_zeros(2, dw_shape);
+    tensor_outer_product(dW_sample, dz, layer->input);
+    tensor_add(layer->dW, layer->dW, dW_sample);
+    tensor_free(dW_sample);
 
     // 3. Bias -> dL/db = dz - accumulate
-    vector_add(layer->db, layer->db, dz);
+    tensor_add(layer->db, layer->db, dz);
 
-    // 4. Downstream Gradient -> dL/da_prev = W^T
-    matrix_transpose_vector_multiply(layer->downstream_gradient, layer->weights, dz);
-    vector_free(dz);
+    // 4. Downstream Gradient -> dL/da_prev = W^T * dz
+    tensor_matvec_mul_transpose(layer->downstream_gradient, layer->weights, dz);
+    tensor_free(dz);
 }

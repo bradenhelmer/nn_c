@@ -4,19 +4,10 @@
 
 #ifndef TEST_RUNNER_H
 #define TEST_RUNNER_H
-#include "../src/linalg/matrix.h"
-#include "../src/linalg/vector.h"
-#include "../src/utils/utils.h"
 
 // Shared constants.
 #define TEST_PASSED printf("  ✓ %s passed\n", __func__)
 #define TEST_FAILED printf("  ✗ %s FAILED\n", __func__)
-
-// Vector tests
-void run_vector_tests(void);
-
-// Matrix tests
-void run_matrix_tests(void);
 
 // Activation tests
 void run_activations_tests(void);

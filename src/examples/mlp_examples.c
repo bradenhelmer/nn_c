@@ -4,12 +4,11 @@
 
 #include "../activations/activations.h"
 #include "../data/dataset.h"
-#include "../linalg/vector.h"
 #include "../nn/mlp.h"
 #include "../training/gradient_descent.h"
 #include <stdio.h>
 
-static void xor_classifier(Vector *dest, const Vector *prediction) {
+static void xor_classifier(Tensor *dest, const Tensor *prediction) {
     if (prediction->data[0] <= 0.05) {
         dest->data[0] = 0.0f;
         return;
@@ -28,10 +27,10 @@ void mlp_learning_xor() {
     TrainingConfig config = {.max_epochs = 20000, .tolerance = 1e-7, .batch_size = 1, .verbose = 0};
     Dataset *xor_data = create_xor_gate_dataset();
 
-    MLP *mlp_xor = mlp_create(2, 0.5f, VECTOR_MSE_LOSS, xor_classifier);
-    LinearLayer *layer_1 = linear_layer_create(2, 2, VECTOR_SIGMOID_ACTIVATION);
+    MLP *mlp_xor = mlp_create(2, 0.5f, TENSOR_MSE_LOSS, xor_classifier);
+    LinearLayer *layer_1 = linear_layer_create(2, 2, TENSOR_SIGMOID_ACTIVATION);
     linear_layer_init_xavier(layer_1);
-    LinearLayer *layer_2 = linear_layer_create(2, 1, VECTOR_SIGMOID_ACTIVATION);
+    LinearLayer *layer_2 = linear_layer_create(2, 1, TENSOR_SIGMOID_ACTIVATION);
     linear_layer_init_xavier(layer_2);
     mlp_add_layer(mlp_xor, 0, layer_1);
     mlp_add_layer(mlp_xor, 1, layer_2);
@@ -57,10 +56,10 @@ void mlp_learning_xor_batched() {
     TrainingConfig config = {.max_epochs = 50000, .tolerance = 1e-8, .batch_size = 1, .verbose = 0};
     Dataset *xor_data = create_xor_gate_dataset();
 
-    MLP *mlp_xor = mlp_create(2, 0.3f, VECTOR_MSE_LOSS, xor_classifier);
-    LinearLayer *layer_1 = linear_layer_create(2, 2, VECTOR_SIGMOID_ACTIVATION);
+    MLP *mlp_xor = mlp_create(2, 0.3f, TENSOR_MSE_LOSS, xor_classifier);
+    LinearLayer *layer_1 = linear_layer_create(2, 2, TENSOR_SIGMOID_ACTIVATION);
     linear_layer_init_xavier(layer_1);
-    LinearLayer *layer_2 = linear_layer_create(2, 1, VECTOR_SIGMOID_ACTIVATION);
+    LinearLayer *layer_2 = linear_layer_create(2, 1, TENSOR_SIGMOID_ACTIVATION);
     linear_layer_init_xavier(layer_2);
     mlp_add_layer(mlp_xor, 0, layer_1);
     mlp_add_layer(mlp_xor, 1, layer_2);

@@ -2,17 +2,18 @@
  * activations.h - Activation functions for neural networks
  *
  * Provides common activation functions (sigmoid, ReLU, tanh, softmax)
- * and their derivatives for both vectors and matrices, used in forward
+ * and their derivatives for both scalars and tensors, used in forward
  * and backward propagation.
  */
 
 #ifndef ACTIVATIONS_H
 #define ACTIVATIONS_H
-#include "../linalg/matrix.h"
-#include "../linalg/vector.h"
-#include "tensor/tensor.h"
+#include "../tensor/tensor.h"
 
-// Activation functions (singular)
+// =============================================================================
+// SCALAR ACTIVATION FUNCTIONS
+// =============================================================================
+
 float sigmoid_scalar(float x);
 float sigmoid_scalar_derivative(float s);
 float relu_scalar(float x);
@@ -22,38 +23,10 @@ float tanh_scalar_derivative(float t);
 float linear_scalar(float x);
 float linear_scalar_derivative(float x);
 
-// Activation functions (element-wise)
-void vector_sigmoid(Vector *result, const Vector *input);
-void vector_sigmoid_derivative(Vector *result, const Vector *sigmoid_output);
-
-void vector_relu(Vector *result, const Vector *input);
-void vector_relu_derivative(Vector *result, const Vector *input);
-
-void vector_tanh_activation(Vector *result, const Vector *input);
-void vector_tanh_derivative(Vector *result, const Vector *tanh_output);
-
-void vector_linear(Vector *result, const Vector *input);
-void vector_linear_derivative(Vector *result, const Vector *input);
-
-// Softmax (special - operates on whole vector)
-void vector_softmax(Vector *result, const Vector *input);
-
-// Matrix versions (apply element-wise)
-void matrix_sigmoid(Matrix *result, const Matrix *input);
-void matrix_sigmoid_derivative(Matrix *result, const Matrix *sigmoid_output);
-void matrix_relu(Matrix *result, const Matrix *input);
-void matrix_relu_derivative(Matrix *result, const Matrix *input);
-
-// Tensor Activations
-void tensor_relu_forward(Tensor *output, const Tensor *input);
-void tensor_relu_backward(Tensor *grad_input, const Tensor *grad_output,
-                          const Tensor *cached_forward_output);
-
 // Scalar Activation Types
 typedef float (*scalar_activation_func)(float);
 typedef float (*scalar_activation_derivative_func)(float);
 
-// Scalar Pairs
 typedef struct {
     scalar_activation_func forward;
     scalar_activation_derivative_func derivative;
@@ -65,20 +38,50 @@ extern const ScalarActivationPair RELU_ACTIVATION;
 extern const ScalarActivationPair TANH_ACTIVATION;
 extern const ScalarActivationPair LINEAR_ACTIVATION;
 
-// Vector Activation Types
-typedef void (*vector_activation_func)(Vector *, const Vector *);
-typedef void (*vector_activation_derivative_func)(Vector *, const Vector *);
+// =============================================================================
+// TENSOR ACTIVATION FUNCTIONS (for LinearLayer)
+// =============================================================================
 
-// Vector Pairs
+// Sigmoid
+void tensor_sigmoid(Tensor *result, const Tensor *input);
+void tensor_sigmoid_derivative(Tensor *result, const Tensor *sigmoid_output);
+
+// ReLU
+void tensor_relu(Tensor *result, const Tensor *input);
+void tensor_relu_derivative(Tensor *result, const Tensor *input);
+
+// Tanh
+void tensor_tanh_activation(Tensor *result, const Tensor *input);
+void tensor_tanh_derivative(Tensor *result, const Tensor *tanh_output);
+
+// Linear (identity)
+void tensor_linear(Tensor *result, const Tensor *input);
+void tensor_linear_derivative(Tensor *result, const Tensor *input);
+
+// Softmax (operates on whole 1D tensor)
+void tensor_softmax(Tensor *result, const Tensor *input);
+
+// Tensor Activation Types
+typedef void (*tensor_activation_func)(Tensor *, const Tensor *);
+typedef void (*tensor_activation_derivative_func)(Tensor *, const Tensor *);
+
 typedef struct {
-    vector_activation_func forward;
-    vector_activation_derivative_func derivative;
+    tensor_activation_func forward;
+    tensor_activation_derivative_func derivative;
     const char *name;
-} VectorActivationPair;
+} TensorActivationPair;
 
-extern const VectorActivationPair VECTOR_SIGMOID_ACTIVATION;
-extern const VectorActivationPair VECTOR_RELU_ACTIVATION;
-extern const VectorActivationPair VECTOR_TANH_ACTIVATION;
-extern const VectorActivationPair VECTOR_LINEAR_ACTIVATION;
+extern const TensorActivationPair TENSOR_SIGMOID_ACTIVATION;
+extern const TensorActivationPair TENSOR_RELU_ACTIVATION;
+extern const TensorActivationPair TENSOR_TANH_ACTIVATION;
+extern const TensorActivationPair TENSOR_LINEAR_ACTIVATION;
+
+// =============================================================================
+// CONV LAYER ACTIVATION FUNCTIONS (3-argument form for caching)
+// =============================================================================
+
+void tensor_relu_forward(Tensor *output, const Tensor *input);
+void tensor_relu_backward(Tensor *grad_input, const Tensor *grad_output,
+                          const Tensor *cached_forward_output);
 
 #endif /* ifndef ACTIVATIONS_H */

@@ -52,29 +52,34 @@ Optimizer *optimizer_create_adam(float learning_rate, float beta1, float beta2, 
 void optimizer_init(Optimizer *opt, MLP *mlp) {
     opt->num_layers = mlp->num_layers;
     if (opt->type == OPTIMIZER_MOMENTUM) {
-        opt->v_weights = (Matrix **)malloc(sizeof(Matrix *) * mlp->num_layers);
-        opt->v_biases = (Vector **)malloc(sizeof(Vector *) * mlp->num_layers);
+        opt->v_weights = (Tensor **)malloc(sizeof(Tensor *) * mlp->num_layers);
+        opt->v_biases = (Tensor **)malloc(sizeof(Tensor *) * mlp->num_layers);
 
         for (int i = 0; i < mlp->num_layers; ++i) {
             LinearLayer *layer = mlp->layers[i];
-
-            opt->v_weights[i] = matrix_create(layer->weights->rows, layer->weights->cols);
-            opt->v_biases[i] = vector_create(layer->biases->size);
+            opt->v_weights[i] = tensor_clone(layer->weights);
+            tensor_fill(opt->v_weights[i], 0.0f);
+            opt->v_biases[i] = tensor_clone(layer->biases);
+            tensor_fill(opt->v_biases[i], 0.0f);
         }
     }
 
     if (opt->type == OPTIMIZER_ADAM) {
-        opt->m_weights = (Matrix **)malloc(sizeof(Matrix *) * mlp->num_layers);
-        opt->s_weights = (Matrix **)malloc(sizeof(Matrix *) * mlp->num_layers);
-        opt->m_biases = (Vector **)malloc(sizeof(Vector *) * mlp->num_layers);
-        opt->s_biases = (Vector **)malloc(sizeof(Vector *) * mlp->num_layers);
+        opt->m_weights = (Tensor **)malloc(sizeof(Tensor *) * mlp->num_layers);
+        opt->s_weights = (Tensor **)malloc(sizeof(Tensor *) * mlp->num_layers);
+        opt->m_biases = (Tensor **)malloc(sizeof(Tensor *) * mlp->num_layers);
+        opt->s_biases = (Tensor **)malloc(sizeof(Tensor *) * mlp->num_layers);
 
         for (int i = 0; i < mlp->num_layers; ++i) {
             LinearLayer *layer = mlp->layers[i];
-            opt->m_weights[i] = matrix_create(layer->weights->rows, layer->weights->cols);
-            opt->s_weights[i] = matrix_create(layer->weights->rows, layer->weights->cols);
-            opt->m_biases[i] = vector_create(layer->biases->size);
-            opt->s_biases[i] = vector_create(layer->biases->size);
+            opt->m_weights[i] = tensor_clone(layer->weights);
+            tensor_fill(opt->m_weights[i], 0.0f);
+            opt->s_weights[i] = tensor_clone(layer->weights);
+            tensor_fill(opt->s_weights[i], 0.0f);
+            opt->m_biases[i] = tensor_clone(layer->biases);
+            tensor_fill(opt->m_biases[i], 0.0f);
+            opt->s_biases[i] = tensor_clone(layer->biases);
+            tensor_fill(opt->s_biases[i], 0.0f);
         }
     }
 }
@@ -86,8 +91,8 @@ void optimizer_free(Optimizer *opt) {
     }
     case OPTIMIZER_MOMENTUM: {
         for (int i = 0; i < opt->num_layers; ++i) {
-            matrix_free(opt->v_weights[i]);
-            vector_free(opt->v_biases[i]);
+            tensor_free(opt->v_weights[i]);
+            tensor_free(opt->v_biases[i]);
         }
         free(opt->v_weights);
         free(opt->v_biases);
@@ -95,10 +100,10 @@ void optimizer_free(Optimizer *opt) {
     }
     case OPTIMIZER_ADAM: {
         for (int i = 0; i < opt->num_layers; ++i) {
-            matrix_free(opt->m_weights[i]);
-            vector_free(opt->m_biases[i]);
-            matrix_free(opt->s_weights[i]);
-            vector_free(opt->s_biases[i]);
+            tensor_free(opt->m_weights[i]);
+            tensor_free(opt->m_biases[i]);
+            tensor_free(opt->s_weights[i]);
+            tensor_free(opt->s_biases[i]);
         }
         free(opt->m_weights);
         free(opt->m_biases);
@@ -124,11 +129,8 @@ static void step_sgd(Optimizer *opt, MLP *mlp) {
         LinearLayer *layer = mlp->layers[i];
 
         // Update weights: W = W - (lr * dW)
-        for (int row = 0; row < layer->weights->rows; ++row) {
-            for (int col = 0; col < layer->weights->cols; ++col) {
-                int idx = row * layer->weights->cols + col;
-                layer->weights->data[idx] -= opt->learning_rate * layer->dW->data[idx];
-            }
+        for (int j = 0; j < layer->weights->size; ++j) {
+            layer->weights->data[j] -= opt->learning_rate * layer->dW->data[j];
         }
 
         // Update biases: b = b - (lr * db)
@@ -141,16 +143,13 @@ static void step_sgd(Optimizer *opt, MLP *mlp) {
 static void step_momentum(Optimizer *opt, MLP *mlp) {
     for (int i = 0; i < opt->num_layers; ++i) {
         LinearLayer *layer = mlp->layers[i];
-        Matrix *vW = opt->v_weights[i];
-        Vector *vb = opt->v_biases[i];
+        Tensor *vW = opt->v_weights[i];
+        Tensor *vb = opt->v_biases[i];
 
         // Update weights: vW = beta * vW + dW, then W = W - lr * vW
-        for (int row = 0; row < vW->rows; ++row) {
-            for (int col = 0; col < vW->cols; ++col) {
-                int idx = row * vW->cols + col;
-                vW->data[idx] = opt->beta * vW->data[idx] + layer->dW->data[idx];
-                layer->weights->data[idx] -= opt->learning_rate * vW->data[idx];
-            }
+        for (int j = 0; j < vW->size; ++j) {
+            vW->data[j] = opt->beta * vW->data[j] + layer->dW->data[j];
+            layer->weights->data[j] -= opt->learning_rate * vW->data[j];
         }
 
         // Update biases: vb = beta * vb + db, then b = b - lr * vb
@@ -170,27 +169,23 @@ static void step_adam(Optimizer *opt, MLP *mlp) {
 
     for (int i = 0; i < opt->num_layers; ++i) {
         LinearLayer *layer = mlp->layers[i];
-        Matrix *mW = opt->m_weights[i];
-        Matrix *sW = opt->s_weights[i];
-        Vector *mb = opt->m_biases[i];
-        Vector *sb = opt->s_biases[i];
+        Tensor *mW = opt->m_weights[i];
+        Tensor *sW = opt->s_weights[i];
+        Tensor *mb = opt->m_biases[i];
+        Tensor *sb = opt->s_biases[i];
 
         // Update weights: m = β₁m + (1-β₁)g, s = β₂s + (1-β₂)g², W = W - lr·m̂/(√ŝ + ε)
-        for (int row = 0; row < layer->weights->rows; row++) {
-            for (int col = 0; col < layer->weights->cols; col++) {
-                int idx = row * layer->weights->cols + col;
-                float grad = layer->dW->data[idx];
+        for (int j = 0; j < layer->weights->size; j++) {
+            float grad = layer->dW->data[j];
 
-                // Update moments
-                mW->data[idx] = opt->beta1 * mW->data[idx] + (1 - opt->beta1) * grad;
-                sW->data[idx] = opt->beta2 * sW->data[idx] + (1 - opt->beta2) * grad * grad;
+            // Update moments
+            mW->data[j] = opt->beta1 * mW->data[j] + (1 - opt->beta1) * grad;
+            sW->data[j] = opt->beta2 * sW->data[j] + (1 - opt->beta2) * grad * grad;
 
-                // Bias correction and parameter update
-                float m_hat = mW->data[idx] / bc1;
-                float s_hat = sW->data[idx] / bc2;
-                layer->weights->data[idx] -=
-                    opt->learning_rate * m_hat / (sqrtf(s_hat) + opt->epsilon);
-            }
+            // Bias correction and parameter update
+            float m_hat = mW->data[j] / bc1;
+            float s_hat = sW->data[j] / bc2;
+            layer->weights->data[j] -= opt->learning_rate * m_hat / (sqrtf(s_hat) + opt->epsilon);
         }
 
         // Update biases: m = β₁m + (1-β₁)g, s = β₂s + (1-β₂)g², b = b - lr·m̂/(√ŝ + ε)

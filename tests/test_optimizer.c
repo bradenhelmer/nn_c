@@ -6,6 +6,7 @@
 #include "../src/nn/loss.h"
 #include "../src/training/optimizer.h"
 #include "test_runner.h"
+#include "utils/utils.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -18,10 +19,10 @@
 // Create a simple 2-layer MLP for testing
 static MLP *create_test_mlp(void) {
     // Create a simple network: 3 -> 4 -> 2
-    MLP *mlp = mlp_create(2, 0.01f, VECTOR_MSE_LOSS, NULL);
+    MLP *mlp = mlp_create(2, 0.01f, TENSOR_MSE_LOSS, NULL);
 
-    LinearLayer *layer1 = linear_layer_create(3, 4, VECTOR_TANH_ACTIVATION);
-    LinearLayer *layer2 = linear_layer_create(4, 2, VECTOR_SIGMOID_ACTIVATION);
+    LinearLayer *layer1 = linear_layer_create(3, 4, TENSOR_TANH_ACTIVATION);
+    LinearLayer *layer2 = linear_layer_create(4, 2, TENSOR_SIGMOID_ACTIVATION);
 
     mlp_add_layer(mlp, 0, layer1);
     mlp_add_layer(mlp, 1, layer2);
@@ -35,9 +36,9 @@ static void set_test_gradients(MLP *mlp) {
         LinearLayer *layer = mlp->layers[i];
 
         // Set some non-zero gradients
-        for (int row = 0; row < layer->dW->rows; row++) {
-            for (int col = 0; col < layer->dW->cols; col++) {
-                matrix_set(layer->dW, row, col, 0.1f * (row + col + 1));
+        for (int row = 0; row < layer->dW->shape[0]; row++) {
+            for (int col = 0; col < layer->dW->shape[1]; col++) {
+                tensor_set2d(layer->dW, row, col, 0.1f * (row + col + 1));
             }
         }
 
@@ -128,16 +129,16 @@ void test_optimizer_init_momentum() {
     for (int i = 0; i < mlp->num_layers; i++) {
         LinearLayer *layer = mlp->layers[i];
         assert(opt->v_weights[i] != NULL);
-        assert(opt->v_weights[i]->rows == layer->weights->rows);
-        assert(opt->v_weights[i]->cols == layer->weights->cols);
+        assert(opt->v_weights[i]->shape[0] == layer->weights->shape[0]);
+        assert(opt->v_weights[i]->shape[1] == layer->weights->shape[1]);
 
         assert(opt->v_biases[i] != NULL);
         assert(opt->v_biases[i]->size == layer->biases->size);
 
         // Check that velocities are initialized to zero
-        for (int row = 0; row < opt->v_weights[i]->rows; row++) {
-            for (int col = 0; col < opt->v_weights[i]->cols; col++) {
-                assert(float_equals(matrix_get(opt->v_weights[i], row, col), 0.0f));
+        for (int row = 0; row < opt->v_weights[i]->shape[0]; row++) {
+            for (int col = 0; col < opt->v_weights[i]->shape[1]; col++) {
+                assert(float_equals(tensor_get2d(opt->v_weights[i], row, col), 0.0f));
             }
         }
 
@@ -180,12 +181,12 @@ void test_optimizer_step_sgd_basic() {
     optimizer_init(opt, mlp);
 
     // Store original weights
-    float original_weight = matrix_get(mlp->layers[0]->weights, 0, 0);
+    float original_weight = tensor_get2d(mlp->layers[0]->weights, 0, 0);
     float original_bias = mlp->layers[0]->biases->data[0];
 
     // Set gradients
     set_test_gradients(mlp);
-    float gradient_w = matrix_get(mlp->layers[0]->dW, 0, 0);
+    float gradient_w = tensor_get2d(mlp->layers[0]->dW, 0, 0);
     float gradient_b = mlp->layers[0]->db->data[0];
 
     // Step should perform: W = W - lr * dW
@@ -194,7 +195,7 @@ void test_optimizer_step_sgd_basic() {
     float expected_weight = original_weight - 0.1f * gradient_w;
     float expected_bias = original_bias - 0.1f * gradient_b;
 
-    assert(float_equals(matrix_get(mlp->layers[0]->weights, 0, 0), expected_weight));
+    assert(float_equals(tensor_get2d(mlp->layers[0]->weights, 0, 0), expected_weight));
     assert(float_equals(mlp->layers[0]->biases->data[0], expected_bias));
 
     optimizer_free(opt);
@@ -207,13 +208,13 @@ void test_optimizer_step_sgd_zero_lr() {
     Optimizer *opt = optimizer_create_sgd(0.0f);
     optimizer_init(opt, mlp);
 
-    float original_weight = matrix_get(mlp->layers[0]->weights, 0, 0);
+    float original_weight = tensor_get2d(mlp->layers[0]->weights, 0, 0);
     set_test_gradients(mlp);
 
     // With zero learning rate, weights shouldn't change
     optimizer_step(opt, mlp);
 
-    assert(float_equals(matrix_get(mlp->layers[0]->weights, 0, 0), original_weight));
+    assert(float_equals(tensor_get2d(mlp->layers[0]->weights, 0, 0), original_weight));
 
     optimizer_free(opt);
     mlp_free(mlp);
@@ -229,25 +230,25 @@ void test_optimizer_step_momentum_first_step() {
     Optimizer *opt = optimizer_create_momentum(0.1f, 0.9f);
     optimizer_init(opt, mlp);
 
-    float original_weight = matrix_get(mlp->layers[0]->weights, 0, 0);
+    float original_weight = tensor_get2d(mlp->layers[0]->weights, 0, 0);
     float original_bias = mlp->layers[0]->biases->data[0];
 
     set_test_gradients(mlp);
-    float gradient_w = matrix_get(mlp->layers[0]->dW, 0, 0);
+    float gradient_w = tensor_get2d(mlp->layers[0]->dW, 0, 0);
     float gradient_b = mlp->layers[0]->db->data[0];
 
     // First step: v = 0.9 * 0 + dW = dW, W = W - lr * v
     optimizer_step(opt, mlp);
 
     // Check velocity was updated correctly
-    assert(float_equals(matrix_get(opt->v_weights[0], 0, 0), gradient_w));
+    assert(float_equals(tensor_get2d(opt->v_weights[0], 0, 0), gradient_w));
     assert(float_equals(opt->v_biases[0]->data[0], gradient_b));
 
     // Check weights were updated correctly
     float expected_weight = original_weight - 0.1f * gradient_w;
     float expected_bias = original_bias - 0.1f * gradient_b;
 
-    assert(float_equals(matrix_get(mlp->layers[0]->weights, 0, 0), expected_weight));
+    assert(float_equals(tensor_get2d(mlp->layers[0]->weights, 0, 0), expected_weight));
     assert(float_equals(mlp->layers[0]->biases->data[0], expected_bias));
 
     optimizer_free(opt);
@@ -261,12 +262,12 @@ void test_optimizer_step_momentum_second_step() {
     optimizer_init(opt, mlp);
 
     set_test_gradients(mlp);
-    float gradient_w = matrix_get(mlp->layers[0]->dW, 0, 0);
+    float gradient_w = tensor_get2d(mlp->layers[0]->dW, 0, 0);
 
     // First step
     optimizer_step(opt, mlp);
-    float weight_after_first = matrix_get(mlp->layers[0]->weights, 0, 0);
-    float velocity_after_first = matrix_get(opt->v_weights[0], 0, 0);
+    float weight_after_first = tensor_get2d(mlp->layers[0]->weights, 0, 0);
+    float velocity_after_first = tensor_get2d(opt->v_weights[0], 0, 0);
 
     // Second step with same gradients
     set_test_gradients(mlp);
@@ -274,11 +275,11 @@ void test_optimizer_step_momentum_second_step() {
 
     // v = 0.9 * velocity_after_first + gradient_w
     float expected_velocity = 0.9f * velocity_after_first + gradient_w;
-    assert(float_equals(matrix_get(opt->v_weights[0], 0, 0), expected_velocity));
+    assert(float_equals(tensor_get2d(opt->v_weights[0], 0, 0), expected_velocity));
 
     // W = weight_after_first - 0.1 * expected_velocity
     float expected_weight = weight_after_first - 0.1f * expected_velocity;
-    assert(float_equals(matrix_get(mlp->layers[0]->weights, 0, 0), expected_weight));
+    assert(float_equals(tensor_get2d(mlp->layers[0]->weights, 0, 0), expected_weight));
 
     optimizer_free(opt);
     mlp_free(mlp);
@@ -290,7 +291,7 @@ void test_optimizer_step_momentum_accumulation() {
     Optimizer *opt = optimizer_create_momentum(0.01f, 0.9f);
     optimizer_init(opt, mlp);
 
-    float original_weight = matrix_get(mlp->layers[0]->weights, 0, 0);
+    float original_weight = tensor_get2d(mlp->layers[0]->weights, 0, 0);
 
     // Run multiple steps - velocity should accumulate
     for (int step = 0; step < 5; step++) {
@@ -299,7 +300,7 @@ void test_optimizer_step_momentum_accumulation() {
     }
 
     // Weight should have moved more than a single SGD step would
-    float final_weight = matrix_get(mlp->layers[0]->weights, 0, 0);
+    float final_weight = tensor_get2d(mlp->layers[0]->weights, 0, 0);
     float gradient_w = 0.1f; // From set_test_gradients for (0,0)
     float single_sgd_step = original_weight - 0.01f * gradient_w;
 
@@ -316,15 +317,15 @@ void test_optimizer_step_momentum_beta_zero() {
     Optimizer *opt = optimizer_create_momentum(0.1f, 0.0f); // beta = 0 => SGD
     optimizer_init(opt, mlp);
 
-    float original_weight = matrix_get(mlp->layers[0]->weights, 0, 0);
+    float original_weight = tensor_get2d(mlp->layers[0]->weights, 0, 0);
     set_test_gradients(mlp);
-    float gradient_w = matrix_get(mlp->layers[0]->dW, 0, 0);
+    float gradient_w = tensor_get2d(mlp->layers[0]->dW, 0, 0);
 
     optimizer_step(opt, mlp);
 
     // With beta=0, should behave like SGD
     float expected_weight = original_weight - 0.1f * gradient_w;
-    assert(float_equals(matrix_get(mlp->layers[0]->weights, 0, 0), expected_weight));
+    assert(float_equals(tensor_get2d(mlp->layers[0]->weights, 0, 0), expected_weight));
 
     optimizer_free(opt);
     mlp_free(mlp);
@@ -343,7 +344,7 @@ void test_optimizer_step_all_layers() {
     // Store original weights for all layers
     float original_weights[2];
     for (int i = 0; i < mlp->num_layers; i++) {
-        original_weights[i] = matrix_get(mlp->layers[i]->weights, 0, 0);
+        original_weights[i] = tensor_get2d(mlp->layers[i]->weights, 0, 0);
     }
 
     set_test_gradients(mlp);
@@ -351,7 +352,7 @@ void test_optimizer_step_all_layers() {
 
     // Check that all layers were updated
     for (int i = 0; i < mlp->num_layers; i++) {
-        float new_weight = matrix_get(mlp->layers[i]->weights, 0, 0);
+        float new_weight = tensor_get2d(mlp->layers[i]->weights, 0, 0);
         assert(!float_equals(new_weight, original_weights[i]));
     }
 
@@ -369,14 +370,14 @@ void test_optimizer_step_zero_gradients() {
     Optimizer *opt = optimizer_create_sgd(0.1f);
     optimizer_init(opt, mlp);
 
-    float original_weight = matrix_get(mlp->layers[0]->weights, 0, 0);
+    float original_weight = tensor_get2d(mlp->layers[0]->weights, 0, 0);
 
     // Don't set gradients - they should be zero
     mlp_zero_gradients(mlp);
     optimizer_step(opt, mlp);
 
     // Weights shouldn't change with zero gradients
-    assert(float_equals(matrix_get(mlp->layers[0]->weights, 0, 0), original_weight));
+    assert(float_equals(tensor_get2d(mlp->layers[0]->weights, 0, 0), original_weight));
 
     optimizer_free(opt);
     mlp_free(mlp);
@@ -388,16 +389,16 @@ void test_optimizer_step_negative_gradients() {
     Optimizer *opt = optimizer_create_sgd(0.1f);
     optimizer_init(opt, mlp);
 
-    float original_weight = matrix_get(mlp->layers[0]->weights, 0, 0);
+    float original_weight = tensor_get2d(mlp->layers[0]->weights, 0, 0);
 
     // Set negative gradients
-    matrix_set(mlp->layers[0]->dW, 0, 0, -1.0f);
+    tensor_set2d(mlp->layers[0]->dW, 0, 0, -1.0f);
 
     optimizer_step(opt, mlp);
 
     // W = W - lr * (-1.0) = W + lr
     float expected = original_weight + 0.1f;
-    assert(float_equals(matrix_get(mlp->layers[0]->weights, 0, 0), expected));
+    assert(float_equals(tensor_get2d(mlp->layers[0]->weights, 0, 0), expected));
 
     optimizer_free(opt);
     mlp_free(mlp);

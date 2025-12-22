@@ -6,34 +6,35 @@
 
 #ifndef LOSS_H
 #define LOSS_H
-#include "../linalg/vector.h"
+#include "../tensor/tensor.h"
 
 // Singular predictions
 float mse_loss(float predicted, float target);
 
-// Vector functions.
-float vector_mse(const Vector *prediction, const Vector *target);
-void vector_mse_derivative(Vector *result, const Vector *prediction, const Vector *target);
+// Tensor functions (1D tensors)
+float tensor_mse(const Tensor *prediction, const Tensor *target);
+void tensor_mse_derivative(Tensor *result, const Tensor *prediction, const Tensor *target);
 
 // Cross Entropy
-float vector_cross_entropy(const Vector *prediction, const Vector *target);
-void vector_cross_entropy_derivative(Vector *result, const Vector *prediction,
-                                     const Vector *target);
+float tensor_cross_entropy(const Tensor *prediction, const Tensor *target);
+void tensor_cross_entropy_derivative(Tensor *result, const Tensor *prediction,
+                                     const Tensor *target);
 
 // Softmax cross entropy
-void vector_softmax_cross_entropy_derivative(Vector *result, const Vector *prediction,
-                                             const Vector *target);
+float tensor_softmax_cross_entropy(const Tensor *logits, const Tensor *target);
+void tensor_softmax_cross_entropy_derivative(Tensor *result, const Tensor *logits,
+                                             const Tensor *target);
 
-typedef float (*vector_loss_function)(const Vector *, const Vector *);
-typedef void (*vector_loss_function_derivative)(Vector *, const Vector *, const Vector *);
+typedef float (*tensor_loss_function)(const Tensor *, const Tensor *);
+typedef void (*tensor_loss_function_derivative)(Tensor *, const Tensor *, const Tensor *);
 
 typedef struct {
-    vector_loss_function loss;
-    vector_loss_function_derivative loss_derivative;
-} VectorLossPair;
+    tensor_loss_function loss;
+    tensor_loss_function_derivative loss_derivative;
+} TensorLossPair;
 
-extern const VectorLossPair VECTOR_MSE_LOSS;
-extern const VectorLossPair VECTOR_CROSS_ENTROPY_LOSS;
-extern const VectorLossPair VECTOR_SOFTMAX_CROSS_ENTROPY_LOSS;
+extern const TensorLossPair TENSOR_MSE_LOSS;
+extern const TensorLossPair TENSOR_CROSS_ENTROPY_LOSS;
+extern const TensorLossPair TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS;
 
 #endif /* ifndef LOSS_H */

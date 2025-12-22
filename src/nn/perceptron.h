@@ -7,12 +7,11 @@
 #define PERCEPTRON_H
 #include "../activations/activations.h"
 #include "../data/dataset.h"
-#include "../linalg/vector.h"
 
 typedef int (*classifier_func)(float);
 
 typedef struct {
-    Vector *weights;
+    Tensor *weights; // 1D tensor
     float bias;
     float learning_rate;
     int input_size;
@@ -29,11 +28,11 @@ Perceptron *perceptron_create(int input_size, float min, float max, float learni
 void perceptron_free(Perceptron *p);
 
 // Forward pass
-float perceptron_predict(Perceptron *p, const Vector *input);
+float perceptron_predict(Perceptron *p, const Tensor *input);
 
 // Training
-void perceptron_train_step(Perceptron *p, const Vector *input, float target);
-void perceptron_update_weights(Perceptron *p, const Vector *input, float error);
+void perceptron_train_step(Perceptron *p, const Tensor *input, float target);
+void perceptron_update_weights(Perceptron *p, const Tensor *input, float error);
 
 // Testing
 void test_perceptron_on_dataset(Perceptron *p, Dataset *data, const char *name);

@@ -8,8 +8,8 @@
 #include "dataset.h"
 
 typedef struct {
-    Matrix *X; // (batch_size, num_features)
-    Matrix *Y; // (batch_size, num_outputs)
+    Tensor *X; // 2D: (batch_size, num_features)
+    Tensor *Y; // 2D: (batch_size, num_outputs)
     int size;
 } Batch;
 

@@ -4,7 +4,6 @@
  * Loss function implementations.
  */
 #include "loss.h"
-#include "../activations/activations.h"
 #include <assert.h>
 #include <math.h>
 
@@ -13,7 +12,7 @@ float mse_loss(float predicted, float target) {
     return 0.5f * error * error;
 }
 
-float vector_mse(const Vector *prediction, const Vector *target) {
+float tensor_mse(const Tensor *prediction, const Tensor *target) {
     assert(prediction->size == target->size);
     float diff, sum = 0.f;
     for (int i = 0; i < prediction->size; i++) {
@@ -23,7 +22,7 @@ float vector_mse(const Vector *prediction, const Vector *target) {
     return sum / prediction->size;
 }
 
-void vector_mse_derivative(Vector *result, const Vector *prediction, const Vector *target) {
+void tensor_mse_derivative(Tensor *result, const Tensor *prediction, const Tensor *target) {
     assert(prediction->size == result->size);
     assert(target->size == result->size);
     for (int i = 0; i < result->size; i++) {
@@ -31,12 +30,12 @@ void vector_mse_derivative(Vector *result, const Vector *prediction, const Vecto
     }
 }
 
-const VectorLossPair VECTOR_MSE_LOSS = {.loss = vector_mse,
-                                        .loss_derivative = vector_mse_derivative};
+const TensorLossPair TENSOR_MSE_LOSS = {.loss = tensor_mse,
+                                        .loss_derivative = tensor_mse_derivative};
 
 #define EPSILON 1e-7f
 
-float vector_cross_entropy(const Vector *prediction, const Vector *target) {
+float tensor_cross_entropy(const Tensor *prediction, const Tensor *target) {
     assert(prediction->size == target->size);
     float sum = 0.f;
     for (int i = 0; i < prediction->size; i++) {
@@ -45,8 +44,8 @@ float vector_cross_entropy(const Vector *prediction, const Vector *target) {
     return sum;
 }
 
-void vector_cross_entropy_derivative(Vector *result, const Vector *prediction,
-                                     const Vector *target) {
+void tensor_cross_entropy_derivative(Tensor *result, const Tensor *prediction,
+                                     const Tensor *target) {
     assert(prediction->size == result->size);
     assert(target->size == result->size);
     for (int i = 0; i < prediction->size; i++) {
@@ -54,32 +53,46 @@ void vector_cross_entropy_derivative(Vector *result, const Vector *prediction,
     }
 }
 
-const VectorLossPair VECTOR_CROSS_ENTROPY_LOSS = {
-    .loss = vector_cross_entropy, .loss_derivative = vector_cross_entropy_derivative};
+const TensorLossPair TENSOR_CROSS_ENTROPY_LOSS = {
+    .loss = tensor_cross_entropy, .loss_derivative = tensor_cross_entropy_derivative};
+
+// Helper: compute softmax on a 1D tensor in-place
+static void _tensor_softmax(Tensor *result, const Tensor *input) {
+    assert(result->size == input->size);
+    float max_val = tensor_max(input);
+    float sum = 0.0f;
+    for (int i = 0; i < input->size; i++) {
+        result->data[i] = expf(input->data[i] - max_val);
+        sum += result->data[i];
+    }
+    for (int i = 0; i < result->size; i++) {
+        result->data[i] /= sum;
+    }
+}
 
 // Softmax cross-entropy loss: applies softmax to logits, then cross-entropy
-float vector_softmax_cross_entropy(const Vector *logits, const Vector *target) {
+float tensor_softmax_cross_entropy(const Tensor *logits, const Tensor *target) {
     assert(logits->size == target->size);
 
     // Apply softmax to logits
-    Vector *softmax_output = vector_create(logits->size);
-    vector_softmax(softmax_output, logits);
+    Tensor *softmax_output = tensor_clone(logits);
+    _tensor_softmax(softmax_output, logits);
 
     // Compute cross-entropy: -sum(target * log(softmax))
-    float loss = vector_cross_entropy(softmax_output, target);
+    float loss = tensor_cross_entropy(softmax_output, target);
 
-    vector_free(softmax_output);
+    tensor_free(softmax_output);
     return loss;
 }
 
 // Gradient of softmax cross-entropy w.r.t. logits: softmax(logits) - target
-void vector_softmax_cross_entropy_derivative(Vector *result, const Vector *logits,
-                                             const Vector *target) {
+void tensor_softmax_cross_entropy_derivative(Tensor *result, const Tensor *logits,
+                                             const Tensor *target) {
     assert(logits->size == result->size);
     assert(target->size == result->size);
 
     // Apply softmax to logits
-    vector_softmax(result, logits);
+    _tensor_softmax(result, logits);
 
     // Gradient: softmax(logits) - target
     for (int i = 0; i < result->size; i++) {
@@ -87,6 +100,6 @@ void vector_softmax_cross_entropy_derivative(Vector *result, const Vector *logit
     }
 }
 
-const VectorLossPair VECTOR_SOFTMAX_CROSS_ENTROPY_LOSS = {
-    .loss = vector_softmax_cross_entropy,
-    .loss_derivative = vector_softmax_cross_entropy_derivative};
+const TensorLossPair TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS = {
+    .loss = tensor_softmax_cross_entropy,
+    .loss_derivative = tensor_softmax_cross_entropy_derivative};

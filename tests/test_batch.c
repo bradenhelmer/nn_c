@@ -90,15 +90,15 @@ void test_batch_iterator_next_basic() {
     // Get first batch
     Batch *batch1 = batch_iterator_next(iter);
     assert(batch1 != NULL);
-    assert(batch1->X->rows == 2);
-    assert(batch1->X->cols == 2);
-    assert(batch1->Y->rows == 2);
-    assert(batch1->Y->cols == 1);
+    assert(batch1->X->shape[0] == 2);
+    assert(batch1->X->shape[1] == 2);
+    assert(batch1->Y->shape[0] == 2);
+    assert(batch1->Y->shape[1] == 1);
 
     // Get second batch
     Batch *batch2 = batch_iterator_next(iter);
     assert(batch2 != NULL);
-    assert(batch2->X->rows == 2);
+    assert(batch2->X->shape[0] == 2);
 
     // Try to get third batch (should be NULL)
     Batch *batch3 = batch_iterator_next(iter);
@@ -123,12 +123,12 @@ void test_batch_iterator_next_uneven_last_batch() {
     // Get first batch (size 3)
     Batch *batch1 = batch_iterator_next(iter);
     assert(batch1 != NULL);
-    assert(batch1->X->rows == 3);
+    assert(batch1->X->shape[0] == 3);
 
     // Get second batch (size 1, the remainder)
     Batch *batch2 = batch_iterator_next(iter);
     assert(batch2 != NULL);
-    assert(batch2->X->rows == 1);
+    assert(batch2->X->shape[0] == 1);
 
     // No more batches
     Batch *batch3 = batch_iterator_next(iter);
@@ -218,10 +218,10 @@ void test_batch_content_integrity() {
     assert(batch != NULL);
 
     // Verify dimensions
-    assert(batch->X->rows == 2);
-    assert(batch->X->cols == data->num_features);
-    assert(batch->Y->rows == 2);
-    assert(batch->Y->cols == data->Y->cols);
+    assert(batch->X->shape[0] == 2);
+    assert(batch->X->shape[1] == data->num_features);
+    assert(batch->Y->shape[0] == 2);
+    assert(batch->Y->shape[1] == data->Y->shape[1]);
 
     batch_free(batch);
     batch_iterator_free(iter);
@@ -242,8 +242,8 @@ void test_batch_single_sample() {
     for (int i = 0; i < 4; i++) {
         Batch *batch = batch_iterator_next(iter);
         assert(batch != NULL);
-        assert(batch->X->rows == 1);
-        assert(batch->Y->rows == 1);
+        assert(batch->X->shape[0] == 1);
+        assert(batch->Y->shape[0] == 1);
         batch_free(batch);
     }
 
@@ -268,8 +268,8 @@ void test_batch_full_dataset() {
     // Should get exactly 1 batch containing all samples
     Batch *batch = batch_iterator_next(iter);
     assert(batch != NULL);
-    assert(batch->X->rows == 4);
-    assert(batch->Y->rows == 4);
+    assert(batch->X->shape[0] == 4);
+    assert(batch->Y->shape[0] == 4);
 
     // No more batches
     Batch *next = batch_iterator_next(iter);

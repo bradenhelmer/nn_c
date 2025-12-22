@@ -17,6 +17,7 @@ typedef struct {
 // Lifecycle
 Tensor *tensor_create(int ndim, int *shape);
 Tensor *tensor_zeros(int ndim, int *shape);
+Tensor *tensor_random(int ndim, int *shape, float min, float max);
 void tensor_free(Tensor *t);
 
 // 2D Accessors
@@ -45,11 +46,58 @@ void tensor_fill(Tensor *t, float val);
 void tensor_copy(Tensor *dest, const Tensor *src);
 Tensor *tensor_clone(const Tensor *t);
 void tensor_print_shape(const Tensor *t);
+void tensor_print(const Tensor *t);
 Tensor *tensor_flatten(Tensor *t);
 Tensor *tensor_unflatten(Tensor *t, int ndim, int *new_shape);
+
+// Row operations for 2D tensors (used in batch processing)
+// Copies row `row_idx` from 2D tensor `src` into 1D tensor `dest`
+void tensor_get_row(Tensor *dest, const Tensor *src, int row_idx);
+// Copies 1D tensor `src` into row `row_idx` of 2D tensor `dest`
+void tensor_set_row(Tensor *dest, const Tensor *src, int row_idx);
+
+// Comparison
+int tensor_equals(const Tensor *a, const Tensor *b);
+
+// Scalar operations
+void tensor_scale(Tensor *dest, const Tensor *src, float scalar);
+
+// 1D tensor operations (vector-like)
+float tensor_dot(const Tensor *a, const Tensor *b);
+float tensor_sum(const Tensor *t);
+float tensor_max(const Tensor *t);
+int tensor_argmax(const Tensor *t);
 
 // For conv layers
 Tensor *tensor_pad2d(const Tensor *t, int padding);
 Tensor *tensor_unpad2d(const Tensor *t, int padding);
+
+// Element-wise addition: dest = a + b
+// Works for tensors of any dimension (shapes must match)
+void tensor_add(Tensor *dest, const Tensor *a, const Tensor *b);
+
+// Element-wise multiplication (Hadamard product): dest = a ⊙ b
+// Works for tensors of any dimension (shapes must match)
+void tensor_elementwise_mul(Tensor *dest, const Tensor *a, const Tensor *b);
+
+// Matrix-vector multiplication: dest = mat * vec
+// mat: 2D tensor of shape (m, n)
+// vec: 1D tensor of shape (n,)
+// dest: 1D tensor of shape (m,)
+void tensor_matvec_mul(Tensor *dest, const Tensor *mat, const Tensor *vec);
+
+// Transposed matrix-vector multiplication: dest = mat^T * vec
+// mat: 2D tensor of shape (m, n)
+// vec: 1D tensor of shape (m,)
+// dest: 1D tensor of shape (n,)
+// Used for backpropagation: computes gradient w.r.t. input
+void tensor_matvec_mul_transpose(Tensor *dest, const Tensor *mat, const Tensor *vec);
+
+// Outer product: dest = a ⊗ b^T
+// a: 1D tensor of shape (m,)
+// b: 1D tensor of shape (n,)
+// dest: 2D tensor of shape (m, n)
+// Used for computing weight gradients: dW = dz ⊗ input
+void tensor_outer_product(Tensor *dest, const Tensor *a, const Tensor *b);
 
 #endif /* ifndef TENSOR_H */

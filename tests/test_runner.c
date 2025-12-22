@@ -11,12 +11,6 @@ int main() {
     printf("   Neural Network Test Suite\n");
     printf("=====================================\n");
 
-    // Run vector tests
-    run_vector_tests();
-
-    // Run matrix tests
-    run_matrix_tests();
-
     // Run activation tests
     run_activations_tests();
 

@@ -1,5 +1,5 @@
 /*
- * mlp.h
+ * mlp.c
  *
  * Multi-layer (perceptron) network implementations.
  */
@@ -12,7 +12,7 @@
 #include <stdlib.h>
 
 // Lifecycle
-MLP *mlp_create(int num_layers, float learning_rate, VectorLossPair loss_pair,
+MLP *mlp_create(int num_layers, float learning_rate, TensorLossPair loss_pair,
                 mlp_classifier classifier) {
     assert(num_layers > 1);
     MLP *mlp = (MLP *)malloc(sizeof(MLP));
@@ -36,26 +36,26 @@ void mlp_free(MLP *mlp) {
     free(mlp);
 }
 
-Vector *mlp_forward(MLP *mlp, const Vector *input) {
+Tensor *mlp_forward(MLP *mlp, const Tensor *input) {
 
-    const Vector *current = input;
+    const Tensor *current = input;
 
     // Chain remaining layer outputs.
     for (int i = 0; i < mlp->num_layers; i++) {
         LinearLayer *layer = mlp->layers[i];
         linear_layer_forward(layer, current);
-        current = (const Vector *)layer->a;
+        current = (const Tensor *)layer->a;
     }
 
-    return (Vector *)current;
+    return (Tensor *)current;
 }
 
-void mlp_backward(MLP *mlp, const Vector *target) {
+void mlp_backward(MLP *mlp, const Tensor *target) {
 
     // 1. Compute initial gradient from loss
     LinearLayer *prev = mlp->layers[mlp->num_layers - 1];
-    Vector *output = prev->a;
-    Vector *gradient = vector_create(output->size);
+    Tensor *output = prev->a;
+    Tensor *gradient = tensor_clone(output);
     mlp->loss.loss_derivative(gradient, output, target);
 
     // 2. Run first layer backward.
@@ -68,15 +68,15 @@ void mlp_backward(MLP *mlp, const Vector *target) {
         prev = layer;
     }
 
-    vector_free(gradient);
+    tensor_free(gradient);
 }
 
 void mlp_zero_gradients(MLP *mlp) {
     for (int i = 0; i < mlp->num_layers; i++) {
         LinearLayer *layer = mlp->layers[i];
-        matrix_fill(layer->dW, 0.f);
-        vector_fill(layer->db, 0.f);
-        vector_fill(layer->downstream_gradient, 0.f);
+        tensor_fill(layer->dW, 0.f);
+        tensor_fill(layer->db, 0.f);
+        tensor_fill(layer->downstream_gradient, 0.f);
     }
 }
 
@@ -85,11 +85,8 @@ void mlp_update_weights(MLP *mlp) {
         LinearLayer *layer = mlp->layers[i];
 
         // Update weights: W = W - (lr * dW)
-        for (int row = 0; row < layer->weights->rows; ++row) {
-            for (int col = 0; col < layer->weights->cols; ++col) {
-                int idx = row * layer->weights->cols + col;
-                layer->weights->data[idx] -= mlp->learning_rate * layer->dW->data[idx];
-            }
+        for (int j = 0; j < layer->weights->size; ++j) {
+            layer->weights->data[j] -= mlp->learning_rate * layer->dW->data[j];
         }
 
         // Update biases: b = b - (lr * db)
@@ -102,16 +99,15 @@ void mlp_update_weights(MLP *mlp) {
 void mlp_scale_gradients(MLP *mlp, float scale) {
     for (int l = 0; l < mlp->num_layers; l++) {
         LinearLayer *layer = mlp->layers[l];
-        matrix_scale(layer->dW, layer->dW, scale);
-        vector_scale(layer->db, layer->db, scale);
+        tensor_scale(layer->dW, layer->dW, scale);
+        tensor_scale(layer->db, layer->db, scale);
     }
 }
 
 void mlp_add_l2_gradient(MLP *mlp, float lambda) {
     for (int i = 0; i < mlp->num_layers; ++i) {
         LinearLayer *layer = mlp->layers[i];
-        int size = layer->weights->rows * layer->weights->cols;
-        for (int j = 0; j < size; j++) {
+        for (int j = 0; j < layer->weights->size; j++) {
             layer->dW->data[j] += lambda * layer->weights->data[j];
         }
     }
@@ -120,32 +116,32 @@ void mlp_add_l2_gradient(MLP *mlp, float lambda) {
 void test_mlp_on_dataset(MLP *mlp, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
 
-    // Pre-allocate vectors for reuse
-    Vector *input = vector_create(data->X->cols);
-    Vector *target = vector_create(data->Y->cols);
-    Vector *classification = vector_create(data->Y->cols);
+    // Pre-allocate tensors for reuse
+    int input_shape[] = {data->X->shape[1]};
+    int output_shape[] = {data->Y->shape[1]};
+    Tensor *input = tensor_zeros(1, input_shape);
+    Tensor *target = tensor_zeros(1, output_shape);
+    Tensor *classification = tensor_zeros(1, output_shape);
 
     for (int i = 0; i < data->num_samples; i++) {
-        matrix_copy_row_to_vector(input, data->X, i);
-        matrix_copy_row_to_vector(target, data->Y, i);
+        tensor_get_row(input, data->X, i);
+        tensor_get_row(target, data->Y, i);
 
-        Vector *prediction = mlp_forward(mlp, input);
+        Tensor *prediction = mlp_forward(mlp, input);
         mlp->classifier(classification, prediction);
 
         printf("Input: ");
-        vector_print(input);
+        tensor_print(input);
         printf(" -> Target: ");
-        vector_print(target);
+        tensor_print(target);
         printf(", Predicted: ");
-        vector_print(classification);
+        tensor_print(classification);
         printf(" (raw: ");
-        vector_print(prediction);
+        tensor_print(prediction);
         printf(")\n");
-
-        vector_free(prediction);
     }
 
-    vector_free(input);
-    vector_free(target);
-    vector_free(classification);
+    tensor_free(input);
+    tensor_free(target);
+    tensor_free(classification);
 }
