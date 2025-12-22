@@ -30,7 +30,7 @@ void test_conv_forward_sobel() {
     // [5, 6, 7, 8]
     // [9, 10, 11, 12]
     // [13, 14, 15, 16]
-    Tensor *input = tensor_create(3, (int[]){1, 4, 4});
+    Tensor *input = tensor_create3d(1, 4, 4);
     float input_data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
     for (int i = 0; i < 16; i++) {
         input->data[i] = input_data[i];
@@ -78,7 +78,7 @@ void test_conv_backward_sobel() {
     ConvLayer *layer = conv_layer_create(1, 1, 3, 1, 0);
 
     // Input X[0]:
-    Tensor *input = tensor_create(3, (int[]){1, 4, 4});
+    Tensor *input = tensor_create3d(1, 4, 4);
     float input_data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
     for (int i = 0; i < 16; i++) {
         input->data[i] = input_data[i];
@@ -97,7 +97,7 @@ void test_conv_backward_sobel() {
     // Upstream gradient δ[0]:
     // [1, 0]
     // [0, 1]
-    Tensor *upstream_grad = tensor_create(3, (int[]){1, 2, 2});
+    Tensor *upstream_grad = tensor_create3d(1, 2, 2);
     tensor_set3d(upstream_grad, 0, 0, 0, 1.0f);
     tensor_set3d(upstream_grad, 0, 0, 1, 0.0f);
     tensor_set3d(upstream_grad, 0, 1, 0, 0.0f);
@@ -166,7 +166,7 @@ void test_conv_forward_dimensions() {
 
     // Case 1: 28x28 input, 3x3 kernel, stride 1, padding 1 -> 28x28 output
     ConvLayer *layer1 = conv_layer_create(1, 1, 3, 1, 1);
-    Tensor *input1 = tensor_zeros(3, (int[]){1, 28, 28});
+    Tensor *input1 = tensor_create3d(1, 28, 28);
     Tensor *out1 = conv_layer_forward(layer1, input1);
     assert(out1->shape[1] == 28);
     assert(out1->shape[2] == 28);
@@ -175,7 +175,7 @@ void test_conv_forward_dimensions() {
 
     // Case 2: 28x28 input, 3x3 kernel, stride 1, padding 0 -> 26x26 output
     ConvLayer *layer2 = conv_layer_create(1, 1, 3, 1, 0);
-    Tensor *input2 = tensor_zeros(3, (int[]){1, 28, 28});
+    Tensor *input2 = tensor_create3d(1, 28, 28);
     Tensor *out2 = conv_layer_forward(layer2, input2);
     assert(out2->shape[1] == 26);
     assert(out2->shape[2] == 26);
@@ -184,7 +184,7 @@ void test_conv_forward_dimensions() {
 
     // Case 3: 28x28 input, 5x5 kernel, stride 2, padding 0 -> 12x12 output
     ConvLayer *layer3 = conv_layer_create(1, 1, 5, 2, 0);
-    Tensor *input3 = tensor_zeros(3, (int[]){1, 28, 28});
+    Tensor *input3 = tensor_create3d(1, 28, 28);
     Tensor *out3 = conv_layer_forward(layer3, input3);
     assert(out3->shape[1] == 12);
     assert(out3->shape[2] == 12);
@@ -202,7 +202,7 @@ void test_conv_forward_with_bias() {
     ConvLayer *layer = conv_layer_create(1, 1, 3, 1, 0);
 
     // Simple input of all 1s
-    Tensor *input = tensor_zeros(3, (int[]){1, 3, 3});
+    Tensor *input = tensor_create3d(1, 3, 3);
     tensor_fill(input, 1.0f);
 
     // Kernel of all 1s (sum = 9)

@@ -98,7 +98,7 @@ void test_perceptron_predict_basic() {
     p->weights->data[1] = -0.3f;
     p->bias = 0.2f;
 
-    Tensor *input = tensor_zeros(1, (int[]){2});
+    Tensor *input = tensor_create1d(2);
     input->data[0] = 1.0f;
     input->data[1] = 2.0f;
 
@@ -122,7 +122,7 @@ void test_perceptron_predict_zero_input() {
     Perceptron *p = perceptron_create(3, -1.0f, 1.0f, 0.1f, SIGMOID_ACTIVATION, binary_classifier);
     p->bias = 0.5f;
 
-    Tensor *input = tensor_zeros(1, (int[]){3});
+    Tensor *input = tensor_create1d(3);
     float prediction = perceptron_predict(p, input);
 
     // With zero input, output should be sigmoid(bias)
@@ -142,7 +142,7 @@ void test_perceptron_predict_with_relu() {
     p->weights->data[1] = 1.0f;
     p->bias = -1.5f;
 
-    Tensor *input = tensor_zeros(1, (int[]){2});
+    Tensor *input = tensor_create1d(2);
     input->data[0] = 1.0f;
     input->data[1] = 1.0f;
 
@@ -165,7 +165,7 @@ void test_perceptron_predict_caching() {
     p->weights->data[1] = -1.0f;
     p->bias = 0.0f;
 
-    Tensor *input = tensor_zeros(1, (int[]){2});
+    Tensor *input = tensor_create1d(2);
     input->data[0] = 0.5f;
     input->data[1] = 0.5f;
 
@@ -210,7 +210,7 @@ void test_perceptron_update_weights_basic() {
     // Simulate a prediction (linear activation, derivative = 1)
     p->last_output = 0.8f;
 
-    Tensor *input = tensor_zeros(1, (int[]){2});
+    Tensor *input = tensor_create1d(2);
     input->data[0] = 1.0f;
     input->data[1] = 2.0f;
 
@@ -245,7 +245,7 @@ void test_perceptron_update_weights_with_sigmoid() {
     p->weights->data[1] = 1.0f;
     p->bias = 0.0f;
 
-    Tensor *input = tensor_zeros(1, (int[]){2});
+    Tensor *input = tensor_create1d(2);
     input->data[0] = 0.5f;
     input->data[1] = 0.5f;
 
@@ -285,7 +285,7 @@ void test_perceptron_update_weights_zero_error() {
     p->bias = 0.2f;
     p->last_output = 0.7f;
 
-    Tensor *input = tensor_zeros(1, (int[]){2});
+    Tensor *input = tensor_create1d(2);
     input->data[0] = 1.0f;
     input->data[1] = 1.0f;
 
@@ -316,7 +316,7 @@ void test_perceptron_train_step_basic() {
     p->weights->data[1] = 0.0f;
     p->bias = 0.0f;
 
-    Tensor *input = tensor_zeros(1, (int[]){2});
+    Tensor *input = tensor_create1d(2);
     input->data[0] = 1.0f;
     input->data[1] = 1.0f;
 
@@ -347,7 +347,7 @@ void test_perceptron_train_step_convergence_direction() {
     p->weights->data[1] = 2.0f;
     p->bias = 0.0f;
 
-    Tensor *input = tensor_zeros(1, (int[]){2});
+    Tensor *input = tensor_create1d(2);
     input->data[0] = 1.0f;
     input->data[1] = 1.0f;
 
@@ -381,23 +381,23 @@ void test_perceptron_learns_simple_pattern() {
     float targets[4];
 
     // Class 0: both inputs small
-    inputs[0] = tensor_zeros(1, (int[]){2});
+    inputs[0] = tensor_create1d(2);
     inputs[0]->data[0] = 0.0f;
     inputs[0]->data[1] = 0.0f;
     targets[0] = 0.0f;
 
-    inputs[1] = tensor_zeros(1, (int[]){2});
+    inputs[1] = tensor_create1d(2);
     inputs[1]->data[0] = 0.0f;
     inputs[1]->data[1] = 1.0f;
     targets[1] = 0.0f;
 
     // Class 1: sum is large
-    inputs[2] = tensor_zeros(1, (int[]){2});
+    inputs[2] = tensor_create1d(2);
     inputs[2]->data[0] = 1.0f;
     inputs[2]->data[1] = 1.0f;
     targets[2] = 1.0f;
 
-    inputs[3] = tensor_zeros(1, (int[]){2});
+    inputs[3] = tensor_create1d(2);
     inputs[3]->data[0] = 2.0f;
     inputs[3]->data[1] = 2.0f;
     targets[3] = 1.0f;
@@ -434,7 +434,7 @@ void test_perceptron_learns_and_gate() {
     Perceptron *p = perceptron_create(2, -1.0f, 1.0f, 0.5f, SIGMOID_ACTIVATION, binary_classifier);
 
     Dataset *and_data = create_and_gate_dataset();
-    Tensor *input = tensor_zeros(1, (int[]){2});
+    Tensor *input = tensor_create1d(2);
 
     // Train for multiple epochs
     for (int epoch = 0; epoch < 100; epoch++) {
@@ -471,7 +471,7 @@ void test_perceptron_learns_or_gate() {
     Perceptron *p = perceptron_create(2, -1.0f, 1.0f, 0.5f, SIGMOID_ACTIVATION, binary_classifier);
 
     Dataset *or_data = create_or_gate_dataset();
-    Tensor *input = tensor_zeros(1, (int[]){2});
+    Tensor *input = tensor_create1d(2);
 
     // Train for multiple epochs
     for (int epoch = 0; epoch < 100; epoch++) {
@@ -519,7 +519,7 @@ void test_perceptron_with_different_learning_rates() {
     p_slow->bias = 0.0f;
     p_fast->bias = 0.0f;
 
-    Tensor *input = tensor_zeros(1, (int[]){2});
+    Tensor *input = tensor_create1d(2);
     input->data[0] = 1.0f;
     input->data[1] = 1.0f;
     float target = 1.0f;
@@ -554,7 +554,7 @@ void test_perceptron_zero_learning_rate() {
     p->weights->data[0] = 0.5f;
     p->weights->data[1] = -0.3f;
 
-    Tensor *input = tensor_zeros(1, (int[]){2});
+    Tensor *input = tensor_create1d(2);
     input->data[0] = 1.0f;
     input->data[1] = 1.0f;
 
@@ -580,7 +580,7 @@ void test_perceptron_negative_inputs() {
     p->weights->data[1] = 1.0f;
     p->bias = 0.0f;
 
-    Tensor *input = tensor_zeros(1, (int[]){2});
+    Tensor *input = tensor_create1d(2);
     input->data[0] = -1.0f;
     input->data[1] = -1.0f;
 
@@ -600,7 +600,7 @@ void test_perceptron_single_input_dimension() {
     // Test with 1D input (simple threshold)
     Perceptron *p = perceptron_create(1, -1.0f, 1.0f, 0.3f, SIGMOID_ACTIVATION, binary_classifier);
 
-    Tensor *input = tensor_zeros(1, (int[]){1});
+    Tensor *input = tensor_create1d(1);
 
     // Train to recognize values > 0.5
     float training_data[4] = {0.0f, 1.0f, 0.3f, 0.8f};
@@ -630,7 +630,7 @@ void test_perceptron_bias_learning() {
     p->weights->data[1] = 0.0f;
     p->bias = 0.0f;
 
-    Tensor *input = tensor_zeros(1, (int[]){2});
+    Tensor *input = tensor_create1d(2);
     float target = 1.0f; // Want output to be 1 even with zero input
 
     float bias_before = p->bias;

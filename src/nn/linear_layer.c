@@ -14,20 +14,16 @@ LinearLayer *linear_layer_create(int input_size, int output_size, TensorActivati
     layer->output_size = output_size;
     layer->activation = activation;
 
-    int weights_shape[] = {output_size, input_size};
-    int bias_shape[] = {output_size};
-    int input_shape[] = {input_size};
+    layer->weights = tensor_create2d(output_size, input_size);
+    layer->biases = tensor_create1d(output_size);
 
-    layer->weights = tensor_zeros(2, weights_shape);
-    layer->biases = tensor_zeros(1, bias_shape);
+    layer->z = tensor_create1d(output_size);
+    layer->a = tensor_create1d(output_size);
+    layer->input = tensor_create1d(input_size);
 
-    layer->z = tensor_zeros(1, bias_shape);
-    layer->a = tensor_zeros(1, bias_shape);
-    layer->input = tensor_zeros(1, input_shape);
-
-    layer->dW = tensor_zeros(2, weights_shape);
-    layer->db = tensor_zeros(1, bias_shape);
-    layer->downstream_gradient = tensor_zeros(1, input_shape);
+    layer->dW = tensor_create2d(output_size, input_size);
+    layer->db = tensor_create1d(output_size);
+    layer->downstream_gradient = tensor_create1d(input_size);
 
     return layer;
 }
@@ -86,8 +82,7 @@ void linear_layer_backward(LinearLayer *layer, const Tensor *upstream_grad) {
     tensor_elementwise_mul(dz, upstream_grad, dz);
 
     // 2. Weights -> dL/dW = dz ⊗ input^T (outer product) - accumulate
-    int dw_shape[] = {layer->output_size, layer->input_size};
-    Tensor *dW_sample = tensor_zeros(2, dw_shape);
+    Tensor *dW_sample = tensor_create2d(layer->output_size, layer->input_size);
     tensor_outer_product(dW_sample, dz, layer->input);
     tensor_add(layer->dW, layer->dW, dW_sample);
     tensor_free(dW_sample);

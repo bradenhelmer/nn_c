@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-Tensor *tensor_create(int ndim, int *shape) {
+static inline Tensor *_tensor_create(int ndim, int *shape) {
     Tensor *t = (Tensor *)malloc(sizeof(Tensor));
     t->ndim = ndim;
 
@@ -29,12 +29,28 @@ Tensor *tensor_create(int ndim, int *shape) {
     return t;
 }
 
+Tensor *tensor_create1d(int x) {
+    return _tensor_create(1, (int[]){x});
+}
+
+Tensor *tensor_create2d(int x, int y) {
+    return _tensor_create(2, (int[]){x, y});
+}
+
+Tensor *tensor_create3d(int x, int y, int z) {
+    return _tensor_create(3, (int[]){x, y, z});
+}
+
+Tensor *tensor_create4d(int x, int y, int z, int a) {
+    return _tensor_create(4, (int[]){x, y, z, a});
+}
+
 Tensor *tensor_zeros(int ndim, int *shape) {
-    return tensor_create(ndim, shape);
+    return _tensor_create(ndim, shape);
 }
 
 Tensor *tensor_random(int ndim, int *shape, float min, float max) {
-    Tensor *t = tensor_create(ndim, shape);
+    Tensor *t = _tensor_create(ndim, shape);
     for (int i = 0; i < t->size; i++) {
         t->data[i] = rand_rangef(min, max);
     }
@@ -267,8 +283,7 @@ Tensor *tensor_pad2d(const Tensor *t, int padding) {
     int H = t->shape[1];
     int W = t->shape[2];
 
-    int new_shape[] = {C, H + 2 * padding, W + 2 * padding};
-    Tensor *padded = tensor_zeros(3, new_shape);
+    Tensor *padded = tensor_create3d(C, H + 2 * padding, W + 2 * padding);
 
     for (int c = 0; c < C; c++) {
         for (int h = 0; h < H; h++) {
@@ -287,8 +302,7 @@ Tensor *tensor_unpad2d(const Tensor *t, int padding) {
     int H = t->shape[1];
     int W = t->shape[2];
 
-    int new_shape[] = {C, H - 2 * padding, W - 2 * padding};
-    Tensor *unpadded = tensor_zeros(3, new_shape);
+    Tensor *unpadded = tensor_create3d(C, H - 2 * padding, W - 2 * padding);
 
     for (int c = 0; c < C; c++) {
         for (int h = 0; h < H; h++) {

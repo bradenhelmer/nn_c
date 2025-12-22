@@ -16,13 +16,13 @@ FCLayer *fc_layer_create(int input_size, int output_size) {
     layer->input_size = input_size;
     layer->output_size = output_size;
 
-    layer->weights = tensor_create(2, (int[]){output_size, input_size});
-    layer->biases = tensor_create(1, (int[]){output_size});
+    layer->weights = tensor_create2d(output_size, input_size);
+    layer->biases = tensor_create1d(output_size);
 
     layer->input = NULL;
 
-    layer->d_weights = tensor_create(2, (int[]){output_size, input_size});
-    layer->d_biases = tensor_create(1, (int[]){output_size});
+    layer->d_weights = tensor_create2d(output_size, input_size);
+    layer->d_biases = tensor_create1d(output_size);
     return layer;
 }
 
@@ -49,7 +49,7 @@ void fc_layer_init_weights(FCLayer *layer) {
 Tensor *fc_layer_forward(FCLayer *layer, Tensor *input) {
     // x: input vector, shape [n]
     // returns: output vector, shape [m]
-    Tensor *y = tensor_zeros(1, (int[]){layer->output_size});
+    Tensor *y = tensor_create1d(layer->output_size);
     for (int i = 0; i < layer->output_size; i++) {
         float sum = layer->biases->data[i];
         for (int j = 0; j < layer->input_size; j++) {
@@ -73,7 +73,7 @@ Tensor *fc_layer_backward(FCLayer *layer, Tensor *upstream_grad) {
                 upstream_grad->data[i] * layer->input->data[j];
         }
     }
-    Tensor *dx = tensor_zeros(1, (int[]){layer->input_size});
+    Tensor *dx = tensor_create1d(layer->input_size);
     for (int j = 0; j < layer->input_size; j++) {
         float sum = 0.0f;
         for (int i = 0; i < layer->output_size; i++) {

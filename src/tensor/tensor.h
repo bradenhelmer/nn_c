@@ -14,8 +14,10 @@ typedef struct {
     int size;     // Total elements
 } Tensor;
 
-// Lifecycle
-Tensor *tensor_create(int ndim, int *shape);
+Tensor *tensor_create1d(int x);
+Tensor *tensor_create2d(int x, int y);
+Tensor *tensor_create3d(int x, int y, int z);
+Tensor *tensor_create4d(int x, int y, int z, int a);
 Tensor *tensor_zeros(int ndim, int *shape);
 Tensor *tensor_random(int ndim, int *shape, float min, float max);
 void tensor_free(Tensor *t);

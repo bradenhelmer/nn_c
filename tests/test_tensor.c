@@ -14,8 +14,7 @@
 // =============================================================================
 
 void test_tensor_create_3d() {
-    int shape[] = {2, 3, 4};
-    Tensor *t = tensor_create(3, shape);
+    Tensor *t = tensor_create3d(2, 3, 4);
 
     assert(t != NULL);
     assert(t->ndim == 3);
@@ -35,8 +34,7 @@ void test_tensor_create_3d() {
 }
 
 void test_tensor_create_4d() {
-    int shape[] = {2, 3, 4, 5};
-    Tensor *t = tensor_create(4, shape);
+    Tensor *t = tensor_create4d(2, 3, 4, 5);
 
     assert(t != NULL);
     assert(t->ndim == 4);
@@ -58,20 +56,23 @@ void test_tensor_create_4d() {
 }
 
 void test_tensor_zeros() {
-    int shape[] = {2, 2, 2};
-    Tensor *t = tensor_zeros(3, shape);
+    Tensor *t = tensor_create3d(2, 2, 2);
 
     assert(t != NULL);
     assert(t->ndim == 3);
     assert(t->size == 8);
+
+    // Verify all elements are zero-initialized
+    for (int i = 0; i < t->size; i++) {
+        assert(float_equals(t->data[i], 0.0f));
+    }
 
     tensor_free(t);
     TEST_PASSED;
 }
 
 void test_tensor_create_1d() {
-    int shape[] = {10};
-    Tensor *t = tensor_create(1, shape);
+    Tensor *t = tensor_create1d(10);
 
     assert(t != NULL);
     assert(t->ndim == 1);
@@ -84,8 +85,7 @@ void test_tensor_create_1d() {
 }
 
 void test_tensor_create_2d() {
-    int shape[] = {3, 4};
-    Tensor *t = tensor_create(2, shape);
+    Tensor *t = tensor_create2d(3, 4);
 
     assert(t != NULL);
     assert(t->ndim == 2);
@@ -104,8 +104,7 @@ void test_tensor_create_2d() {
 // =============================================================================
 
 void test_tensor_get_set_3d() {
-    int shape[] = {2, 3, 4};
-    Tensor *t = tensor_create(3, shape);
+    Tensor *t = tensor_create3d(2, 3, 4);
 
     // Set some values
     tensor_set3d(t, 0, 0, 0, 1.0f);
@@ -122,8 +121,7 @@ void test_tensor_get_set_3d() {
 }
 
 void test_tensor_index3d() {
-    int shape[] = {2, 3, 4};
-    Tensor *t = tensor_create(3, shape);
+    Tensor *t = tensor_create3d(2, 3, 4);
 
     // Test that indexing is correct for row-major order
     // Index = i * strides[0] + j * strides[1] + k
@@ -138,8 +136,7 @@ void test_tensor_index3d() {
 }
 
 void test_tensor_3d_all_elements() {
-    int shape[] = {2, 3, 4};
-    Tensor *t = tensor_create(3, shape);
+    Tensor *t = tensor_create3d(2, 3, 4);
 
     // Set all elements with unique values
     float val = 0.0f;
@@ -172,8 +169,7 @@ void test_tensor_3d_all_elements() {
 // =============================================================================
 
 void test_tensor_get_set_4d() {
-    int shape[] = {2, 3, 4, 5};
-    Tensor *t = tensor_create(4, shape);
+    Tensor *t = tensor_create4d(2, 3, 4, 5);
 
     // Set some values
     tensor_set4d(t, 0, 0, 0, 0, 1.0f);
@@ -190,8 +186,7 @@ void test_tensor_get_set_4d() {
 }
 
 void test_tensor_index4d() {
-    int shape[] = {2, 3, 4, 5};
-    Tensor *t = tensor_create(4, shape);
+    Tensor *t = tensor_create4d(2, 3, 4, 5);
 
     // Test that indexing is correct for row-major order
     assert(tensor_index4d(t, 0, 0, 0, 0) == 0);
@@ -206,8 +201,7 @@ void test_tensor_index4d() {
 }
 
 void test_tensor_4d_all_elements() {
-    int shape[] = {2, 2, 2, 2};
-    Tensor *t = tensor_create(4, shape);
+    Tensor *t = tensor_create4d(2, 2, 2, 2);
 
     // Set all elements with unique values
     float val = 0.0f;
@@ -244,8 +238,7 @@ void test_tensor_4d_all_elements() {
 // =============================================================================
 
 void test_tensor_fill() {
-    int shape[] = {3, 4, 5};
-    Tensor *t = tensor_create(3, shape);
+    Tensor *t = tensor_create3d(3, 4, 5);
 
     tensor_fill(t, 3.14f);
 
@@ -258,8 +251,7 @@ void test_tensor_fill() {
 }
 
 void test_tensor_fill_zero() {
-    int shape[] = {2, 2, 2};
-    Tensor *t = tensor_create(3, shape);
+    Tensor *t = tensor_create3d(2, 2, 2);
 
     // First fill with non-zero
     tensor_fill(t, 5.0f);
@@ -276,15 +268,14 @@ void test_tensor_fill_zero() {
 }
 
 void test_tensor_copy() {
-    int shape[] = {2, 3, 4};
-    Tensor *src = tensor_create(3, shape);
+    Tensor *src = tensor_create3d(2, 3, 4);
 
     // Fill source with values
     for (int i = 0; i < src->size; i++) {
         src->data[i] = (float)i;
     }
 
-    Tensor *dest = tensor_create(3, shape);
+    Tensor *dest = tensor_create3d(2, 3, 4);
     tensor_copy(dest, src);
 
     // Verify copy
@@ -298,8 +289,7 @@ void test_tensor_copy() {
 }
 
 void test_tensor_clone() {
-    int shape[] = {2, 3, 4};
-    Tensor *t = tensor_create(3, shape);
+    Tensor *t = tensor_create3d(2, 3, 4);
 
     // Fill with values
     for (int i = 0; i < t->size; i++) {
@@ -331,8 +321,7 @@ void test_tensor_clone() {
 }
 
 void test_tensor_print_shape() {
-    int shape[] = {2, 3, 4};
-    Tensor *t = tensor_create(3, shape);
+    Tensor *t = tensor_create3d(2, 3, 4);
 
     printf("  Testing tensor_print_shape (visual check): ");
     tensor_print_shape(t);
@@ -347,8 +336,7 @@ void test_tensor_print_shape() {
 // =============================================================================
 
 void test_tensor_single_element() {
-    int shape[] = {1, 1, 1};
-    Tensor *t = tensor_create(3, shape);
+    Tensor *t = tensor_create3d(1, 1, 1);
 
     assert(t->size == 1);
     tensor_set3d(t, 0, 0, 0, 42.0f);
@@ -360,8 +348,7 @@ void test_tensor_single_element() {
 
 void test_tensor_large() {
     // Test with a reasonably large tensor
-    int shape[] = {32, 28, 28}; // Like MNIST batch
-    Tensor *t = tensor_create(3, shape);
+    Tensor *t = tensor_create3d(32, 28, 28);
 
     assert(t != NULL);
     assert(t->size == 32 * 28 * 28);
@@ -377,11 +364,10 @@ void test_tensor_large() {
 }
 
 void test_tensor_copy_independence() {
-    int shape[] = {2, 2};
-    Tensor *src = tensor_create(2, shape);
+    Tensor *src = tensor_create2d(2, 2);
     tensor_fill(src, 5.0f);
 
-    Tensor *dest = tensor_create(2, shape);
+    Tensor *dest = tensor_create2d(2, 2);
     tensor_copy(dest, src);
 
     // Modify source after copy

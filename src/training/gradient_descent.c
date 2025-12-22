@@ -29,8 +29,7 @@ TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data,
     float prev_loss = INFINITY;
 
     // Pre-allocate input tensor
-    int input_shape[] = {train_data->X->shape[1]};
-    Tensor *input = tensor_zeros(1, input_shape);
+    Tensor *input = tensor_create1d(train_data->X->shape[1]);
 
     // 2. Main training loop
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
@@ -89,11 +88,9 @@ TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, __attribute__((unused))
     float prev_loss = INFINITY;
 
     // Pre-allocate tensors for reuse
-    int input_shape[] = {train_data->X->shape[1]};
-    int output_shape[] = {train_data->Y->shape[1]};
-    Tensor *input = tensor_zeros(1, input_shape);
-    Tensor *target = tensor_zeros(1, output_shape);
-    Tensor *classification = tensor_zeros(1, output_shape);
+    Tensor *input = tensor_create1d(train_data->X->shape[1]);
+    Tensor *target = tensor_create1d(train_data->Y->shape[1]);
+    Tensor *classification = tensor_create1d(train_data->Y->shape[1]);
 
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
         float epoch_loss = 0.f;
@@ -155,11 +152,9 @@ TrainingResult *train_mlp_batch(MLP *mlp, Dataset *train_data,
     BatchIterator *batch_iter = batch_iterator_create(train_data, config->batch_size);
 
     // Pre-allocate tensors for reuse
-    int input_shape[] = {train_data->X->shape[1]};
-    int output_shape[] = {train_data->Y->shape[1]};
-    Tensor *input = tensor_zeros(1, input_shape);
-    Tensor *target = tensor_zeros(1, output_shape);
-    Tensor *classification = tensor_zeros(1, output_shape);
+    Tensor *input = tensor_create1d(train_data->X->shape[1]);
+    Tensor *target = tensor_create1d(train_data->Y->shape[1]);
+    Tensor *classification = tensor_create1d(train_data->Y->shape[1]);
 
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
         float epoch_loss = 0.f;
@@ -236,11 +231,9 @@ TrainingResult *train_mlp_batch_opt(MLP *mlp, Dataset *train_data,
     result->epochs_completed = config->max_epochs;
 
     // Pre-allocate tensor buffers
-    int input_shape[] = {train_data->X->shape[1]};
-    int output_shape[] = {train_data->Y->shape[1]};
-    Tensor *input = tensor_zeros(1, input_shape);
-    Tensor *target = tensor_zeros(1, output_shape);
-    Tensor *classification = tensor_zeros(1, output_shape);
+    Tensor *input = tensor_create1d(train_data->X->shape[1]);
+    Tensor *target = tensor_create1d(train_data->Y->shape[1]);
+    Tensor *classification = tensor_create1d(train_data->Y->shape[1]);
 
     // 2. Batch iterator
     BatchIterator *batch_iter = batch_iterator_create(train_data, config->batch_size);

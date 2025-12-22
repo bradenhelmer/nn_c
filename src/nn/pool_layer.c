@@ -40,7 +40,7 @@ Tensor *maxpool_forward(MaxPoolLayer *layer, Tensor *input) {
     layer->output_h = H_out;
     layer->output_w = W_out;
 
-    Tensor *Y = tensor_zeros(3, (int[]){C, H_out, W_out});
+    Tensor *Y = tensor_create3d(C, H_out, W_out);
     layer->max_indices = (int *)malloc(sizeof(int) * C * H_out * W_out);
 
     for (int c = 0; c < C; c++) {
@@ -72,7 +72,7 @@ Tensor *maxpool_forward(MaxPoolLayer *layer, Tensor *input) {
 
 // Backward pass: uses cached max_indices to route gradients.
 Tensor *maxpool_backward(MaxPoolLayer *layer, Tensor *upstream_grad) {
-    Tensor *dX = tensor_zeros(3, (int[]){layer->input_c, layer->input_h, layer->input_w});
+    Tensor *dX = tensor_create3d(layer->input_c, layer->input_h, layer->input_w);
     int H_out = upstream_grad->shape[1];
     int W_out = upstream_grad->shape[2];
     for (int c = 0; c < layer->input_c; c++) {

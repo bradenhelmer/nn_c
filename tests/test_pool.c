@@ -29,7 +29,7 @@ void test_maxpool_forward() {
     // [5, 6, 1, 2]
     // [7, 2, 3, 1]
     // [4, 8, 5, 6]
-    Tensor *input = tensor_create(3, (int[]){1, 4, 4});
+    Tensor *input = tensor_create3d(1, 4, 4);
     float input_data[] = {1, 3, 2, 4, 5, 6, 1, 2, 7, 2, 3, 1, 4, 8, 5, 6};
     for (int i = 0; i < 16; i++) {
         input->data[i] = input_data[i];
@@ -80,7 +80,7 @@ void test_maxpool_backward() {
     // [5, 6, 1, 2]
     // [7, 2, 3, 1]
     // [4, 8, 5, 6]
-    Tensor *input = tensor_create(3, (int[]){1, 4, 4});
+    Tensor *input = tensor_create3d(1, 4, 4);
     float input_data[] = {1, 3, 2, 4, 5, 6, 1, 2, 7, 2, 3, 1, 4, 8, 5, 6};
     for (int i = 0; i < 16; i++) {
         input->data[i] = input_data[i];
@@ -92,7 +92,7 @@ void test_maxpool_backward() {
     // Upstream gradient δ[0]:
     // [1, 2]
     // [3, 4]
-    Tensor *upstream_grad = tensor_create(3, (int[]){1, 2, 2});
+    Tensor *upstream_grad = tensor_create3d(1, 2, 2);
     tensor_set3d(upstream_grad, 0, 0, 0, 1.0f);
     tensor_set3d(upstream_grad, 0, 0, 1, 2.0f);
     tensor_set3d(upstream_grad, 0, 1, 0, 3.0f);
@@ -176,7 +176,7 @@ void test_maxpool_forward_dimensions() {
 
     // Case 1: 4x4 input, pool_size 2, stride 2 -> 2x2 output
     MaxPoolLayer *layer1 = maxpool_create(2, 2);
-    Tensor *input1 = tensor_zeros(3, (int[]){1, 4, 4});
+    Tensor *input1 = tensor_create3d(1, 4, 4);
     Tensor *out1 = maxpool_forward(layer1, input1);
     assert(out1->shape[1] == 2);
     assert(out1->shape[2] == 2);
@@ -186,7 +186,7 @@ void test_maxpool_forward_dimensions() {
 
     // Case 2: 6x6 input, pool_size 2, stride 2 -> 3x3 output
     MaxPoolLayer *layer2 = maxpool_create(2, 2);
-    Tensor *input2 = tensor_zeros(3, (int[]){1, 6, 6});
+    Tensor *input2 = tensor_create3d(1, 6, 6);
     Tensor *out2 = maxpool_forward(layer2, input2);
     assert(out2->shape[1] == 3);
     assert(out2->shape[2] == 3);
@@ -196,7 +196,7 @@ void test_maxpool_forward_dimensions() {
 
     // Case 3: 8x8 input, pool_size 3, stride 2 -> 3x3 output
     MaxPoolLayer *layer3 = maxpool_create(3, 2);
-    Tensor *input3 = tensor_zeros(3, (int[]){1, 8, 8});
+    Tensor *input3 = tensor_create3d(1, 8, 8);
     Tensor *out3 = maxpool_forward(layer3, input3);
     assert(out3->shape[1] == 3);
     assert(out3->shape[2] == 3);

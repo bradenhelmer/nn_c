@@ -62,17 +62,13 @@ Batch *batch_iterator_next(BatchIterator *batch_iter) {
 
     // Allocate batch tensors
     Batch *batch = (Batch *)malloc(sizeof(Batch));
-    int x_shape[] = {actual_size, batch_iter->dataset->num_features};
-    int y_shape[] = {actual_size, batch_iter->dataset->Y->shape[1]}; // (actual_size, num_outputs)
-    batch->X = tensor_zeros(2, x_shape);
-    batch->Y = tensor_zeros(2, y_shape);
+    batch->X = tensor_create2d(actual_size, batch_iter->dataset->num_features);
+    batch->Y = tensor_create2d(actual_size, batch_iter->dataset->Y->shape[1]);
     batch->size = actual_size;
 
     // Copy rows using shuffled indices with pre-allocated buffers
-    int row_x_shape[] = {batch_iter->dataset->X->shape[1]};
-    int row_y_shape[] = {batch_iter->dataset->Y->shape[1]};
-    Tensor *row_buffer_x = tensor_zeros(1, row_x_shape);
-    Tensor *row_buffer_y = tensor_zeros(1, row_y_shape);
+    Tensor *row_buffer_x = tensor_create1d(batch_iter->dataset->X->shape[1]);
+    Tensor *row_buffer_y = tensor_create1d(batch_iter->dataset->Y->shape[1]);
 
     for (int i = 0; i < actual_size; i++) {
         int sample_idx = batch_iter->indices[start + i];

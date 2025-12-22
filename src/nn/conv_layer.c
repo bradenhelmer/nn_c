@@ -18,12 +18,12 @@ ConvLayer *conv_layer_create(int in_channels, int out_channels, int kernel_size,
     cl->kernel_size = kernel_size;
     cl->stride = stride;
     cl->padding = padding;
-    cl->kernels = tensor_create(4, (int[]){out_channels, in_channels, kernel_size, kernel_size});
-    cl->biases = tensor_create(1, (int[]){out_channels});
+    cl->kernels = tensor_create4d(out_channels, in_channels, kernel_size, kernel_size);
+    cl->biases = tensor_create1d(out_channels);
     cl->input = NULL;
     cl->output = NULL;
-    cl->d_kernels = tensor_create(4, (int[]){out_channels, in_channels, kernel_size, kernel_size});
-    cl->d_biases = tensor_create(1, (int[]){out_channels});
+    cl->d_kernels = tensor_create4d(out_channels, in_channels, kernel_size, kernel_size);
+    cl->d_biases = tensor_create1d(out_channels);
     return cl;
 }
 
@@ -60,7 +60,7 @@ Tensor *conv_layer_forward(ConvLayer *layer, Tensor *input) {
     int W_out = (input->shape[2] - layer->kernel_size + 2 * layer->padding) / layer->stride + 1;
 
     // Alloc output tensor
-    Tensor *Y = tensor_zeros(3, (int[]){layer->out_channels, H_out, W_out});
+    Tensor *Y = tensor_create3d(layer->out_channels, H_out, W_out);
 
     // Core loop
     for (int o = 0; o < layer->out_channels; o++) { // Each output channel
@@ -167,7 +167,8 @@ Tensor *conv_layer_backward(ConvLayer *layer, Tensor *upstream_grad) {
     //
     // Assuming stride == 1 for now.
     //
-    Tensor *dX_pad = tensor_zeros(3, layer->input->shape);
+    Tensor *dX_pad =
+        tensor_create3d(layer->input->shape[0], layer->input->shape[1], layer->input->shape[2]);
     int H_padded = dX_pad->shape[1];
     int W_padded = dX_pad->shape[2];
     for (int c = 0; c < layer->in_channels; c++) { // Each input channel

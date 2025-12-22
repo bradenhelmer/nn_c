@@ -54,8 +54,7 @@ void perceptron_update_weights(Perceptron *p, const Tensor *input, float error) 
 void test_perceptron_on_dataset(Perceptron *p, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
 
-    int input_shape[] = {data->X->shape[1]};
-    Tensor *input = tensor_zeros(1, input_shape);
+    Tensor *input = tensor_create1d(data->X->shape[1]);
 
     for (int i = 0; i < data->num_samples; i++) {
         tensor_get_row(input, data->X, i);

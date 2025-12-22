@@ -117,11 +117,9 @@ void test_mlp_on_dataset(MLP *mlp, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
 
     // Pre-allocate tensors for reuse
-    int input_shape[] = {data->X->shape[1]};
-    int output_shape[] = {data->Y->shape[1]};
-    Tensor *input = tensor_zeros(1, input_shape);
-    Tensor *target = tensor_zeros(1, output_shape);
-    Tensor *classification = tensor_zeros(1, output_shape);
+    Tensor *input = tensor_create1d(data->X->shape[1]);
+    Tensor *target = tensor_create1d(data->Y->shape[1]);
+    Tensor *classification = tensor_create1d(data->Y->shape[1]);
 
     for (int i = 0; i < data->num_samples; i++) {
         tensor_get_row(input, data->X, i);

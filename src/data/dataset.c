@@ -21,8 +21,7 @@ void dataset_free(Dataset *d) {
 }
 
 static Tensor *_create_2bit_input_tensor() {
-    int shape[] = {4, 2};
-    Tensor *t = tensor_zeros(2, shape);
+    Tensor *t = tensor_create2d(4, 2);
     tensor_set2d(t, 1, 1, 1);
     tensor_set2d(t, 2, 0, 1);
     tensor_set2d(t, 3, 0, 1);
@@ -34,8 +33,7 @@ static Tensor *_create_2bit_input_tensor() {
 Dataset *create_and_gate_dataset() {
     Dataset *d = dataset_create(4, 2);
     d->X = _create_2bit_input_tensor();
-    int y_shape[] = {4, 1};
-    d->Y = tensor_zeros(2, y_shape);
+    d->Y = tensor_create2d(4, 1);
     tensor_set2d(d->Y, 3, 0, 1);
     return d;
 }
@@ -43,8 +41,7 @@ Dataset *create_and_gate_dataset() {
 Dataset *create_or_gate_dataset() {
     Dataset *d = dataset_create(4, 2);
     d->X = _create_2bit_input_tensor();
-    int y_shape[] = {4, 1};
-    d->Y = tensor_zeros(2, y_shape);
+    d->Y = tensor_create2d(4, 1);
     tensor_fill(d->Y, 1.0f);
     tensor_set2d(d->Y, 0, 0, 0);
     return d;
@@ -53,8 +50,7 @@ Dataset *create_or_gate_dataset() {
 Dataset *create_xor_gate_dataset() {
     Dataset *d = dataset_create(4, 2);
     d->X = _create_2bit_input_tensor();
-    int y_shape[] = {4, 1};
-    d->Y = tensor_zeros(2, y_shape);
+    d->Y = tensor_create2d(4, 1);
     tensor_set2d(d->Y, 1, 0, 1);
     tensor_set2d(d->Y, 2, 0, 1);
     return d;
@@ -70,8 +66,7 @@ static Dataset *load_mnist_file(const char *image_path, const char *label_path,
 
     // Create initial train dataset and X tensor (image_count x 784 pixels)
     Dataset *d = dataset_create(image_count, MNIST_IMG_PIXEL_COUNT);
-    int x_shape[] = {image_count, MNIST_IMG_PIXEL_COUNT};
-    d->X = tensor_zeros(2, x_shape);
+    d->X = tensor_create2d(image_count, MNIST_IMG_PIXEL_COUNT);
 
     // Open file, seek past magic number (16 bytes).
     FILE *train_img_file = fopen(image_path, "rb");
@@ -115,8 +110,7 @@ static Dataset *load_mnist_file(const char *image_path, const char *label_path,
     free(img_batch);
 
     // Create Y (label tensor) (image_count x 10 outputs)
-    int y_shape[] = {image_count, MNIST_OUTPUT_SIZE};
-    d->Y = tensor_zeros(2, y_shape);
+    d->Y = tensor_create2d(image_count, MNIST_OUTPUT_SIZE);
 
     // Open file, seek past magic number (8 bytes).
     FILE *train_label_file = fopen(label_path, "rb");
