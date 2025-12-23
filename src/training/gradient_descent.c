@@ -76,8 +76,8 @@ TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data,
     return result;
 }
 
-TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, __attribute__((unused)) Dataset *val_data,
-                          TrainingConfig *config) {
+TrainingResult *train_nn(NeuralNet *nn, Dataset *train_data,
+                         __attribute__((unused)) Dataset *val_data, TrainingConfig *config) {
 
     // 1. Result Tracking
     TrainingResult *result = (TrainingResult *)malloc(sizeof(TrainingResult));
@@ -97,20 +97,20 @@ TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, __attribute__((unused))
         int correct = 0;
 
         for (int i = 0; i < train_data->num_samples; i++) {
-            mlp_zero_gradients(mlp);
+            nn_zero_gradients(nn);
 
             tensor_get_row(input, train_data->X, i);
             tensor_get_row(target, train_data->Y, i);
-            Tensor *prediction = mlp_forward(mlp, input);
-            mlp->classifier(classification, prediction);
+            Tensor *prediction = nn_forward(nn, input);
+            nn->classifier(classification, prediction);
 
-            epoch_loss += mlp->loss.loss(prediction, target);
+            epoch_loss += nn->loss.loss(prediction, target);
             if (tensor_equals(classification, target)) {
                 correct++;
             }
 
-            mlp_backward(mlp, target);
-            mlp_update_weights(mlp);
+            nn_backward(nn, target);
+            nn_update_weights(nn);
         }
 
         result->loss_history[epoch] = epoch_loss / train_data->num_samples;
@@ -137,8 +137,8 @@ TrainingResult *train_mlp(MLP *mlp, Dataset *train_data, __attribute__((unused))
     return result;
 }
 
-TrainingResult *train_mlp_batch(MLP *mlp, Dataset *train_data,
-                                __attribute__((unused)) Dataset *val_data, TrainingConfig *config) {
+TrainingResult *train_nn_batch(NeuralNet *nn, Dataset *train_data,
+                               __attribute__((unused)) Dataset *val_data, TrainingConfig *config) {
 
     // 1. Result Tracking
     TrainingResult *result = (TrainingResult *)malloc(sizeof(TrainingResult));
@@ -166,28 +166,28 @@ TrainingResult *train_mlp_batch(MLP *mlp, Dataset *train_data,
 
         // 3. Batch loop
         while ((batch = batch_iterator_next(batch_iter)) != NULL) {
-            mlp_zero_gradients(mlp);
+            nn_zero_gradients(nn);
 
             // 4. Accumulate over batch samples
             for (int i = 0; i < batch->size; i++) {
                 tensor_get_row(input, batch->X, i);
                 tensor_get_row(target, batch->Y, i);
-                Tensor *prediction = mlp_forward(mlp, input);
-                mlp->classifier(classification, prediction);
+                Tensor *prediction = nn_forward(nn, input);
+                nn->classifier(classification, prediction);
 
-                epoch_loss += mlp->loss.loss(prediction, target);
+                epoch_loss += nn->loss.loss(prediction, target);
                 if (tensor_equals(classification, target)) {
                     correct++;
                 }
 
-                mlp_backward(mlp, target);
+                nn_backward(nn, target);
             }
 
             samples_seen += batch->size;
 
             // 5. Average gradients and update weights
-            mlp_scale_gradients(mlp, 1.0f / batch->size);
-            mlp_update_weights(mlp);
+            nn_scale_gradients(nn, 1.0f / batch->size);
+            nn_update_weights(nn);
             batch_free(batch);
         }
 
@@ -220,9 +220,9 @@ TrainingResult *train_mlp_batch(MLP *mlp, Dataset *train_data,
     return result;
 }
 
-TrainingResult *train_mlp_batch_opt(MLP *mlp, Dataset *train_data,
-                                    __attribute__((unused)) Dataset *val_data,
-                                    TrainingConfig *config) {
+TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data,
+                                   __attribute__((unused)) Dataset *val_data,
+                                   TrainingConfig *config) {
 
     // 1. Result Tracking
     TrainingResult *result = (TrainingResult *)malloc(sizeof(TrainingResult));
@@ -248,34 +248,34 @@ TrainingResult *train_mlp_batch_opt(MLP *mlp, Dataset *train_data,
 
         // 3. Batch loop
         while ((batch = batch_iterator_next(batch_iter)) != NULL) {
-            mlp_zero_gradients(mlp);
+            nn_zero_gradients(nn);
 
             // 4. Accumulate over batch samples
             for (int i = 0; i < batch->size; i++) {
                 tensor_get_row(input, batch->X, i);
                 tensor_get_row(target, batch->Y, i);
-                Tensor *prediction = mlp_forward(mlp, input);
-                mlp->classifier(classification, prediction);
+                Tensor *prediction = nn_forward(nn, input);
+                nn->classifier(classification, prediction);
 
-                epoch_loss += mlp->loss.loss(prediction, target);
+                epoch_loss += nn->loss.loss(prediction, target);
                 if (tensor_equals(classification, target)) {
                     correct++;
                 }
 
-                mlp_backward(mlp, target);
+                nn_backward(nn, target);
             }
 
             samples_seen += batch->size;
 
             // 5. Average gradients and update weights using optimizer
-            mlp_scale_gradients(mlp, 1.0f / batch->size);
+            nn_scale_gradients(nn, 1.0f / batch->size);
 
             // L2 Regularization
             if (config->l2_lambda > 0.0f) {
-                mlp_add_l2_gradient(mlp, config->l2_lambda);
+                nn_add_l2_gradient(nn, config->l2_lambda);
             }
 
-            optimizer_step(config->optimizer, mlp);
+            optimizer_step(config->optimizer, nn);
             batch_free(batch);
         }
 

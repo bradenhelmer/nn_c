@@ -14,11 +14,7 @@
 // =============================================================================
 
 // Layer types.
-typedef enum {
-    LAYER_LINEAR,
-    LAYER_CONV_2D,
-    LAYER_MAX_POOL,
-} LayerType;
+typedef enum { LAYER_LINEAR, LAYER_ACTIVATION, LAYER_CONV_2D, LAYER_MAX_POOL } LayerType;
 
 // Core layer struct.
 typedef struct {
@@ -28,9 +24,34 @@ typedef struct {
 
 Layer *layer_create(LayerType type, void *layer);
 void layer_free(Layer *layer);
-void layer_forward(Layer *layer, Tensor *input);
-void layer_backward(Layer *layer, Tensor *upstream_grad);
-void layer_init_weights(Layer *layer);
+void layer_forward(Layer *layer, const Tensor *input);
+Tensor *layer_backward(Layer *layer, const Tensor *upstream_grad);
+Tensor *layer_get_output(Layer *layer);
+
+// Generic weight operations
+void layer_zero_gradients(Layer *layer);
+void layer_update_weights(Layer *layer, float learning_rate);
+void layer_scale_gradients(Layer *layer, float scale);
+void layer_add_l2_gradient(Layer *layer, float lambda);
+
+// =============================================================================
+// LAYER PARAMETER GENERICS
+// =============================================================================
+
+// A single trainable parameter and gradient pair.
+typedef struct {
+    Tensor *param;
+    Tensor *grad_param;
+} ParameterPair;
+
+// All trainable parameters in a Layer
+typedef struct {
+    ParameterPair *pairs;
+    int num_pairs;
+} LayerParameters;
+
+LayerParameters layer_get_parameters(Layer *layer);
+void layer_parameters_free(LayerParameters *params);
 
 // =============================================================================
 // LINEAR LAYER
@@ -41,37 +62,54 @@ typedef struct {
     int output_size;
     Tensor *weights; // shape: (output_size, input_size)
     Tensor *biases;  // shape: (output_size,)
-    TensorActivationPair activation;
 
     // Cached for back propagation
-    Tensor *z;     // pre-activation: Wx + b
-    Tensor *a;     // post-activation: f(z)
-    Tensor *input; // cached input for weight gradients
+    Tensor *output; // output: Wx + b
+    Tensor *input;  // cached input for weight gradients
 
     // Gradients
-    Tensor *dW;                  // Weight gradients
-    Tensor *db;                  // Bias gradients
-    Tensor *downstream_gradient; // Gradient to pass downstream -> dL/da_prev
+    Tensor *grad_weights; // Weight gradients
+    Tensor *grad_biases;  // Bias gradients
 } LinearLayer;
 
 // Lifecycle
-LinearLayer *linear_layer_create(int input_size, int output_size, TensorActivationPair activation);
+Layer *linear_layer_create(int input_size, int output_size);
 void linear_layer_free(LinearLayer *layer);
 
 // Forward/backward
 void linear_layer_forward(LinearLayer *layer, const Tensor *input);
-void linear_layer_backward(LinearLayer *layer, const Tensor *upstream_grad);
+Tensor *linear_layer_backward(LinearLayer *layer, const Tensor *upstream_grad);
 
 // Weight initialization
 void linear_layer_init_xavier(LinearLayer *layer);
 void linear_layer_init_he(LinearLayer *layer);
 
 // =============================================================================
+// ACTIVATION LAYER
+// =============================================================================
+
+typedef struct {
+    TensorActivationPair activation;
+
+    // Cached for backward pass
+    Tensor *input;  // input to activation (pre-activation values)
+    Tensor *output; // output from activation
+} ActivationLayer;
+
+// Lifecycle
+Layer *activation_layer_create(TensorActivationPair activation);
+void activation_layer_free(ActivationLayer *layer);
+
+// Forward/backward
+void activation_layer_forward(ActivationLayer *layer, const Tensor *input);
+Tensor *activation_layer_backward(ActivationLayer *layer, const Tensor *upstream_grad);
+
+// =============================================================================
 // CONVOLUTIONAL 2D LAYER
 // =============================================================================
 
 typedef struct {
-    Tensor *kernels; // [C_out, C_in, k_h, k_w]
+    Tensor *weights; // [C_out, C_in, k_h, k_w] (renamed from kernels)
     Tensor *biases;  // [C_out]
 
     int in_channels;
@@ -85,19 +123,19 @@ typedef struct {
     Tensor *output; // [C_out, H_out, W_out]
 
     // Gradients
-    Tensor *d_kernels; // Same shape as kernels
-    Tensor *d_biases;  // Same shape as biases
+    Tensor *grad_weights; // Same shape as weights
+    Tensor *grad_biases;  // Same shape as biases
 } ConvLayer;
 
 // Lifecycle
-ConvLayer *conv_layer_create(int in_channels, int out_channels, int kernel_size, int stride,
-                             int padding);
+Layer *conv_layer_create(int in_channels, int out_channels, int kernel_size, int stride,
+                         int padding);
 void conv_layer_free(ConvLayer *layer);
 void conv_layer_init_weights(ConvLayer *layer);
 
 // Forward/backward
-Tensor *conv_layer_forward(ConvLayer *layer, Tensor *input);
-Tensor *conv_layer_backward(ConvLayer *layer, Tensor *upstream_grad);
+Tensor *conv_layer_forward(ConvLayer *layer, const Tensor *input);
+Tensor *conv_layer_backward(ConvLayer *layer, const Tensor *upstream_grad);
 
 // =============================================================================
 // MAX POOLING LAYER
@@ -114,14 +152,11 @@ typedef struct {
 } MaxPoolLayer;
 
 // Lifecycle
-MaxPoolLayer *maxpool_create(int pool_size, int stride);
+Layer *maxpool_create(int pool_size, int stride);
 void maxpool_free(MaxPoolLayer *layer);
 
-// Forward pass: returns output tensor, caches max_indices internally.
-Tensor *maxpool_forward(MaxPoolLayer *layer, Tensor *input);
-
-// Backward pass: uses cached max_indices to route gradients.
-Tensor *maxpool_backward(MaxPoolLayer *layer, Tensor *upstream_grad);
+Tensor *maxpool_forward(MaxPoolLayer *layer, const Tensor *input);
+Tensor *maxpool_backward(MaxPoolLayer *layer, const Tensor *upstream_grad);
 
 // Index helpers
 
@@ -140,36 +175,5 @@ static inline void decode_window_index(int flat_idx, int pool_size, int *m, int 
     *m = flat_idx / pool_size;
     *n = flat_idx % pool_size;
 }
-
-// =============================================================================
-// FULLY CONNECTED LAYER
-// =============================================================================
-
-typedef struct {
-    int input_size;  // n
-    int output_size; // m
-
-    Tensor *weights; // [m, n] (out x in)
-    Tensor *biases;  // [m]
-
-    // Cached for backward
-    Tensor *input; // [n]
-
-    // Gradients (accumulated, used by optimizer)
-    Tensor *d_weights; // [m, n]
-    Tensor *d_biases;  // [m]
-} FCLayer;
-
-// Lifecycle
-FCLayer *fc_layer_create(int input_size, int output_size);
-void fc_layer_free(FCLayer *layer);
-void fc_layer_init_weights(FCLayer *layer);
-
-// Forward/backward
-Tensor *fc_layer_forward(FCLayer *layer, Tensor *input);
-Tensor *fc_layer_backward(FCLayer *layer, Tensor *upstream_grad);
-
-// Optimizer will call this after weight update
-void fc_layer_zero_gradients(FCLayer *layer);
 
 #endif /* ifndef LAYER_H */

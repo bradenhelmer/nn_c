@@ -7,38 +7,35 @@
 #include <math.h>
 #include <stdlib.h>
 
-LinearLayer *linear_layer_create(int input_size, int output_size, TensorActivationPair activation) {
+Layer *linear_layer_create(int input_size, int output_size) {
     LinearLayer *layer = (LinearLayer *)malloc(sizeof(LinearLayer));
 
     layer->input_size = input_size;
     layer->output_size = output_size;
-    layer->activation = activation;
 
     layer->weights = tensor_create2d(output_size, input_size);
     layer->biases = tensor_create1d(output_size);
 
-    layer->z = tensor_create1d(output_size);
-    layer->a = tensor_create1d(output_size);
+    layer->output = tensor_create1d(output_size);
     layer->input = tensor_create1d(input_size);
 
-    layer->dW = tensor_create2d(output_size, input_size);
-    layer->db = tensor_create1d(output_size);
-    layer->downstream_gradient = tensor_create1d(input_size);
+    layer->grad_weights = tensor_create2d(output_size, input_size);
+    layer->grad_biases = tensor_create1d(output_size);
 
-    return layer;
+    linear_layer_init_xavier(layer);
+
+    return layer_create(LAYER_LINEAR, (void *)layer);
 }
 
 void linear_layer_free(LinearLayer *layer) {
     tensor_free(layer->weights);
     tensor_free(layer->biases);
 
-    tensor_free(layer->z);
-    tensor_free(layer->a);
+    tensor_free(layer->output);
     tensor_free(layer->input);
 
-    tensor_free(layer->dW);
-    tensor_free(layer->db);
-    tensor_free(layer->downstream_gradient);
+    tensor_free(layer->grad_weights);
+    tensor_free(layer->grad_biases);
 
     free(layer);
 }
@@ -66,31 +63,25 @@ void linear_layer_forward(LinearLayer *layer, const Tensor *input) {
     // Cache input for weight gradient calculation.
     tensor_copy(layer->input, input);
 
-    // z = Wx + b
-    tensor_matvec_mul(layer->z, layer->weights, input);
-    tensor_add(layer->z, layer->z, layer->biases);
-
-    // a = f(z)
-    layer->activation.forward(layer->a, layer->z);
+    // output = Wx + b
+    tensor_matvec_mul(layer->output, layer->weights, input);
+    tensor_add(layer->output, layer->output, layer->biases);
 }
 
-void linear_layer_backward(LinearLayer *layer, const Tensor *upstream_grad) {
+Tensor *linear_layer_backward(LinearLayer *layer, const Tensor *upstream_grad) {
 
-    // 1. Pre-activation -> dL/dz = dL/da ⊙ f'(z)
-    Tensor *dz = tensor_clone(layer->a);
-    layer->activation.derivative(dz, layer->a);
-    tensor_elementwise_mul(dz, upstream_grad, dz);
+    // 1. Weights -> grad_weights = upstream_grad ⊗ input^T (outer product) - accumulate
+    Tensor *grad_sample = tensor_create2d(layer->output_size, layer->input_size);
+    tensor_outer_product(grad_sample, upstream_grad, layer->input);
+    tensor_add(layer->grad_weights, layer->grad_weights, grad_sample);
+    tensor_free(grad_sample);
 
-    // 2. Weights -> dL/dW = dz ⊗ input^T (outer product) - accumulate
-    Tensor *dW_sample = tensor_create2d(layer->output_size, layer->input_size);
-    tensor_outer_product(dW_sample, dz, layer->input);
-    tensor_add(layer->dW, layer->dW, dW_sample);
-    tensor_free(dW_sample);
+    // 2. Bias -> grad_biases = upstream_grad - accumulate
+    tensor_add(layer->grad_biases, layer->grad_biases, upstream_grad);
 
-    // 3. Bias -> dL/db = dz - accumulate
-    tensor_add(layer->db, layer->db, dz);
+    // 3. Input Gradient -> dL/dinput = W^T * upstream_grad (return to previous layer)
+    Tensor *grad_input = tensor_create1d(layer->input_size);
+    tensor_matvec_mul_transpose(grad_input, layer->weights, upstream_grad);
 
-    // 4. Downstream Gradient -> dL/da_prev = W^T * dz
-    tensor_matvec_mul_transpose(layer->downstream_gradient, layer->weights, dz);
-    tensor_free(dz);
+    return grad_input;
 }

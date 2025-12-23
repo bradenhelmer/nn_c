@@ -10,9 +10,9 @@
 // Perceptron
 extern void perceptron_learning_logic_gates(void);
 
-// Basic MLP
-extern void mlp_learning_xor(void);
-extern void mlp_learning_xor_batched(void);
+// Basic linear layer NN
+extern void nn_learning_xor(void);
+extern void nn_learning_xor_batched(void);
 
 // MNIST
 extern void mnist_sgd();
@@ -22,11 +22,11 @@ extern void mnist_aggressive();
 
 int main() {
     srand(time(NULL));
-    // perceptron_learning_logic_gates();
-    // mlp_learning_xor();
-    // mlp_learning_xor_batched();
+    perceptron_learning_logic_gates();
+    nn_learning_xor();
+    // nn_learning_xor_batched();
     // mnist_sgd();
     // mnist_momentum();
-    mnist_aggressive();
+    // mnist_aggressive();
     return 0;
 }

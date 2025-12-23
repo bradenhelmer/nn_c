@@ -5,7 +5,8 @@
  */
 #ifndef OPTIMIZER_H
 #define OPTIMIZER_H
-#include "../nn/mlp.h"
+#include "nn/nn.h"
+#include "tensor/tensor.h"
 
 typedef enum {
     OPTIMIZER_SGD,
@@ -16,21 +17,18 @@ typedef enum {
 typedef struct Optimizer {
     OptimizerType type;
     float learning_rate;
-    float num_layers;
+    int num_params; // Total number of parameter tensors across all layers
 
     // Momentum Fields
-    float beta;         // default 0.9
-    Tensor **v_weights; // velocity tensors, one per layer (same shape as weights)
-    Tensor **v_biases;  // velocity biases, one per layer (same shape as biases)
+    float beta; // default 0.9
+    Tensor **v; // velocity tensors, one per parameter
 
     // Adam (extension of momentum)
-    float beta1;        // default 0.9
-    float beta2;        // default 0.999
-    float epsilon;      // default 1e-8
-    Tensor **m_weights; // first moment
-    Tensor **s_weights; // second moment
-    Tensor **m_biases;
-    Tensor **s_biases;
+    float beta1;   // default 0.9
+    float beta2;   // default 0.999
+    float epsilon; // default 1e-8
+    Tensor **m;    // first moment estimates, one per parameter
+    Tensor **s;    // second moment estimates, one per parameter
     int timestep;
 } Optimizer;
 
@@ -41,11 +39,11 @@ Optimizer *optimizer_create_adam(float learning_rate, float beta1, float beta2, 
 
 void optimizer_free(Optimizer *opt);
 
-// Call after MLP is built, before training
-void optimizer_init(Optimizer *opt, MLP *mlp);
+// Call after NN is built, before training
+void optimizer_init(Optimizer *opt, NeuralNet *nn);
 
 // Apply gradients (call after mlp_backward)
-void optimizer_step(Optimizer *opt, MLP *mlp);
+void optimizer_step(Optimizer *opt, NeuralNet *nn);
 
 // Learning rate access for scheduler integration
 void optimizer_set_lr(Optimizer *opt, float lr);

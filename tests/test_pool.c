@@ -22,7 +22,7 @@ void test_maxpool_forward() {
     // Pool size: 2, Stride: 2
     // Output Y: [1, 2, 2]
 
-    MaxPoolLayer *layer = maxpool_create(2, 2);
+    MaxPoolLayer *layer = maxpool_create(2, 2)->layer;
 
     // Input X[0]:
     // [1, 3, 2, 4]
@@ -73,7 +73,7 @@ void test_maxpool_forward() {
 
 void test_maxpool_backward() {
     // Same setup as forward
-    MaxPoolLayer *layer = maxpool_create(2, 2);
+    MaxPoolLayer *layer = maxpool_create(2, 2)->layer;
 
     // Input X[0]:
     // [1, 3, 2, 4]
@@ -155,7 +155,7 @@ void test_maxpool_backward() {
 // =============================================================================
 
 void test_maxpool_create() {
-    MaxPoolLayer *layer = maxpool_create(2, 2);
+    MaxPoolLayer *layer = maxpool_create(2, 2)->layer;
 
     assert(layer != NULL);
     assert(layer->pool_size == 2);
@@ -175,7 +175,7 @@ void test_maxpool_forward_dimensions() {
     // H_out = (H_in - pool_size) / stride + 1
 
     // Case 1: 4x4 input, pool_size 2, stride 2 -> 2x2 output
-    MaxPoolLayer *layer1 = maxpool_create(2, 2);
+    MaxPoolLayer *layer1 = maxpool_create(2, 2)->layer;
     Tensor *input1 = tensor_create3d(1, 4, 4);
     Tensor *out1 = maxpool_forward(layer1, input1);
     assert(out1->shape[1] == 2);
@@ -185,7 +185,7 @@ void test_maxpool_forward_dimensions() {
     maxpool_free(layer1);
 
     // Case 2: 6x6 input, pool_size 2, stride 2 -> 3x3 output
-    MaxPoolLayer *layer2 = maxpool_create(2, 2);
+    MaxPoolLayer *layer2 = maxpool_create(2, 2)->layer;
     Tensor *input2 = tensor_create3d(1, 6, 6);
     Tensor *out2 = maxpool_forward(layer2, input2);
     assert(out2->shape[1] == 3);
@@ -195,7 +195,7 @@ void test_maxpool_forward_dimensions() {
     maxpool_free(layer2);
 
     // Case 3: 8x8 input, pool_size 3, stride 2 -> 3x3 output
-    MaxPoolLayer *layer3 = maxpool_create(3, 2);
+    MaxPoolLayer *layer3 = maxpool_create(3, 2)->layer;
     Tensor *input3 = tensor_create3d(1, 8, 8);
     Tensor *out3 = maxpool_forward(layer3, input3);
     assert(out3->shape[1] == 3);

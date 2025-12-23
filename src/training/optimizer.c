@@ -4,23 +4,21 @@
  * Optimizer implementations
  */
 #include "optimizer.h"
+#include "nn/layer.h"
 #include <math.h>
 #include <stdlib.h>
 
 static Optimizer *optimizer_create_base(float learning_rate) {
     Optimizer *opt = (Optimizer *)malloc(sizeof(Optimizer));
     opt->learning_rate = learning_rate;
-    opt->num_layers = 0;
+    opt->num_params = 0;
     opt->beta = 0.0f;
-    opt->v_weights = NULL;
-    opt->v_biases = NULL;
+    opt->v = NULL;
     opt->beta1 = 0.0f;
     opt->beta2 = 0.0f;
     opt->epsilon = 0.0f;
-    opt->m_weights = NULL;
-    opt->s_weights = NULL;
-    opt->m_biases = NULL;
-    opt->s_biases = NULL;
+    opt->m = NULL;
+    opt->s = NULL;
     opt->timestep = 0;
 
     return opt;
@@ -49,68 +47,72 @@ Optimizer *optimizer_create_adam(float learning_rate, float beta1, float beta2, 
     return opt;
 }
 
-void optimizer_init(Optimizer *opt, MLP *mlp) {
-    opt->num_layers = mlp->num_layers;
-    if (opt->type == OPTIMIZER_MOMENTUM) {
-        opt->v_weights = (Tensor **)malloc(sizeof(Tensor *) * mlp->num_layers);
-        opt->v_biases = (Tensor **)malloc(sizeof(Tensor *) * mlp->num_layers);
+void optimizer_init(Optimizer *opt, NeuralNet *nn) {
+    // Count total parameters across all layers
+    int total_params = 0;
+    for (int i = 0; i < nn->num_layers; i++) {
+        LayerParameters params = layer_get_parameters(nn->layers[i]);
+        total_params += params.num_pairs;
+        layer_parameters_free(&params);
+    }
 
-        for (int i = 0; i < mlp->num_layers; ++i) {
-            LinearLayer *layer = mlp->layers[i];
-            opt->v_weights[i] = tensor_clone(layer->weights);
-            tensor_fill(opt->v_weights[i], 0.0f);
-            opt->v_biases[i] = tensor_clone(layer->biases);
-            tensor_fill(opt->v_biases[i], 0.0f);
+    opt->num_params = total_params;
+
+    // Allocate momentum arrays if needed
+    if (opt->type == OPTIMIZER_MOMENTUM) {
+        opt->v = (Tensor **)malloc(sizeof(Tensor *) * total_params);
+
+        int param_idx = 0;
+        for (int i = 0; i < nn->num_layers; i++) {
+            LayerParameters params = layer_get_parameters(nn->layers[i]);
+            for (int j = 0; j < params.num_pairs; j++) {
+                opt->v[param_idx] = tensor_clone(params.pairs[j].param);
+                tensor_fill(opt->v[param_idx], 0.0f);
+                param_idx++;
+            }
+            layer_parameters_free(&params);
         }
     }
 
+    // Allocate Adam arrays if needed
     if (opt->type == OPTIMIZER_ADAM) {
-        opt->m_weights = (Tensor **)malloc(sizeof(Tensor *) * mlp->num_layers);
-        opt->s_weights = (Tensor **)malloc(sizeof(Tensor *) * mlp->num_layers);
-        opt->m_biases = (Tensor **)malloc(sizeof(Tensor *) * mlp->num_layers);
-        opt->s_biases = (Tensor **)malloc(sizeof(Tensor *) * mlp->num_layers);
+        opt->m = (Tensor **)malloc(sizeof(Tensor *) * total_params);
+        opt->s = (Tensor **)malloc(sizeof(Tensor *) * total_params);
 
-        for (int i = 0; i < mlp->num_layers; ++i) {
-            LinearLayer *layer = mlp->layers[i];
-            opt->m_weights[i] = tensor_clone(layer->weights);
-            tensor_fill(opt->m_weights[i], 0.0f);
-            opt->s_weights[i] = tensor_clone(layer->weights);
-            tensor_fill(opt->s_weights[i], 0.0f);
-            opt->m_biases[i] = tensor_clone(layer->biases);
-            tensor_fill(opt->m_biases[i], 0.0f);
-            opt->s_biases[i] = tensor_clone(layer->biases);
-            tensor_fill(opt->s_biases[i], 0.0f);
+        int param_idx = 0;
+        for (int i = 0; i < nn->num_layers; i++) {
+            LayerParameters params = layer_get_parameters(nn->layers[i]);
+            for (int j = 0; j < params.num_pairs; j++) {
+                opt->m[param_idx] = tensor_clone(params.pairs[j].param);
+                tensor_fill(opt->m[param_idx], 0.0f);
+                opt->s[param_idx] = tensor_clone(params.pairs[j].param);
+                tensor_fill(opt->s[param_idx], 0.0f);
+                param_idx++;
+            }
+            layer_parameters_free(&params);
         }
     }
 }
 
 void optimizer_free(Optimizer *opt) {
     switch (opt->type) {
-    case OPTIMIZER_SGD: {
+    case OPTIMIZER_SGD:
+        // No state to free
         break;
-    }
-    case OPTIMIZER_MOMENTUM: {
-        for (int i = 0; i < opt->num_layers; ++i) {
-            tensor_free(opt->v_weights[i]);
-            tensor_free(opt->v_biases[i]);
+    case OPTIMIZER_MOMENTUM:
+        for (int i = 0; i < opt->num_params; ++i) {
+            tensor_free(opt->v[i]);
         }
-        free(opt->v_weights);
-        free(opt->v_biases);
+        free(opt->v);
         break;
-    }
-    case OPTIMIZER_ADAM: {
-        for (int i = 0; i < opt->num_layers; ++i) {
-            tensor_free(opt->m_weights[i]);
-            tensor_free(opt->m_biases[i]);
-            tensor_free(opt->s_weights[i]);
-            tensor_free(opt->s_biases[i]);
+    case OPTIMIZER_ADAM:
+        for (int i = 0; i < opt->num_params; ++i) {
+            tensor_free(opt->m[i]);
+            tensor_free(opt->s[i]);
         }
-        free(opt->m_weights);
-        free(opt->m_biases);
-        free(opt->s_weights);
-        free(opt->s_biases);
+        free(opt->m);
+        free(opt->s);
         break;
-    }
     }
 
     free(opt);
@@ -124,96 +126,89 @@ float optimizer_get_lr(Optimizer *opt) {
     return opt->learning_rate;
 }
 
-static void step_sgd(Optimizer *opt, MLP *mlp) {
-    for (int i = 0; i < mlp->num_layers; i++) {
-        LinearLayer *layer = mlp->layers[i];
-
-        // Update weights: W = W - (lr * dW)
-        for (int j = 0; j < layer->weights->size; ++j) {
-            layer->weights->data[j] -= opt->learning_rate * layer->dW->data[j];
-        }
-
-        // Update biases: b = b - (lr * db)
-        for (int j = 0; j < layer->biases->size; ++j) {
-            layer->biases->data[j] -= opt->learning_rate * layer->db->data[j];
-        }
+static void step_sgd(Optimizer *opt, NeuralNet *nn) {
+    for (int i = 0; i < nn->num_layers; i++) {
+        layer_update_weights(nn->layers[i], opt->learning_rate);
     }
 }
 
-static void step_momentum(Optimizer *opt, MLP *mlp) {
-    for (int i = 0; i < opt->num_layers; ++i) {
-        LinearLayer *layer = mlp->layers[i];
-        Tensor *vW = opt->v_weights[i];
-        Tensor *vb = opt->v_biases[i];
+static void step_momentum(Optimizer *opt, NeuralNet *nn) {
+    int param_idx = 0;
 
-        // Update weights: vW = beta * vW + dW, then W = W - lr * vW
-        for (int j = 0; j < vW->size; ++j) {
-            vW->data[j] = opt->beta * vW->data[j] + layer->dW->data[j];
-            layer->weights->data[j] -= opt->learning_rate * vW->data[j];
+    for (int i = 0; i < nn->num_layers; i++) {
+        LayerParameters params = layer_get_parameters(nn->layers[i]);
+
+        for (int j = 0; j < params.num_pairs; j++) {
+            Tensor *param = params.pairs[j].param;
+            Tensor *grad = params.pairs[j].grad_param;
+            Tensor *v = opt->v[param_idx];
+
+            // Update: v = beta * v + grad, then param = param - lr * v
+            for (int k = 0; k < param->size; k++) {
+                v->data[k] = opt->beta * v->data[k] + grad->data[k];
+                param->data[k] -= opt->learning_rate * v->data[k];
+            }
+
+            param_idx++;
         }
 
-        // Update biases: vb = beta * vb + db, then b = b - lr * vb
-        for (int j = 0; j < vb->size; ++j) {
-            vb->data[j] = opt->beta * vb->data[j] + layer->db->data[j];
-            layer->biases->data[j] -= opt->learning_rate * vb->data[j];
-        }
+        layer_parameters_free(&params);
     }
 }
 
-static void step_adam(Optimizer *opt, MLP *mlp) {
+static void step_adam(Optimizer *opt, NeuralNet *nn) {
     opt->timestep += 1;
 
     // Precompute bias corrections: (1 - β^t)
     float bc1 = 1 - powf(opt->beta1, opt->timestep);
     float bc2 = 1 - powf(opt->beta2, opt->timestep);
 
-    for (int i = 0; i < opt->num_layers; ++i) {
-        LinearLayer *layer = mlp->layers[i];
-        Tensor *mW = opt->m_weights[i];
-        Tensor *sW = opt->s_weights[i];
-        Tensor *mb = opt->m_biases[i];
-        Tensor *sb = opt->s_biases[i];
+    int param_idx = 0;
 
-        // Update weights: m = β₁m + (1-β₁)g, s = β₂s + (1-β₂)g², W = W - lr·m̂/(√ŝ + ε)
-        for (int j = 0; j < layer->weights->size; j++) {
-            float grad = layer->dW->data[j];
+    for (int i = 0; i < nn->num_layers; i++) {
+        LayerParameters params = layer_get_parameters(nn->layers[i]);
 
-            // Update moments
-            mW->data[j] = opt->beta1 * mW->data[j] + (1 - opt->beta1) * grad;
-            sW->data[j] = opt->beta2 * sW->data[j] + (1 - opt->beta2) * grad * grad;
+        for (int j = 0; j < params.num_pairs; j++) {
+            Tensor *param = params.pairs[j].param;
+            Tensor *grad = params.pairs[j].grad_param;
+            Tensor *m = opt->m[param_idx];
+            Tensor *s = opt->s[param_idx];
 
-            // Bias correction and parameter update
-            float m_hat = mW->data[j] / bc1;
-            float s_hat = sW->data[j] / bc2;
-            layer->weights->data[j] -= opt->learning_rate * m_hat / (sqrtf(s_hat) + opt->epsilon);
+            // Update: m = β₁m + (1-β₁)g, s = β₂s + (1-β₂)g², param = param - lr·m̂/(√ŝ + ε)
+            for (int k = 0; k < param->size; k++) {
+                float g = grad->data[k];
+
+                // Update biased first moment estimate
+                m->data[k] = opt->beta1 * m->data[k] + (1 - opt->beta1) * g;
+
+                // Update biased second raw moment estimate
+                s->data[k] = opt->beta2 * s->data[k] + (1 - opt->beta2) * g * g;
+
+                // Compute bias-corrected estimates
+                float m_hat = m->data[k] / bc1;
+                float s_hat = s->data[k] / bc2;
+
+                // Update parameters
+                param->data[k] -= opt->learning_rate * m_hat / (sqrtf(s_hat) + opt->epsilon);
+            }
+
+            param_idx++;
         }
 
-        // Update biases: m = β₁m + (1-β₁)g, s = β₂s + (1-β₂)g², b = b - lr·m̂/(√ŝ + ε)
-        for (int j = 0; j < layer->biases->size; j++) {
-            float grad = layer->db->data[j];
-
-            // Update moments
-            mb->data[j] = opt->beta1 * mb->data[j] + (1 - opt->beta1) * grad;
-            sb->data[j] = opt->beta2 * sb->data[j] + (1 - opt->beta2) * grad * grad;
-
-            // Bias correction and parameter update
-            float m_hat = mb->data[j] / bc1;
-            float s_hat = sb->data[j] / bc2;
-            layer->biases->data[j] -= opt->learning_rate * m_hat / (sqrtf(s_hat) + opt->epsilon);
-        }
+        layer_parameters_free(&params);
     }
 }
 
-void optimizer_step(Optimizer *opt, MLP *mlp) {
+void optimizer_step(Optimizer *opt, NeuralNet *nn) {
     switch (opt->type) {
     case OPTIMIZER_SGD:
-        step_sgd(opt, mlp);
+        step_sgd(opt, nn);
         break;
     case OPTIMIZER_MOMENTUM:
-        step_momentum(opt, mlp);
+        step_momentum(opt, nn);
         break;
     case OPTIMIZER_ADAM:
-        step_adam(opt, mlp);
+        step_adam(opt, nn);
         break;
     }
 }

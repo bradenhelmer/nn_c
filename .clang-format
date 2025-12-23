@@ -13,3 +13,4 @@ AlignConsecutiveDeclarations: false
 PointerAlignment: Right
 IndentCaseLabels: false
 InsertBraces: true
+SortIncludes: true

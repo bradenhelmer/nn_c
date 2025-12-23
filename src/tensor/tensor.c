@@ -103,7 +103,7 @@ void tensor_copy(Tensor *dest, const Tensor *src) {
 }
 
 Tensor *tensor_clone(const Tensor *t) {
-    Tensor *clone = tensor_create(t->ndim, t->shape);
+    Tensor *clone = _tensor_create(t->ndim, t->shape);
     memcpy(clone->data, t->data, sizeof(float) * t->size);
     return clone;
 }

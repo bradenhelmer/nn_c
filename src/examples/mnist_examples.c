@@ -5,8 +5,8 @@
 
 #include "../activations/activations.h"
 #include "../data/dataset.h"
-#include "../nn/mlp.h"
 #include "../training/gradient_descent.h"
+#include "nn/nn.h"
 #include <stdio.h>
 
 static void mnist_classifier(Tensor *dest, const Tensor *prediction) {
@@ -15,7 +15,7 @@ static void mnist_classifier(Tensor *dest, const Tensor *prediction) {
     dest->data[max_index] = 1.0f;
 }
 
-static void test_mnist(MLP *mlp, Dataset *data, const char *name) {
+static void test_mnist(NeuralNet *nn, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
     int correct = 0;
 
@@ -26,8 +26,8 @@ static void test_mnist(MLP *mlp, Dataset *data, const char *name) {
     for (int i = 0; i < data->num_samples; i++) {
         tensor_get_row(input, data->X, i);
         tensor_get_row(target, data->Y, i);
-        Tensor *prediction = mlp_forward(mlp, input);
-        mlp->classifier(classification, prediction);
+        Tensor *prediction = nn_forward(nn, input);
+        nn->classifier(classification, prediction);
 
         if (tensor_equals(classification, target)) {
             correct++;
@@ -53,16 +53,14 @@ void mnist_sgd() {
                              .verbose = 1,
                              .optimizer = optimizer_create_sgd(0.1f)};
 
-    MLP *mlp_mnist = mlp_create(2, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
-    LinearLayer *layer_1 = linear_layer_create(784, 128, TENSOR_RELU_ACTIVATION);
-    linear_layer_init_he(layer_1);
-    LinearLayer *layer_2 = linear_layer_create(128, 10, TENSOR_LINEAR_ACTIVATION);
-    linear_layer_init_xavier(layer_2);
-    mlp_add_layer(mlp_mnist, 0, layer_1);
-    mlp_add_layer(mlp_mnist, 1, layer_2);
-    optimizer_init(config.optimizer, mlp_mnist);
+    NeuralNet *nn_mnist = nn_create(4, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
+    nn_add_layer(nn_mnist, 0, linear_layer_create(784, 128));
+    nn_add_layer(nn_mnist, 1, activation_layer_create(TENSOR_RELU_ACTIVATION));
+    nn_add_layer(nn_mnist, 2, linear_layer_create(128, 10));
+    nn_add_layer(nn_mnist, 3, activation_layer_create(TENSOR_LINEAR_ACTIVATION));
+    optimizer_init(config.optimizer, nn_mnist);
 
-    TrainingResult *mnist_sgd_result = train_mlp_batch_opt(mlp_mnist, mnist_train, NULL, &config);
+    TrainingResult *mnist_sgd_result = train_nn_batch_opt(nn_mnist, mnist_train, NULL, &config);
 
     printf("\nMNIST Batched Training with SGD Optimizer stopped at %d epochs\n",
            mnist_sgd_result->epochs_completed);
@@ -70,9 +68,9 @@ void mnist_sgd() {
     printf("Final accuracy: %.2f%%\n",
            mnist_sgd_result->accuracy_history[mnist_sgd_result->epochs_completed - 1] * 100);
 
-    test_mnist(mlp_mnist, mnist_test, "MNIST test images on batched SGD-trained MLP");
+    test_mnist(nn_mnist, mnist_test, "MNIST test images on batched SGD-trained 2-layer NN");
 
-    mlp_free(mlp_mnist);
+    nn_free(nn_mnist);
     optimizer_free(config.optimizer);
     dataset_free(mnist_train);
     dataset_free(mnist_test);
@@ -91,16 +89,14 @@ void mnist_momentum() {
                              .verbose = 1,
                              .optimizer = optimizer_create_momentum(0.01f, 0.9f)};
 
-    MLP *mlp_mnist = mlp_create(2, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
-    LinearLayer *layer_1 = linear_layer_create(784, 128, TENSOR_RELU_ACTIVATION);
-    linear_layer_init_he(layer_1);
-    LinearLayer *layer_2 = linear_layer_create(128, 10, TENSOR_LINEAR_ACTIVATION);
-    linear_layer_init_xavier(layer_2);
-    mlp_add_layer(mlp_mnist, 0, layer_1);
-    mlp_add_layer(mlp_mnist, 1, layer_2);
-    optimizer_init(config.optimizer, mlp_mnist);
+    NeuralNet *nn_mnist = nn_create(4, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
+    nn_add_layer(nn_mnist, 0, linear_layer_create(784, 128));
+    nn_add_layer(nn_mnist, 1, activation_layer_create(TENSOR_RELU_ACTIVATION));
+    nn_add_layer(nn_mnist, 2, linear_layer_create(128, 10));
+    nn_add_layer(nn_mnist, 3, activation_layer_create(TENSOR_LINEAR_ACTIVATION));
+    optimizer_init(config.optimizer, nn_mnist);
 
-    TrainingResult *mnist_sgd_result = train_mlp_batch_opt(mlp_mnist, mnist_train, NULL, &config);
+    TrainingResult *mnist_sgd_result = train_nn_batch_opt(nn_mnist, mnist_train, NULL, &config);
 
     printf("\nMNIST Batched Training with momentum optimizer stopped at %d epochs\n",
            mnist_sgd_result->epochs_completed);
@@ -108,9 +104,9 @@ void mnist_momentum() {
     printf("Final accuracy: %.2f%%\n",
            mnist_sgd_result->accuracy_history[mnist_sgd_result->epochs_completed - 1] * 100);
 
-    test_mnist(mlp_mnist, mnist_test, "MNIST test images on batched momentum-trained MLP");
+    test_mnist(nn_mnist, mnist_test, "MNIST test images on batched momentum-trained 2-layer NN");
 
-    mlp_free(mlp_mnist);
+    nn_free(nn_mnist);
     optimizer_free(config.optimizer);
     dataset_free(mnist_train);
     dataset_free(mnist_test);
@@ -128,16 +124,14 @@ void mnist_adam() {
                              .verbose = 1,
                              .optimizer = optimizer_create_adam(0.001f, 0.9f, 0.999f, 1e-8)};
 
-    MLP *mlp_mnist = mlp_create(2, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
-    LinearLayer *layer_1 = linear_layer_create(784, 128, TENSOR_RELU_ACTIVATION);
-    linear_layer_init_he(layer_1);
-    LinearLayer *layer_2 = linear_layer_create(128, 10, TENSOR_LINEAR_ACTIVATION);
-    linear_layer_init_xavier(layer_2);
-    mlp_add_layer(mlp_mnist, 0, layer_1);
-    mlp_add_layer(mlp_mnist, 1, layer_2);
-    optimizer_init(config.optimizer, mlp_mnist);
+    NeuralNet *nn_mnist = nn_create(4, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
+    nn_add_layer(nn_mnist, 0, linear_layer_create(784, 128));
+    nn_add_layer(nn_mnist, 1, activation_layer_create(TENSOR_RELU_ACTIVATION));
+    nn_add_layer(nn_mnist, 2, linear_layer_create(128, 10));
+    nn_add_layer(nn_mnist, 3, activation_layer_create(TENSOR_LINEAR_ACTIVATION));
+    optimizer_init(config.optimizer, nn_mnist);
 
-    TrainingResult *mnist_sgd_result = train_mlp_batch_opt(mlp_mnist, mnist_train, NULL, &config);
+    TrainingResult *mnist_sgd_result = train_nn_batch_opt(nn_mnist, mnist_train, NULL, &config);
 
     printf("\nMNIST Batched Training with ADAM optimizer stopped at %d epochs\n",
            mnist_sgd_result->epochs_completed);
@@ -145,9 +139,9 @@ void mnist_adam() {
     printf("Final accuracy: %.2f%%\n",
            mnist_sgd_result->accuracy_history[mnist_sgd_result->epochs_completed - 1] * 100);
 
-    test_mnist(mlp_mnist, mnist_test, "MNIST test images on batched ADAM-trained MLP");
+    test_mnist(nn_mnist, mnist_test, "MNIST test images on batched ADAM-trained 2-layer NN");
 
-    mlp_free(mlp_mnist);
+    nn_free(nn_mnist);
     optimizer_free(config.optimizer);
     dataset_free(mnist_train);
     dataset_free(mnist_test);
@@ -168,16 +162,14 @@ void mnist_aggressive() {
                              .scheduler = scheduler_create_cosine(0.001f, 1e-5f, 20),
                              .l2_lambda = 1e-4f};
 
-    MLP *mlp_mnist = mlp_create(2, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
-    LinearLayer *layer_1 = linear_layer_create(784, 128, TENSOR_RELU_ACTIVATION);
-    linear_layer_init_he(layer_1);
-    LinearLayer *layer_2 = linear_layer_create(128, 10, TENSOR_LINEAR_ACTIVATION);
-    linear_layer_init_xavier(layer_2);
-    mlp_add_layer(mlp_mnist, 0, layer_1);
-    mlp_add_layer(mlp_mnist, 1, layer_2);
-    optimizer_init(config.optimizer, mlp_mnist);
+    NeuralNet *nn_mnist = nn_create(4, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
+    nn_add_layer(nn_mnist, 0, linear_layer_create(784, 128));
+    nn_add_layer(nn_mnist, 1, activation_layer_create(TENSOR_RELU_ACTIVATION));
+    nn_add_layer(nn_mnist, 2, linear_layer_create(128, 10));
+    nn_add_layer(nn_mnist, 3, activation_layer_create(TENSOR_LINEAR_ACTIVATION));
+    optimizer_init(config.optimizer, nn_mnist);
 
-    TrainingResult *mnist_sgd_result = train_mlp_batch_opt(mlp_mnist, mnist_train, NULL, &config);
+    TrainingResult *mnist_sgd_result = train_nn_batch_opt(nn_mnist, mnist_train, NULL, &config);
 
     printf("\nMNIST Batched Training with ADAM/cosine annealing stopped at %d epochs\n",
            mnist_sgd_result->epochs_completed);
@@ -185,11 +177,11 @@ void mnist_aggressive() {
     printf("Final accuracy: %.2f%%\n",
            mnist_sgd_result->accuracy_history[mnist_sgd_result->epochs_completed - 1] * 100);
 
-    test_mnist(mlp_mnist, mnist_test,
-               "MNIST test images on batched ADAM-trained MLP with cosine annealing and L2 "
+    test_mnist(nn_mnist, mnist_test,
+               "MNIST test images on batched ADAM-trained 2-layer NN with cosine annealing and L2 "
                "regularization");
 
-    mlp_free(mlp_mnist);
+    nn_free(nn_mnist);
     optimizer_free(config.optimizer);
     scheduler_free(config.scheduler);
     dataset_free(mnist_train);

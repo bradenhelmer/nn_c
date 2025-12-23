@@ -10,28 +10,28 @@
 #include <stdlib.h>
 #include <string.h>
 
-ConvLayer *conv_layer_create(int in_channels, int out_channels, int kernel_size, int stride,
-                             int padding) {
+Layer *conv_layer_create(int in_channels, int out_channels, int kernel_size, int stride,
+                         int padding) {
     ConvLayer *cl = (ConvLayer *)malloc(sizeof(ConvLayer));
     cl->in_channels = in_channels;
     cl->out_channels = out_channels;
     cl->kernel_size = kernel_size;
     cl->stride = stride;
     cl->padding = padding;
-    cl->kernels = tensor_create4d(out_channels, in_channels, kernel_size, kernel_size);
+    cl->weights = tensor_create4d(out_channels, in_channels, kernel_size, kernel_size);
     cl->biases = tensor_create1d(out_channels);
     cl->input = NULL;
     cl->output = NULL;
-    cl->d_kernels = tensor_create4d(out_channels, in_channels, kernel_size, kernel_size);
-    cl->d_biases = tensor_create1d(out_channels);
-    return cl;
+    cl->grad_weights = tensor_create4d(out_channels, in_channels, kernel_size, kernel_size);
+    cl->grad_biases = tensor_create1d(out_channels);
+    return layer_create(LAYER_CONV_2D, (void *)cl);
 }
 
 void conv_layer_free(ConvLayer *layer) {
-    tensor_free(layer->kernels);
+    tensor_free(layer->weights);
     tensor_free(layer->biases);
-    tensor_free(layer->d_kernels);
-    tensor_free(layer->d_biases);
+    tensor_free(layer->grad_weights);
+    tensor_free(layer->grad_biases);
     if (layer->output != NULL) {
         tensor_free(layer->output);
     }
@@ -47,12 +47,12 @@ void conv_layer_init_weights(ConvLayer *layer) {
     int fan_in = layer->in_channels * kernel_squared;
     int fan_out = layer->out_channels * kernel_squared;
     float standard = sqrtf((2.f / (fan_in + fan_out)));
-    for (int i = 0; i < layer->kernels->size; ++i) {
-        layer->kernels->data[i] = rand_rangef(-standard, standard);
+    for (int i = 0; i < layer->weights->size; ++i) {
+        layer->weights->data[i] = rand_rangef(-standard, standard);
     }
 }
 
-Tensor *conv_layer_forward(ConvLayer *layer, Tensor *input) {
+Tensor *conv_layer_forward(ConvLayer *layer, const Tensor *input) {
     Tensor *X_pad = tensor_pad2d(input, layer->padding);
 
     // Get output dimensions
@@ -73,7 +73,7 @@ Tensor *conv_layer_forward(ConvLayer *layer, Tensor *input) {
                             int h_idx = i * layer->stride + m;
                             int w_idx = j * layer->stride + n;
                             sum += tensor_get3d(X_pad, c, h_idx, w_idx) *
-                                   tensor_get4d(layer->kernels, o, c, m, n);
+                                   tensor_get4d(layer->weights, o, c, m, n);
                         }
                     }
                 }
@@ -92,7 +92,7 @@ Tensor *conv_layer_forward(ConvLayer *layer, Tensor *input) {
     return Y;
 }
 
-Tensor *conv_layer_backward(ConvLayer *layer, Tensor *upstream_grad) {
+Tensor *conv_layer_backward(ConvLayer *layer, const Tensor *upstream_grad) {
 
     int H_out =
         (layer->input->shape[1] - layer->kernel_size + 2 * layer->padding) / layer->stride + 1;
@@ -109,7 +109,7 @@ Tensor *conv_layer_backward(ConvLayer *layer, Tensor *upstream_grad) {
                 sum += tensor_get3d(upstream_grad, out_channel, i, j);
             }
         }
-        layer->d_biases->data[out_channel] = sum;
+        layer->grad_biases->data[out_channel] = sum;
     }
 
     // 2. Gradient w.r.t Kernels
@@ -140,7 +140,7 @@ Tensor *conv_layer_backward(ConvLayer *layer, Tensor *upstream_grad) {
                                    tensor_get3d(layer->input, c, h_idx, w_idx);
                         }
                     }
-                    tensor_set4d(layer->d_kernels, o, c, m, n, sum);
+                    tensor_set4d(layer->grad_weights, o, c, m, n, sum);
                 }
             }
         }
@@ -181,7 +181,7 @@ Tensor *conv_layer_backward(ConvLayer *layer, Tensor *upstream_grad) {
                             int i = h - m;
                             int j = w - n;
                             if ((i >= 0 && i < H_out) && (j >= 0 && j < W_out)) {
-                                sum += tensor_get4d(layer->kernels, o, c, m, n) *
+                                sum += tensor_get4d(layer->weights, o, c, m, n) *
                                        tensor_get3d(upstream_grad, o, i, j);
                             }
                         }
