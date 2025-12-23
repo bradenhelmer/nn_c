@@ -22,9 +22,9 @@ static void xor_classifier(Tensor *dest, const Tensor *prediction) {
 
 void nn_learning_xor() {
 
-    printf("\n\nTraining XOR Gate with 2-layer NN...\n");
+    printf("\nTraining XOR Gate with 2-layer NN...\n");
 
-    TrainingConfig config = {.max_epochs = 20000, .tolerance = 1e-7, .batch_size = 1, .verbose = 0};
+    TrainingConfig config = {.max_epochs = 10000, .tolerance = 1e-7, .batch_size = 1, .verbose = 0};
     Dataset *xor_data = create_xor_gate_dataset();
 
     NeuralNet *nn_xor = nn_create(4, 0.5f, TENSOR_MSE_LOSS, xor_classifier);
@@ -51,10 +51,10 @@ void nn_learning_xor_batched() {
 
     printf("\n\nTraining XOR Gate with Batched 2-layer NN...\n");
 
-    TrainingConfig config = {.max_epochs = 50000, .tolerance = 1e-8, .batch_size = 1, .verbose = 0};
+    TrainingConfig config = {.max_epochs = 50000, .tolerance = 1e-7, .batch_size = 1, .verbose = 0};
     Dataset *xor_data = create_xor_gate_dataset();
 
-    NeuralNet *nn_xor = nn_create(2, 0.3f, TENSOR_MSE_LOSS, xor_classifier);
+    NeuralNet *nn_xor = nn_create(4, 0.3f, TENSOR_MSE_LOSS, xor_classifier);
     nn_add_layer(nn_xor, 0, linear_layer_create(2, 2));
     nn_add_layer(nn_xor, 1, activation_layer_create(TENSOR_SIGMOID_ACTIVATION));
     nn_add_layer(nn_xor, 2, linear_layer_create(2, 1));

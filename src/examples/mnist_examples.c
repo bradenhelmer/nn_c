@@ -18,7 +18,6 @@ static void mnist_classifier(Tensor *dest, const Tensor *prediction) {
 static void test_mnist(NeuralNet *nn, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
     int correct = 0;
-
     Tensor *input = tensor_create1d(data->X->shape[1]);
     Tensor *target = tensor_create1d(data->Y->shape[1]);
     Tensor *classification = tensor_create1d(data->Y->shape[1]);
@@ -47,7 +46,7 @@ void mnist_sgd() {
     Dataset *mnist_train = create_mnist_train_dataset();
     Dataset *mnist_test = create_mnist_test_dataset();
 
-    TrainingConfig config = {.max_epochs = 1,
+    TrainingConfig config = {.max_epochs = 10,
                              .tolerance = 1e-7,
                              .batch_size = 64,
                              .verbose = 1,
@@ -119,7 +118,7 @@ void mnist_adam() {
     Dataset *mnist_train = create_mnist_train_dataset();
     Dataset *mnist_test = create_mnist_test_dataset();
 
-    TrainingConfig config = {.max_epochs = 20,
+    TrainingConfig config = {.max_epochs = 10,
                              .batch_size = 64,
                              .verbose = 1,
                              .optimizer = optimizer_create_adam(0.001f, 0.9f, 0.999f, 1e-8)};
@@ -155,7 +154,7 @@ void mnist_aggressive() {
     Dataset *mnist_train = create_mnist_train_dataset();
     Dataset *mnist_test = create_mnist_test_dataset();
 
-    TrainingConfig config = {.max_epochs = 20,
+    TrainingConfig config = {.max_epochs = 10,
                              .batch_size = 64,
                              .verbose = 1,
                              .optimizer = optimizer_create_adam(0.001f, 0.9f, 0.999f, 1e-8),

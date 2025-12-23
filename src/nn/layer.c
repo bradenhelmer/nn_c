@@ -28,6 +28,7 @@ void layer_free(Layer *layer) {
         maxpool_free((MaxPoolLayer *)layer->layer);
         break;
     }
+    free(layer);
 }
 
 void layer_forward(Layer *layer, const Tensor *input) {

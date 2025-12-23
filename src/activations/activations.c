@@ -21,8 +21,10 @@ float relu_scalar(float x) {
     return x <= 0.f ? 0.f : x;
 }
 
-float relu_scalar_derivative(float x) {
-    return x < 0.f ? 0.f : 1.f;
+float relu_scalar_derivative(float relu_output) {
+    // ReLU output > 0 means input was > 0, so derivative is 1
+    // ReLU output == 0 means input was <= 0, so derivative is 0
+    return relu_output > 0.f ? 1.f : 0.f;
 }
 
 float tanh_scalar(float x) {
@@ -78,10 +80,10 @@ void tensor_relu(Tensor *result, const Tensor *input) {
     }
 }
 
-void tensor_relu_derivative(Tensor *result, const Tensor *input) {
-    assert(input->size == result->size);
-    for (int i = 0; i < input->size; i++) {
-        result->data[i] = relu_scalar_derivative(input->data[i]);
+void tensor_relu_derivative(Tensor *result, const Tensor *relu_output) {
+    assert(relu_output->size == result->size);
+    for (int i = 0; i < relu_output->size; i++) {
+        result->data[i] = relu_scalar_derivative(relu_output->data[i]);
     }
 }
 

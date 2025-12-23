@@ -22,11 +22,12 @@ extern void mnist_aggressive();
 
 int main() {
     srand(time(NULL));
-    perceptron_learning_logic_gates();
-    nn_learning_xor();
+    // perceptron_learning_logic_gates();
+    // nn_learning_xor();
     // nn_learning_xor_batched();
-    // mnist_sgd();
-    // mnist_momentum();
-    // mnist_aggressive();
+    mnist_sgd();
+    mnist_momentum();
+    mnist_adam();
+    mnist_aggressive();
     return 0;
 }

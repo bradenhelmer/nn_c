@@ -4,57 +4,72 @@ A from-scratch neural network implementation in C, built for learning and unders
 
 ## Overview
 
-This project implements a neural network library in C with custom linear algebra operations, activation functions, and training algorithms. Supports both single-layer perceptrons and multi-layer perceptrons (MLPs) with backpropagation.
+This project implements a neural network library in C with a **tensor-based architecture**, custom linear algebra operations, activation functions, and training algorithms. The framework supports multiple layer types through a generic layer interface, enabling both simple perceptrons and deep multi-layer networks with backpropagation.
 
 ## Features
 
-### Linear Algebra
-- **Matrix Operations**: Creation, multiplication, transpose, addition, subtraction, element-wise operations
-- **Vector Operations**: Dot products, element-wise operations, scaling
-- **Optimized Memory Management**: Efficient allocation and deallocation
+### Tensor Operations
+- **Multi-dimensional Arrays**: 1D to 4D tensor support with flexible shape management
+- **Core Operations**: Element-wise operations, matrix-vector multiplication, outer products, transposed multiplication
+- **Memory Efficient**: Pre-computed strides for fast indexing, zero-copy row extraction
+- **Utilities**: Clone, flatten, unflatten, padding/unpadding for convolutions
 
 ### Activation Functions
-- Sigmoid
+- Sigmoid (with derivative: s(1-s) computed from output)
 - ReLU (Rectified Linear Unit)
 - Tanh (Hyperbolic Tangent)
 - Linear (Identity)
 - Softmax
 
-All activation functions include their derivatives for backpropagation.
+All activation functions include tensor-based derivatives for backpropagation.
+
+### Generic Layer System
+The framework uses a generic `Layer` interface that wraps type-specific implementations:
+
+- **Linear Layer**: Fully-connected dense layer (`output = Wx + b`)
+  - Xavier and He weight initialization
+  - Gradient accumulation for batch training
+- **Activation Layer**: Applies activation functions with cached input/output for backprop
+- **Convolutional Layer** (Conv2D): 2D convolutions with configurable filters, stride, and padding
+- **Max Pooling Layer**: Spatial downsampling with index tracking for backprop
 
 ### Neural Network Components
 - **Perceptron**: Single-layer perceptron with configurable activation functions
-- **Multi-Layer Perceptron (MLP)**: Fully-connected feedforward neural networks with:
-  - Arbitrary number of hidden layers
-  - Configurable layer sizes and activations
-  - Backpropagation for gradient computation
-  - Xavier and He weight initialization
+- **Multi-Layer Networks**: Arbitrary depth with mixed layer types
+  - Chain-based forward pass
+  - Automatic backpropagation through layer stack
+  - Per-layer gradient zeroing and weight updates
 - **Loss Functions**:
   - Mean Squared Error (MSE)
   - Cross-Entropy Loss
   - Softmax Cross-Entropy (numerically stable, for multi-class classification)
-- **Training**: Multiple training modes with configurable:
-  - **Training Algorithms**:
-    - Full-batch gradient descent
-    - Mini-batch gradient descent
-    - Stochastic gradient descent
-  - **Optimizers**:
-    - SGD (Stochastic Gradient Descent)
-    - Momentum
-    - Adam (Adaptive Moment Estimation)
-  - **Hyperparameters**:
-    - Learning rate with optional scheduling
-    - Batch size
-    - Maximum epochs
-    - Convergence tolerance
-    - L2 regularization (weight decay)
-  - Verbose output options with per-epoch metrics
+
+### Training Infrastructure
+- **Training Algorithms**:
+  - Stochastic Gradient Descent (per-sample updates)
+  - Mini-batch Gradient Descent (accumulated gradients)
+  - Full-batch Gradient Descent
+- **Optimizers**:
+  - SGD (Stochastic Gradient Descent)
+  - Momentum (velocity tracking)
+  - Adam (Adaptive Moment Estimation)
+- **Learning Rate Scheduling**:
+  - Step decay
+  - Exponential decay
+  - Cosine annealing
+- **Regularization**:
+  - L2 regularization (weight decay)
+- **Training Features**:
+  - Configurable batch sizes with shuffle support
+  - Early stopping based on convergence tolerance
+  - Per-epoch loss and accuracy tracking
+  - Verbose output options
 
 ### Dataset Handling
-- Custom dataset structure with feature matrix and target vector
+- Custom dataset structure with feature tensor and target tensor
 - Pre-built logic gate datasets (AND, OR, XOR)
 - MNIST handwritten digit dataset (60,000 training + 10,000 test images)
-- Batched data loading with shuffle support
+- Batch iterator with shuffle support
 - Easy extension for custom datasets
 
 ## Project Structure
@@ -62,27 +77,36 @@ All activation functions include their derivatives for backpropagation.
 ```
 nn_c/
 ├── src/
-│   ├── activations/       # Activation functions and derivatives
-│   ├── data/             # Dataset creation and management
-│   │   ├── dataset.c     # Dataset structure and logic gates
-│   │   └── batch.c       # Batch iterator for mini-batch training
-│   ├── linalg/           # Linear algebra (matrix and vector operations)
-│   ├── nn/               # Neural network components
-│   │   ├── perceptron.c  # Single-layer perceptron
-│   │   ├── mlp.c         # Multi-layer perceptron
-│   │   ├── layer.c       # Dense layer implementation
-│   │   └── loss.c        # Loss functions (MSE, Cross-Entropy, Softmax CE)
-│   ├── training/         # Training algorithms
-│   │   ├── gradient_descent.c  # Full-batch, mini-batch, and SGD
+│   ├── tensor/              # Tensor data structure and operations
+│   │   └── tensor.c         # Multi-dimensional array implementation
+│   ├── activations/         # Activation functions (scalar and tensor)
+│   │   └── activations.c    # Sigmoid, ReLU, Tanh, Softmax with derivatives
+│   ├── data/                # Dataset creation and management
+│   │   ├── dataset.c        # Dataset structure and logic gates
+│   │   └── batch.c          # Batch iterator for mini-batch training
+│   ├── nn/                  # Neural network components
+│   │   ├── layer.c          # Generic layer interface (dispatch to specific types)
+│   │   ├── linear_layer.c   # Dense fully-connected layer
+│   │   ├── activation_layer.c # Activation function wrapper layer
+│   │   ├── conv_layer.c     # 2D convolutional layer
+│   │   ├── pool_layer.c     # Max pooling layer
+│   │   ├── nn.c             # Neural network (layer composition, forward/backward)
+│   │   ├── perceptron.c     # Single-layer perceptron
+│   │   └── loss.c           # Loss functions (MSE, Cross-Entropy, Softmax CE)
+│   ├── training/            # Training algorithms
+│   │   ├── gradient_descent.c  # SGD, mini-batch, and batch training
 │   │   ├── optimizer.c         # SGD, Momentum, Adam optimizers
 │   │   └── scheduler.c         # Learning rate scheduling
-│   ├── examples/         # Example applications
-│   │   └── mnist_examples.c  # MNIST training demonstrations
-│   └── main.c            # Main entry point
-├── tests/                # Unit tests for all components
-├── data/                 # MNIST data files
-├── Makefile              # Build configuration
-└── README.md             # This file
+│   ├── examples/            # Example applications
+│   │   ├── perceptron_examples.c  # Logic gate demonstrations
+│   │   ├── nn_examples.c          # XOR with MLP
+│   │   └── mnist_examples.c       # MNIST training demonstrations
+│   ├── utils/               # Utility functions
+│   └── main.c               # Main entry point
+├── tests/                   # Unit tests for all components
+├── data/                    # MNIST data files
+├── Makefile                 # Build configuration
+└── README.md                # This file
 ```
 
 ## Building
@@ -126,28 +150,67 @@ The compiled binary will be in `build/bin/neural_net`.
 ./build/bin/neural_net
 ```
 
-The default application demonstrates neural network learning through multiple phases:
+The application demonstrates neural network learning through multiple phases:
 
-**Phase 1: Perceptron Learning**
+### Phase 1: Perceptron Learning
 - **AND Gate**: Successfully learns (linearly separable)
 - **OR Gate**: Successfully learns (linearly separable)
 - **XOR Gate**: Fails to converge (not linearly separable)
 
 The XOR failure demonstrates the fundamental limitation of single-layer perceptrons.
 
-**Phase 2: MLP Learning**
-- **XOR Gate**: Successfully learns using a 2-2-1 architecture (2 inputs, 2 hidden neurons, 1 output)
+### Phase 2: MLP Learning
+- **XOR Gate**: Successfully learns using a 2-2-1 architecture
+  - 2 inputs → 2 hidden neurons (sigmoid) → 1 output (sigmoid)
+  - Demonstrates non-linear function learning
 
-This demonstrates how multi-layer networks can learn non-linearly separable functions.
+### Phase 3: MNIST Classification
+Handwritten digit classification with a 784-128-10 architecture:
+- **784 inputs** (28x28 pixel images flattened)
+- **128 hidden neurons** (ReLU activation)
+- **10 outputs** (softmax for digit classes 0-9)
 
-**Phase 4: MNIST Classification**
-- **MNIST Dataset**: Handwritten digit classification (784 inputs, 128 hidden, 10 outputs)
-- Multiple training demonstrations with different optimizers:
-  - SGD (Stochastic Gradient Descent)
-  - Momentum
-  - Adam
-- Achieves 90%+ accuracy on MNIST test set
-- Includes mini-batch training with configurable batch sizes
+Multiple optimizer demonstrations achieving **97-99% test accuracy**:
+
+| Optimizer | Training Accuracy | Test Accuracy | Notes |
+|-----------|-------------------|---------------|-------|
+| SGD | 98.33% | 97.74% | Baseline |
+| Momentum | 98.33% | 97.45% | Velocity tracking |
+| Adam | 99.38% | 97.93% | Adaptive learning rates |
+| Adam + Cosine + L2 | 99.20% | 97.85% | With scheduling and regularization |
+
+## Example Output
+
+```
+Training MNIST with SGD optimizer...
+Epoch 0: loss=0.4166, accuracy=88.73%
+Epoch 1: loss=0.2180, accuracy=93.81%
+Epoch 2: loss=0.1635, accuracy=95.44%
+...
+Epoch 9: loss=0.0593, accuracy=98.33%
+
+MNIST Batched Training with SGD Optimizer stopped at 10 epochs
+Final loss: 0.059259
+Final accuracy: 98.33%
+
+Testing MNIST test images on batched SGD-trained 2-layer NN:
+Final images correctly classified: 9774
+
+
+Training MNIST with ADAM optimizer...
+Epoch 0: loss=0.3261, accuracy=91.14%
+Epoch 1: loss=0.1525, accuracy=95.58%
+Epoch 2: loss=0.1054, accuracy=96.85%
+...
+Epoch 9: loss=0.0222, accuracy=99.38%
+
+MNIST Batched Training with ADAM optimizer stopped at 10 epochs
+Final loss: 0.022198
+Final accuracy: 99.38%
+
+Testing MNIST test images on batched ADAM-trained 2-layer NN:
+Final images correctly classified: 9793
+```
 
 ## Testing
 
@@ -158,58 +221,52 @@ make test
 ```
 
 Tests cover:
-- Vector operations
-- Matrix operations
-- Activation functions
+- Tensor operations (creation, indexing, arithmetic)
+- Activation functions and derivatives
 - Perceptron forward and backward passes
-- Layer forward and backward passes
-- MLP gradient computation
+- Layer forward and backward passes (Linear, Activation, Conv, Pool)
+- Neural network gradient computation
 - Loss function derivatives
 - Optimizer implementations (SGD, Momentum, Adam)
 - Batch iterator functionality
 
-## Example Output
+## Architecture
 
+### Tensor-Based Design
+The framework uses tensors as the fundamental data type, enabling:
+- Unified interface for 1D vectors, 2D matrices, and higher-dimensional data
+- Efficient memory layout with pre-computed strides
+- Easy extension to convolutional networks (3D/4D tensors for images)
+
+### Generic Layer Interface
+```c
+typedef struct {
+    LayerType type;  // LAYER_LINEAR, LAYER_ACTIVATION, LAYER_CONV_2D, LAYER_MAX_POOL
+    void *layer;     // Pointer to specific layer implementation
+} Layer;
 ```
-=== Perceptron Learning Logic Gates ===
 
-Training AND Gate...
-AND gate training completed in 4523 epochs
-Final loss: 0.000001
-Final accuracy: 100.000000
+This design allows:
+- Polymorphic layer handling in the neural network
+- Easy addition of new layer types
+- Clean separation between interface and implementation
 
-Training OR Gate...
-OR gate training completed in 3891 epochs
-Final loss: 0.000001
-Final accuracy: 100.000000
+### Backpropagation Flow
+```
+Forward:  Input → Linear → Activation → Linear → Activation → Output
+                    ↓           ↓          ↓          ↓
+                (cache)     (cache)    (cache)    (cache)
 
-Training XOR Gate (should fail to converge)...
-XOR Gate Training stopped at 100 epochs
-Final loss: 0.250156 (should be high)
-Final accuracy: 0.00% (should be ~0%)
-
-Note: XOR is not linearly separable - single perceptron cannot learn it!
-This motivates Phase 3: Multi-layer perceptrons.
-
-
-Training XOR Gate with MLP...
-
-XOR Gate Training stopped at 8234 epochs
-Final loss: 0.000012
-Final accuracy: 100.00%
-
-Testing MLP on XOR Gate:
-Input: [0.00, 0.00] -> Output: 0.02 (Expected: 0.00) ✓
-Input: [0.00, 1.00] -> Output: 0.98 (Expected: 1.00) ✓
-Input: [1.00, 0.00] -> Output: 0.97 (Expected: 1.00) ✓
-Input: [1.00, 1.00] -> Output: 0.03 (Expected: 0.00) ✓
+Backward: Loss Gradient → Activation' → Linear' → Activation' → Linear' → Input Gradient
+                              ↓            ↓           ↓           ↓
+                          (accumulate gradients for weight updates)
 ```
 
 ## Development Phases
 
 ### Phase 1: Foundation (Complete)
-- Linear algebra operations (vectors and matrices)
-- Basic activation functions
+- Tensor data structure with multi-dimensional support
+- Basic activation functions with derivatives
 - Memory management
 
 ### Phase 2: Perceptron (Complete)
@@ -219,60 +276,39 @@ Input: [1.00, 1.00] -> Output: 0.03 (Expected: 0.00) ✓
 - Dataset handling
 - Logic gate demonstrations
 
-### Phase 3: Multi-Layer Perceptron (Complete)
-- Dense layer implementation with forward and backward passes
-- Backpropagation algorithm
+### Phase 3: Generic Layer Framework (Complete)
+- Abstract `Layer` interface with type dispatch
+- Linear layer with forward/backward passes
+- Activation layer wrapping activation functions
 - Xavier and He weight initialization
-- Multiple loss functions (MSE, Cross-Entropy)
-- Configurable network architectures
 - Successfully learns XOR and other non-linearly separable functions
 
 ### Phase 4: Advanced Training & MNIST (Complete)
-- **Mini-Batch Training**:
-  - Batch iterator with shuffling support
-  - Configurable batch sizes
-  - Full-batch, mini-batch, and stochastic gradient descent
-- **Optimizers**:
-  - SGD (Stochastic Gradient Descent)
-  - Momentum optimizer with velocity tracking
-  - Adam optimizer with adaptive learning rates
-  - Direct array access for performance optimization
-- **MNIST Dataset**:
-  - Batched MNIST file loader (60,000 train + 10,000 test)
-  - Softmax cross-entropy loss for multi-class classification
-  - Achieves 90%+ test accuracy
-- **Additional Features**:
-  - L2 regularization (weight decay)
-  - Learning rate scheduling
-  - Memory-optimized training loops (pre-allocated vectors)
-  - Per-epoch loss and accuracy tracking
+- **Mini-Batch Training**: Batch iterator with shuffling, gradient accumulation
+- **Optimizers**: SGD, Momentum, Adam with direct tensor operations
+- **MNIST Dataset**: 60K train + 10K test, achieving 97-99% accuracy
+- **Learning Rate Scheduling**: Step, exponential, cosine annealing
+- **Regularization**: L2 weight decay
+
+### Phase 5: Convolutional Layers (In Progress)
+- Conv2D layer with configurable filters, stride, padding
+- Max pooling layer with index tracking
+- Support for 3D tensors (channels × height × width)
 
 ### Future Enhancements
 - Additional optimizers (RMSprop, AdaGrad, Nadam)
-- Regularization techniques (L1, dropout, batch normalization)
-- More activation functions (Leaky ReLU, ELU, Swish, GELU)
-- Convolutional layers
-- More complex datasets (CIFAR-10, Fashion-MNIST)
+- More regularization (L1, dropout, batch normalization)
+- More activations (Leaky ReLU, ELU, Swish, GELU)
+- CNN demonstrations (MNIST with convolutions)
 - Model saving and loading
 - Early stopping and checkpointing
-- Data augmentation
-
-## Code Style
-
-The project follows a consistent C coding style:
-- Snake case for functions and variables
-- Descriptive naming conventions
-- Clear separation of concerns
-- Comprehensive comments
-- Formatted with clang-format
 
 ## Performance Optimizations
 
-The codebase includes several performance optimizations:
-- **Direct Array Access**: Optimizers use direct array indexing instead of function calls for matrix/vector operations
-- **Memory Reuse**: Training loops pre-allocate vectors and reuse them across iterations
-- **Single-Pass Operations**: Combined operations (e.g., `W -= lr * dW`) reduce multiple loops to one
-- **Numerically Stable Implementations**: Softmax uses max subtraction to prevent overflow
+- **Direct Array Access**: Optimizers use direct indexing for tensor operations
+- **Memory Reuse**: Training loops pre-allocate tensors and reuse across iterations
+- **Cached Computations**: Activation layers cache output for efficient derivative computation
+- **Numerically Stable**: Softmax uses max subtraction to prevent overflow
 
 ## Memory Management
 

@@ -43,9 +43,10 @@ void activation_layer_forward(ActivationLayer *layer, const Tensor *input) {
 }
 
 Tensor *activation_layer_backward(ActivationLayer *layer, const Tensor *upstream_grad) {
-    // Compute gradient: dL/dinput = dL/doutput ⊙ f'(input)
-    Tensor *grad_input = tensor_clone(layer->input);
-    layer->activation.derivative(grad_input, layer->input);
+    // Compute gradient: dL/dinput = dL/doutput ⊙ f'(output)
+    // Note: derivatives expect the activated output (e.g., sigmoid derivative uses s*(1-s))
+    Tensor *grad_input = tensor_clone(layer->output);
+    layer->activation.derivative(grad_input, layer->output);
     tensor_elementwise_mul(grad_input, upstream_grad, grad_input);
 
     return grad_input;
