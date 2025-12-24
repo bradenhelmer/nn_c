@@ -3,3 +3,5 @@ compile_commands.json
 .cache
 perf.data
 perf.data.old
+mnist.profdata
+mnist.profraw

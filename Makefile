@@ -11,6 +11,8 @@ DEBUG_FLAGS := -g -O0 -DDEBUG
 OPT_FLAGS   := -O3 -march=native -flto -DNDEBUG
 # Flags for perf profiling
 PERF_FLAGS := -O3 -march=native -flto -g -fno-omit-frame-pointer -DNDEBUG -DPROFILING=1
+# Flags for instruction level profiling
+PROF_FLAGS  := -O2 -march=native -flto -DPROFILING=1 -fprofile-instr-generate=mnist.profraw -fcoverage-mapping
 
 LDFLAGS     := -lm
 
@@ -24,6 +26,7 @@ BIN_DIR     := $(BUILD_DIR)/bin
 OBJ_DIR     := $(BUILD_DIR)/obj
 DEBUG_DIR   := $(BUILD_DIR)/debug_obj
 PERF_DIR    := $(BUILD_DIR)/perf_obj
+PROF_DIR    := $(BUILD_DIR)/prof_obj
 OPT_DIR     := $(BUILD_DIR)/opt_obj
 TEST_OBJ_DIR:= $(BUILD_DIR)/test_obj
 TEST_DBG_DIR:= $(BUILD_DIR)/test_debug_obj
@@ -35,6 +38,7 @@ SRCS        := $(shell find $(SRC_DIR) -name '*.c')
 OBJS        := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 DEBUG_OBJS  := $(patsubst $(SRC_DIR)/%.c, $(DEBUG_DIR)/%.o, $(SRCS))
 PERF_OBJS   := $(patsubst $(SRC_DIR)/%.c, $(PERF_DIR)/%.o, $(SRCS))
+PROF_OBJS   := $(patsubst $(SRC_DIR)/%.c, $(PROF_DIR)/%.o, $(SRCS))
 OPT_OBJS    := $(patsubst $(SRC_DIR)/%.c, $(OPT_DIR)/%.o, $(SRCS))
 
 # --- Test Discovery ---
@@ -51,6 +55,7 @@ LIB_DEBUG_OBJS := $(filter-out $(DEBUG_DIR)/main.o, $(DEBUG_OBJS))
 TARGET          := $(BIN_DIR)/neural_net
 DEBUG_TARGET    := $(BIN_DIR)/neural_net_debug
 PERF_TARGET     := $(BIN_DIR)/neural_net_perf
+PROF_TARGET     := $(BIN_DIR)/neural_net_prof
 OPT_TARGET      := $(BIN_DIR)/neural_net_opt
 TEST_TARGET     := $(BIN_DIR)/test_runner
 TEST_DBG_TARGET := $(BIN_DIR)/test_runner_debug
@@ -109,7 +114,7 @@ $(OPT_DIR)/%.o: $(SRC_DIR)/%.c
 	@echo "Compiling (optimized) $<..."
 	@$(CC) $(CFLAGS) $(OPT_FLAGS) -I$(SRC_DIR) -c $< -o $@
 
-# --- Profiling Build ---
+# --- Perf Profiling Build ---
 perf-build: $(PERF_TARGET)
 
 $(PERF_TARGET): $(PERF_OBJS)
@@ -122,6 +127,20 @@ $(PERF_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
 	@echo "Compiling (perf) $<..."
 	@$(CC) $(CFLAGS) $(PERF_FLAGS) -I$(SRC_DIR) -c $< -o $@
+
+# --- Instruction-level Profiling Build ---
+profile: $(PROF_TARGET)
+
+$(PROF_TARGET): $(PROF_OBJS)
+	@mkdir -p $(dir $@)
+	@echo "$(BLUE)Linking profile build $@...$(RESET)"
+	@$(CC) -fprofile-instr-generate -flto $(PROF_OBJS) -o $@ $(LDFLAGS)
+	@echo "$(GREEN)Profile build complete: $@$(RESET)"
+
+$(PROF_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
+	@echo "Compiling (profile) $<..."
+	@$(CC) $(CFLAGS) $(PROF_FLAGS) -I$(SRC_DIR) -c $< -o $@
 
 # --- Tests ---
 test: $(TEST_TARGET)
@@ -159,6 +178,11 @@ run-debug: debug
 run-opt: opt
 	@echo "$(YELLOW)Running optimized build...$(RESET)"
 	@time ./$(OPT_TARGET)
+
+run-profile: profile
+	@./$(PROF_TARGET)
+	llvm-profdata merge -output=mnist.profdata mnist.profraw
+	llvm-profdata show --topn=20 mnist.profdata
 
 lldb: debug
 	@echo "Launching lldb..."
@@ -200,7 +224,7 @@ perf-record: perf-build
 
 perf-report:
 	@echo "$(YELLOW)Generating perf report...$(RESET)"
-	@perf report --stdio --no-children -n | head -100
+	@sudo perf report --stdio --no-children -n | head -100
 
 perf-clean: 
 
@@ -209,3 +233,4 @@ perf-clean:
 -include $(DEBUG_OBJS:.o=.d)
 -include $(OPT_OBJS:.o=.d)
 -include $(PERF_OBJS:.o=.d)
+-include $(PROF_OBJS:.o=.d)

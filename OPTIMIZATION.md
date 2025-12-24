@@ -32,3 +32,5 @@ The network trained on the MNIST composes of 7 layers:
   - Output: 10
 
 Loss Function: Softmax Cross Entropy
+
+## Training Information
