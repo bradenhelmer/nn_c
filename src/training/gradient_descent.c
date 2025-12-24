@@ -254,7 +254,10 @@ TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data,
             for (int i = 0; i < batch->size; i++) {
                 tensor_get_row(input, batch->X, i);
                 tensor_get_row(target, batch->Y, i);
-                Tensor *prediction = nn_forward(nn, input);
+
+                // Reshape for CNN (784,) -> (1, 28, 28)
+                Tensor *spatial_input = tensor_unflatten(input, 3, (int[]){1, 28, 28});
+                Tensor *prediction = nn_forward(nn, spatial_input);
                 nn->classifier(classification, prediction);
 
                 epoch_loss += nn->loss.loss(prediction, target);
@@ -263,6 +266,7 @@ TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data,
                 }
 
                 nn_backward(nn, target);
+                tensor_free(spatial_input);
             }
 
             samples_seen += batch->size;

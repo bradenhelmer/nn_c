@@ -6,6 +6,7 @@
 #include "../activations/activations.h"
 #include "../data/dataset.h"
 #include "../training/gradient_descent.h"
+#include "nn/layer.h"
 #include "nn/nn.h"
 #include <stdio.h>
 
@@ -31,6 +32,33 @@ static void test_mnist(NeuralNet *nn, Dataset *data, const char *name) {
         if (tensor_equals(classification, target)) {
             correct++;
         }
+    }
+
+    tensor_free(input);
+    tensor_free(target);
+    tensor_free(classification);
+
+    printf("Final images correctly classified: %d\n", correct);
+}
+
+static void test_mnist_conv(NeuralNet *nn, Dataset *data, const char *name) {
+    printf("\nTesting %s:\n\n", name);
+    int correct = 0;
+    Tensor *input = tensor_create1d(data->X->shape[1]);
+    Tensor *target = tensor_create1d(data->Y->shape[1]);
+    Tensor *classification = tensor_create1d(data->Y->shape[1]);
+
+    for (int i = 0; i < data->num_samples; i++) {
+        tensor_get_row(input, data->X, i);
+        tensor_get_row(target, data->Y, i);
+        Tensor *spatial_input = tensor_unflatten(input, 3, (int[]){1, 28, 28});
+        Tensor *prediction = nn_forward(nn, spatial_input);
+        nn->classifier(classification, prediction);
+
+        if (tensor_equals(classification, target)) {
+            correct++;
+        }
+        tensor_free(spatial_input);
     }
 
     tensor_free(input);
@@ -186,4 +214,57 @@ void mnist_aggressive() {
     dataset_free(mnist_train);
     dataset_free(mnist_test);
     training_result_free(mnist_sgd_result);
+}
+
+static void _print_conv_arch() {
+    printf("\tConv(1, 32, 5, 1, 2)  → 28×28×32\n");
+    printf("\tReLU                   → 28×28×32\n");
+    printf("\tMaxPool(2, 2)          → 14×14×32\n");
+    printf("\tFlatten                → 6272\n");
+    printf("\tLinear(6272, 128)      → 128\n");
+    printf("\tReLU                   → 128\n");
+    printf("\tLinear(128, 10)        → 10\n");
+    printf("\tSoftmax (via loss)     → 10\n");
+}
+
+void mnist_conv() {
+    printf("\n\nTraining MNIST with 2D convolutional Neural network...\n");
+    // _print_conv_arch();
+
+    Dataset *mnist_train = create_mnist_train_dataset();
+    Dataset *mnist_test = create_mnist_test_dataset();
+
+    TrainingConfig config = {.max_epochs = 10,
+                             .batch_size = 64,
+                             .verbose = 1,
+                             .optimizer = optimizer_create_adam(0.001f, 0.9f, 0.999f, 1e-8),
+                             .scheduler = scheduler_create_cosine(0.001f, 1e-5f, 20),
+                             .l2_lambda = 1e-4f};
+    NeuralNet *mnist_conv = nn_create(7, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
+    nn_add_layer(mnist_conv, 0, conv_layer_create(1, 32, 5, 1, 2));
+    nn_add_layer(mnist_conv, 1, activation_layer_create(TENSOR_RELU_ACTIVATION));
+    nn_add_layer(mnist_conv, 2, maxpool_layer_create(2, 2));
+    nn_add_layer(mnist_conv, 3, flatten_layer_create());
+    nn_add_layer(mnist_conv, 4, linear_layer_create(6272, 128));
+    nn_add_layer(mnist_conv, 5, activation_layer_create(TENSOR_RELU_ACTIVATION));
+    nn_add_layer(mnist_conv, 6, linear_layer_create(128, 10));
+    optimizer_init(config.optimizer, mnist_conv);
+
+    TrainingResult *mnist_conv_result = train_nn_batch_opt(mnist_conv, mnist_train, NULL, &config);
+    printf(
+        "\nMNIST Batched Convolutional NN training with ADAM/cosine annealing stopped at %d epochs",
+        mnist_conv_result->epochs_completed);
+    printf("Final accuracy: %.2f%%\n",
+           mnist_conv_result->accuracy_history[mnist_conv_result->epochs_completed - 1] * 100);
+
+    test_mnist_conv(mnist_conv, mnist_test,
+                    "MNIST test images on batched convolutional NN with cosine annealing and L2 "
+                    "regularization");
+
+    nn_free(mnist_conv);
+    optimizer_free(config.optimizer);
+    scheduler_free(config.scheduler);
+    dataset_free(mnist_train);
+    dataset_free(mnist_test);
+    training_result_free(mnist_conv_result);
 }

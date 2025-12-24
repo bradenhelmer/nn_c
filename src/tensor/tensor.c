@@ -305,8 +305,8 @@ Tensor *tensor_unpad2d(const Tensor *t, int padding) {
     Tensor *unpadded = tensor_create3d(C, H - 2 * padding, W - 2 * padding);
 
     for (int c = 0; c < C; c++) {
-        for (int h = 0; h < H; h++) {
-            for (int w = 0; w < W; w++) {
+        for (int h = 0; h < H - 2 * padding; h++) {
+            for (int w = 0; w < W - 2 * padding; w++) {
                 float val = tensor_get3d(t, c, h + padding, w + padding);
                 tensor_set3d(unpadded, c, h, w, val);
             }

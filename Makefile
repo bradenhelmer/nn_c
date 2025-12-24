@@ -1,6 +1,6 @@
 # Compiler and flags
 CC = clang
-CFLAGS = -Wall -Wextra -O2 -std=c99
+CFLAGS = -Wall -Wextra -O3 -std=c99
 DEBUGFLAGS = -g -O0 -DDEBUG
 LDFLAGS = -lm  # Link math library
 
@@ -131,7 +131,7 @@ lldb-test: $(TEST_DEBUG_TARGET)
 
 # Memory check with valgrind (if installed)
 memcheck: debug
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes $(DEBUG_TARGET)
+	valgrind --exit-on-first-error=yes --leak-check=full --show-leak-kinds=all --track-origins=yes $(DEBUG_TARGET)
 
 memcheck-test: $(TEST_DEBUG_TARGET)
 	valgrind --leak-check=full --show-leak-kinds=all $(TEST_DEBUG_TARGET)

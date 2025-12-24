@@ -24,6 +24,7 @@ Layer *conv_layer_create(int in_channels, int out_channels, int kernel_size, int
     cl->output = NULL;
     cl->grad_weights = tensor_create4d(out_channels, in_channels, kernel_size, kernel_size);
     cl->grad_biases = tensor_create1d(out_channels);
+    conv_layer_init_weights(cl);
     return layer_create(LAYER_CONV_2D, (void *)cl);
 }
 
@@ -94,10 +95,9 @@ Tensor *conv_layer_forward(ConvLayer *layer, const Tensor *input) {
 
 Tensor *conv_layer_backward(ConvLayer *layer, const Tensor *upstream_grad) {
 
-    int H_out =
-        (layer->input->shape[1] - layer->kernel_size + 2 * layer->padding) / layer->stride + 1;
-    int W_out =
-        (layer->input->shape[2] - layer->kernel_size + 2 * layer->padding) / layer->stride + 1;
+    // layer->input is already padded, so don't add 2*padding again
+    int H_out = (layer->input->shape[1] - layer->kernel_size) / layer->stride + 1;
+    int W_out = (layer->input->shape[2] - layer->kernel_size) / layer->stride + 1;
 
     // 1. Gradient w.r.t biases
     // Each bias[out_channel] is added to every spatial position in out_channel. The gradient
