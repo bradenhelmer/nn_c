@@ -16,8 +16,8 @@ Layer *linear_layer_create(int input_size, int output_size) {
     layer->weights = tensor_create2d(output_size, input_size);
     layer->biases = tensor_create1d(output_size);
 
-    layer->output = tensor_create1d(output_size);
-    layer->input = tensor_create1d(input_size);
+    layer->input = NULL;
+    layer->output = NULL;
 
     layer->grad_weights = tensor_create2d(output_size, input_size);
     layer->grad_biases = tensor_create1d(output_size);
@@ -31,8 +31,12 @@ void linear_layer_free(LinearLayer *layer) {
     tensor_free(layer->weights);
     tensor_free(layer->biases);
 
-    tensor_free(layer->output);
-    tensor_free(layer->input);
+    if (layer->output != NULL) {
+        tensor_free(layer->output);
+    }
+    if (layer->input != NULL) {
+        tensor_free(layer->input);
+    }
 
     tensor_free(layer->grad_weights);
     tensor_free(layer->grad_biases);
@@ -59,13 +63,24 @@ void linear_layer_init_he(LinearLayer *layer) {
 }
 
 // Forward/backward
-void linear_layer_forward(LinearLayer *layer, const Tensor *input) {
+Tensor *linear_layer_forward(LinearLayer *layer, const Tensor *input) {
     // Cache input for weight gradient calculation.
-    tensor_copy(layer->input, input);
+    if (layer->input != NULL) {
+        tensor_free(layer->input);
+    }
+    layer->input = tensor_clone(input);
 
     // output = Wx + b
-    tensor_matvec_mul(layer->output, layer->weights, input);
-    tensor_add(layer->output, layer->output, layer->biases);
+    Tensor *Y = tensor_create1d(layer->output_size);
+    tensor_matvec_mul(Y, layer->weights, input);
+    tensor_add(Y, Y, layer->biases);
+
+    if (layer->output != NULL) {
+        tensor_free(layer->output);
+    }
+
+    layer->output = Y;
+    return layer->output;
 }
 
 Tensor *linear_layer_backward(LinearLayer *layer, const Tensor *upstream_grad) {

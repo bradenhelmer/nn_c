@@ -43,8 +43,7 @@ Tensor *nn_forward(NeuralNet *nn, const Tensor *input) {
     // Chain layer outputs
     for (int i = 0; i < nn->num_layers; i++) {
         Layer *layer = nn->layers[i];
-        layer_forward(layer, current);
-        current = (const Tensor *)layer_get_output(layer);
+        current = (const Tensor *)layer_forward(layer, current);
     }
 
     return (Tensor *)current;

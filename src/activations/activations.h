@@ -39,7 +39,7 @@ extern const ScalarActivationPair TANH_ACTIVATION;
 extern const ScalarActivationPair LINEAR_ACTIVATION;
 
 // =============================================================================
-// TENSOR ACTIVATION FUNCTIONS (for LinearLayer)
+// TENSOR ACTIVATION FUNCTIONS
 // =============================================================================
 
 // Sigmoid
@@ -75,13 +75,5 @@ extern const TensorActivationPair TENSOR_SIGMOID_ACTIVATION;
 extern const TensorActivationPair TENSOR_RELU_ACTIVATION;
 extern const TensorActivationPair TENSOR_TANH_ACTIVATION;
 extern const TensorActivationPair TENSOR_LINEAR_ACTIVATION;
-
-// =============================================================================
-// CONV LAYER ACTIVATION FUNCTIONS (3-argument form for caching)
-// =============================================================================
-
-void tensor_relu_forward(Tensor *output, const Tensor *input);
-void tensor_relu_backward(Tensor *grad_input, const Tensor *grad_output,
-                          const Tensor *cached_forward_output);
 
 #endif /* ifndef ACTIVATIONS_H */

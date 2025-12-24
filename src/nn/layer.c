@@ -25,26 +25,27 @@ void layer_free(Layer *layer) {
         conv_layer_free((ConvLayer *)layer->layer);
         break;
     case LAYER_MAX_POOL:
-        maxpool_free((MaxPoolLayer *)layer->layer);
+        maxpool_layer_free((MaxPoolLayer *)layer->layer);
+        break;
+    case LAYER_FLATTEN:
+        flatten_layer_free((FlattenLayer *)layer->layer);
         break;
     }
     free(layer);
 }
 
-void layer_forward(Layer *layer, const Tensor *input) {
+Tensor *layer_forward(Layer *layer, const Tensor *input) {
     switch (layer->type) {
     case LAYER_LINEAR:
-        linear_layer_forward((LinearLayer *)layer->layer, input);
-        break;
+        return linear_layer_forward((LinearLayer *)layer->layer, input);
     case LAYER_ACTIVATION:
-        activation_layer_forward((ActivationLayer *)layer->layer, input);
-        break;
+        return activation_layer_forward((ActivationLayer *)layer->layer, input);
     case LAYER_CONV_2D:
-        conv_layer_forward((ConvLayer *)layer->layer, input);
-        break;
+        return conv_layer_forward((ConvLayer *)layer->layer, input);
     case LAYER_MAX_POOL:
-        maxpool_forward((MaxPoolLayer *)layer->layer, input);
-        break;
+        return maxpool_layer_forward((MaxPoolLayer *)layer->layer, input);
+    case LAYER_FLATTEN:
+        return flatten_layer_forward((FlattenLayer *)layer->layer, input);
     }
 }
 
@@ -57,7 +58,9 @@ Tensor *layer_backward(Layer *layer, const Tensor *upstream_grad) {
     case LAYER_CONV_2D:
         return conv_layer_backward((ConvLayer *)layer->layer, upstream_grad);
     case LAYER_MAX_POOL:
-        return maxpool_backward((MaxPoolLayer *)layer->layer, upstream_grad);
+        return maxpool_layer_backward((MaxPoolLayer *)layer->layer, upstream_grad);
+    case LAYER_FLATTEN:
+        return flatten_layer_backward((FlattenLayer *)layer->layer, upstream_grad);
     }
     return NULL;
 }
@@ -71,7 +74,9 @@ Tensor *layer_get_output(Layer *layer) {
     case LAYER_CONV_2D:
         return ((ConvLayer *)layer->layer)->output;
     case LAYER_MAX_POOL:
-        return NULL; // TODO: MaxPool doesn't store output yet
+        return ((MaxPoolLayer *)layer->layer)->output;
+    case LAYER_FLATTEN:
+        return ((FlattenLayer *)layer->layer)->output;
     }
     return NULL;
 }
@@ -92,6 +97,7 @@ void layer_zero_gradients(Layer *layer) {
     }
     case LAYER_ACTIVATION:
     case LAYER_MAX_POOL:
+    case LAYER_FLATTEN:
         // No gradients to zero
         break;
     }
@@ -121,6 +127,7 @@ void layer_update_weights(Layer *layer, float learning_rate) {
     }
     case LAYER_ACTIVATION:
     case LAYER_MAX_POOL:
+    case LAYER_FLATTEN:
         // No weights to update
         break;
     }
@@ -142,6 +149,7 @@ void layer_scale_gradients(Layer *layer, float scale) {
     }
     case LAYER_ACTIVATION:
     case LAYER_MAX_POOL:
+    case LAYER_FLATTEN:
         // No gradients to scale
         break;
     }
@@ -165,6 +173,7 @@ void layer_add_l2_gradient(Layer *layer, float lambda) {
     }
     case LAYER_ACTIVATION:
     case LAYER_MAX_POOL:
+    case LAYER_FLATTEN:
         // No weights for L2 regularization
         break;
     }
@@ -195,6 +204,7 @@ LayerParameters layer_get_parameters(Layer *layer) {
     }
     case LAYER_ACTIVATION:
     case LAYER_MAX_POOL:
+    case LAYER_FLATTEN:
         params.num_pairs = 0;
         params.pairs = NULL;
         break;

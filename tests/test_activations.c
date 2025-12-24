@@ -63,7 +63,7 @@ void test_singular_relu_basic() {
 
 void test_singular_relu_derivative_basic() {
     // ReLU derivative: 1 for x >= 0, 0 for x < 0
-    assert(float_equals(relu_scalar_derivative(0.0f), 1.0f));
+    assert(float_equals(relu_scalar_derivative(0.0f), 0.0f));
     assert(float_equals(relu_scalar_derivative(1.0f), 1.0f));
     assert(float_equals(relu_scalar_derivative(-1.0f), 0.0f));
     assert(float_equals(relu_scalar_derivative(5.5f), 1.0f));

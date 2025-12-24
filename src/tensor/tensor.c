@@ -315,37 +315,39 @@ Tensor *tensor_unpad2d(const Tensor *t, int padding) {
     return unpadded;
 }
 
-Tensor *tensor_flatten(Tensor *t) {
+Tensor *tensor_flatten(const Tensor *t) {
+
+    Tensor *flattened = tensor_clone(t);
     int total = 1;
     for (int i = 0; i < t->ndim; i++) {
         total *= t->shape[i];
     }
 
-    free(t->shape);
-    free(t->strides);
+    free(flattened->shape);
+    free(flattened->strides);
 
-    t->ndim = 1;
-    t->shape = (int *)malloc(sizeof(int));
-    t->shape[0] = total;
-    t->strides = (int *)malloc(sizeof(int));
-    t->strides[0] = 1;
+    flattened->ndim = 1;
+    flattened->shape = (int *)malloc(sizeof(int));
+    flattened->shape[0] = total;
+    flattened->strides = (int *)malloc(sizeof(int));
+    flattened->strides[0] = 1;
 
-    return t;
+    return flattened;
 }
 
-Tensor *tensor_unflatten(Tensor *t, int ndim, int *new_shape) {
-    free(t->shape);
-    free(t->strides);
+Tensor *tensor_unflatten(const Tensor *t, int ndim, int *new_shape) {
 
-    t->ndim = ndim;
-    t->shape = (int *)malloc(ndim * sizeof(int));
-    memcpy(t->shape, new_shape, ndim * sizeof(int));
+    Tensor *unflattened = tensor_clone(t);
 
-    t->strides = (int *)malloc(ndim * sizeof(int));
-    t->strides[ndim - 1] = 1;
+    unflattened->ndim = ndim;
+    unflattened->shape = (int *)malloc(ndim * sizeof(int));
+    memcpy(unflattened->shape, new_shape, ndim * sizeof(int));
+
+    unflattened->strides = (int *)malloc(ndim * sizeof(int));
+    unflattened->strides[ndim - 1] = 1;
     for (int i = ndim - 2; i >= 0; i--) {
-        t->strides[i] = t->strides[i + 1] * new_shape[i + 1];
+        unflattened->strides[i] = unflattened->strides[i + 1] * new_shape[i + 1];
     }
 
-    return t;
+    return unflattened;
 }

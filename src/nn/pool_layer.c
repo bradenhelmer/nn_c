@@ -10,15 +10,16 @@
 #include <math.h>
 #include <stdlib.h>
 
-Layer *maxpool_create(int pool_size, int stride) {
+Layer *maxpool_layer_create(int pool_size, int stride) {
     MaxPoolLayer *layer = (MaxPoolLayer *)malloc(sizeof(MaxPoolLayer));
     layer->pool_size = pool_size;
     layer->stride = stride;
     layer->max_indices = NULL;
+    layer->output = NULL;
     return layer_create(LAYER_MAX_POOL, (void *)layer);
 }
 
-void maxpool_free(MaxPoolLayer *layer) {
+void maxpool_layer_free(MaxPoolLayer *layer) {
     if (layer->max_indices != NULL) {
         free(layer->max_indices);
     }
@@ -26,7 +27,7 @@ void maxpool_free(MaxPoolLayer *layer) {
 }
 
 // Forward pass: returns output tensor, caches max_indices internally.
-Tensor *maxpool_forward(MaxPoolLayer *layer, const Tensor *input) {
+Tensor *maxpool_layer_forward(MaxPoolLayer *layer, const Tensor *input) {
     int C = input->shape[0];
     int H_in = input->shape[1];
     int W_in = input->shape[2];
@@ -67,11 +68,15 @@ Tensor *maxpool_forward(MaxPoolLayer *layer, const Tensor *input) {
             }
         }
     }
+    if (layer->output != NULL) {
+        tensor_free(layer->output);
+    }
+    layer->output = Y;
     return Y;
 }
 
 // Backward pass: uses cached max_indices to route gradients.
-Tensor *maxpool_backward(MaxPoolLayer *layer, const Tensor *upstream_grad) {
+Tensor *maxpool_layer_backward(MaxPoolLayer *layer, const Tensor *upstream_grad) {
     Tensor *dX = tensor_create3d(layer->input_c, layer->input_h, layer->input_w);
     int H_out = upstream_grad->shape[1];
     int W_out = upstream_grad->shape[2];

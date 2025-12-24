@@ -22,9 +22,9 @@ extern void mnist_aggressive();
 
 int main() {
     srand(time(NULL));
-    // perceptron_learning_logic_gates();
-    // nn_learning_xor();
-    // nn_learning_xor_batched();
+    perceptron_learning_logic_gates();
+    nn_learning_xor();
+    nn_learning_xor_batched();
     mnist_sgd();
     mnist_momentum();
     mnist_adam();

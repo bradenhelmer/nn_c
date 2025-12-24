@@ -49,8 +49,8 @@ void tensor_copy(Tensor *dest, const Tensor *src);
 Tensor *tensor_clone(const Tensor *t);
 void tensor_print_shape(const Tensor *t);
 void tensor_print(const Tensor *t);
-Tensor *tensor_flatten(Tensor *t);
-Tensor *tensor_unflatten(Tensor *t, int ndim, int *new_shape);
+Tensor *tensor_flatten(const Tensor *t);
+Tensor *tensor_unflatten(const Tensor *t, int ndim, int *new_shape);
 
 // Row operations for 2D tensors (used in batch processing)
 // Copies row `row_idx` from 2D tensor `src` into 1D tensor `dest`

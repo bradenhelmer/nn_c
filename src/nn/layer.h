@@ -14,7 +14,13 @@
 // =============================================================================
 
 // Layer types.
-typedef enum { LAYER_LINEAR, LAYER_ACTIVATION, LAYER_CONV_2D, LAYER_MAX_POOL } LayerType;
+typedef enum {
+    LAYER_LINEAR,
+    LAYER_ACTIVATION,
+    LAYER_CONV_2D,
+    LAYER_MAX_POOL,
+    LAYER_FLATTEN
+} LayerType;
 
 // Core layer struct.
 typedef struct {
@@ -24,7 +30,7 @@ typedef struct {
 
 Layer *layer_create(LayerType type, void *layer);
 void layer_free(Layer *layer);
-void layer_forward(Layer *layer, const Tensor *input);
+Tensor *layer_forward(Layer *layer, const Tensor *input);
 Tensor *layer_backward(Layer *layer, const Tensor *upstream_grad);
 Tensor *layer_get_output(Layer *layer);
 
@@ -77,7 +83,7 @@ Layer *linear_layer_create(int input_size, int output_size);
 void linear_layer_free(LinearLayer *layer);
 
 // Forward/backward
-void linear_layer_forward(LinearLayer *layer, const Tensor *input);
+Tensor *linear_layer_forward(LinearLayer *layer, const Tensor *input);
 Tensor *linear_layer_backward(LinearLayer *layer, const Tensor *upstream_grad);
 
 // Weight initialization
@@ -101,7 +107,7 @@ Layer *activation_layer_create(TensorActivationPair activation);
 void activation_layer_free(ActivationLayer *layer);
 
 // Forward/backward
-void activation_layer_forward(ActivationLayer *layer, const Tensor *input);
+Tensor *activation_layer_forward(ActivationLayer *layer, const Tensor *input);
 Tensor *activation_layer_backward(ActivationLayer *layer, const Tensor *upstream_grad);
 
 // =============================================================================
@@ -149,14 +155,15 @@ typedef struct {
     int input_c, input_h, input_w;
     int output_h, output_w;
     int *max_indices; // Flat array: [C * H_out * W_out]
+    Tensor *output;
 } MaxPoolLayer;
 
 // Lifecycle
-Layer *maxpool_create(int pool_size, int stride);
-void maxpool_free(MaxPoolLayer *layer);
+Layer *maxpool_layer_create(int pool_size, int stride);
+void maxpool_layer_free(MaxPoolLayer *layer);
 
-Tensor *maxpool_forward(MaxPoolLayer *layer, const Tensor *input);
-Tensor *maxpool_backward(MaxPoolLayer *layer, const Tensor *upstream_grad);
+Tensor *maxpool_layer_forward(MaxPoolLayer *layer, const Tensor *input);
+Tensor *maxpool_layer_backward(MaxPoolLayer *layer, const Tensor *upstream_grad);
 
 // Index helpers
 
@@ -175,5 +182,21 @@ static inline void decode_window_index(int flat_idx, int pool_size, int *m, int 
     *m = flat_idx / pool_size;
     *n = flat_idx % pool_size;
 }
+
+// =============================================================================
+// FLATTEN LAYER
+// =============================================================================
+
+typedef struct {
+    int input_ndims;
+    int *input_shape;
+    Tensor *output;
+} FlattenLayer;
+
+Layer *flatten_layer_create();
+void flatten_layer_free(FlattenLayer *layer);
+
+Tensor *flatten_layer_forward(FlattenLayer *layer, const Tensor *input);
+Tensor *flatten_layer_backward(FlattenLayer *layer, const Tensor *upstream_grad);
 
 #endif /* ifndef LAYER_H */

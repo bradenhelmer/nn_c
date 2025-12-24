@@ -25,7 +25,7 @@ void activation_layer_free(ActivationLayer *layer) {
     free(layer);
 }
 
-void activation_layer_forward(ActivationLayer *layer, const Tensor *input) {
+Tensor *activation_layer_forward(ActivationLayer *layer, const Tensor *input) {
     // Free old cached values if they exist
     if (layer->input != NULL) {
         tensor_free(layer->input);
@@ -40,6 +40,7 @@ void activation_layer_forward(ActivationLayer *layer, const Tensor *input) {
     // Apply activation: output = f(input)
     layer->output = tensor_clone(input);
     layer->activation.forward(layer->output, input);
+    return layer->output;
 }
 
 Tensor *activation_layer_backward(ActivationLayer *layer, const Tensor *upstream_grad) {
