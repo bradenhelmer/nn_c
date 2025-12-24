@@ -6,6 +6,7 @@
 #include "gradient_descent.h"
 #include "../data/batch.h"
 #include "../nn/loss.h"
+#include "config.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -281,6 +282,11 @@ TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data,
 
             optimizer_step(config->optimizer, nn);
             batch_free(batch);
+#if PROFILING
+            if (samples_seen >= 1000) {
+                break;
+            }
+#endif
         }
 
         // 6. Divide metrics by total samples and not batches.
@@ -299,6 +305,11 @@ TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data,
             printf("Epoch %d: loss=%.4f, accuracy=%.2f%%\n", epoch, result->loss_history[epoch],
                    result->accuracy_history[epoch] * 100);
         }
+#if PROFILING
+        if (samples_seen >= 1000) {
+            break;
+        }
+#endif
     }
 
     tensor_free(input);

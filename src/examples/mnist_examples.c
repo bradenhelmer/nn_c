@@ -6,6 +6,7 @@
 #include "../activations/activations.h"
 #include "../data/dataset.h"
 #include "../training/gradient_descent.h"
+#include "config.h"
 #include "nn/layer.h"
 #include "nn/nn.h"
 #include <stdio.h>
@@ -224,17 +225,17 @@ static void _print_conv_arch() {
     printf("\tLinear(6272, 128)      → 128\n");
     printf("\tReLU                   → 128\n");
     printf("\tLinear(128, 10)        → 10\n");
-    printf("\tSoftmax (via loss)     → 10\n");
+    printf("\tSoftmax (via loss)     → 10\n\n");
 }
 
 void mnist_conv() {
     printf("\n\nTraining MNIST with 2D convolutional Neural network...\n");
-    // _print_conv_arch();
+    _print_conv_arch();
 
     Dataset *mnist_train = create_mnist_train_dataset();
     Dataset *mnist_test = create_mnist_test_dataset();
 
-    TrainingConfig config = {.max_epochs = 10,
+    TrainingConfig config = {.max_epochs = PROFILING ? 1 : 10,
                              .batch_size = 64,
                              .verbose = 1,
                              .optimizer = optimizer_create_adam(0.001f, 0.9f, 0.999f, 1e-8),
@@ -254,12 +255,14 @@ void mnist_conv() {
     printf(
         "\nMNIST Batched Convolutional NN training with ADAM/cosine annealing stopped at %d epochs",
         mnist_conv_result->epochs_completed);
-    printf("Final accuracy: %.2f%%\n",
+    printf("\nFinal accuracy: %.2f%%\n",
            mnist_conv_result->accuracy_history[mnist_conv_result->epochs_completed - 1] * 100);
 
+#if !PROFILING
     test_mnist_conv(mnist_conv, mnist_test,
                     "MNIST test images on batched convolutional NN with cosine annealing and L2 "
                     "regularization");
+#endif
 
     nn_free(mnist_conv);
     optimizer_free(config.optimizer);

@@ -30,6 +30,6 @@ int main() {
     // mnist_momentum();
     // mnist_adam();
     // mnist_aggressive();
-    // mnist_conv();
+    mnist_conv();
     return 0;
 }
