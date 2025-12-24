@@ -10,9 +10,9 @@ DEBUG_FLAGS := -g -O0 -DDEBUG
 # Release: High optim, native arch, LTO, no debug macros
 OPT_FLAGS   := -O3 -march=native -flto -DNDEBUG
 # Flags for perf profiling
-PERF_FLAGS := -O3 -march=native -flto -g -fno-omit-frame-pointer -DNDEBUG -DPROFILING=1
+PERF_FLAGS  := -O3 -march=native -flto -g -fno-omit-frame-pointer -DNDEBUG -DPROFILING=1
 # Flags for instruction level profiling
-PROF_FLAGS  := -O2 -march=native -flto -DPROFILING=1 -fprofile-instr-generate=mnist.profraw -fcoverage-mapping
+PROF_FLAGS  := -O3 -march=native -DPROFILING=1 -fprofile-instr-generate=mnist.profraw -fcoverage-mapping
 
 LDFLAGS     := -lm
 
@@ -27,7 +27,6 @@ OBJ_DIR     := $(BUILD_DIR)/obj
 DEBUG_DIR   := $(BUILD_DIR)/debug_obj
 PERF_DIR    := $(BUILD_DIR)/perf_obj
 PROF_DIR    := $(BUILD_DIR)/prof_obj
-OPT_DIR     := $(BUILD_DIR)/opt_obj
 TEST_OBJ_DIR:= $(BUILD_DIR)/test_obj
 TEST_DBG_DIR:= $(BUILD_DIR)/test_debug_obj
 
@@ -39,7 +38,6 @@ OBJS        := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 DEBUG_OBJS  := $(patsubst $(SRC_DIR)/%.c, $(DEBUG_DIR)/%.o, $(SRCS))
 PERF_OBJS   := $(patsubst $(SRC_DIR)/%.c, $(PERF_DIR)/%.o, $(SRCS))
 PROF_OBJS   := $(patsubst $(SRC_DIR)/%.c, $(PROF_DIR)/%.o, $(SRCS))
-OPT_OBJS    := $(patsubst $(SRC_DIR)/%.c, $(OPT_DIR)/%.o, $(SRCS))
 
 # --- Test Discovery ---
 TEST_SRCS   := $(wildcard $(TEST_DIR)/*.c)
@@ -56,7 +54,6 @@ TARGET          := $(BIN_DIR)/neural_net
 DEBUG_TARGET    := $(BIN_DIR)/neural_net_debug
 PERF_TARGET     := $(BIN_DIR)/neural_net_perf
 PROF_TARGET     := $(BIN_DIR)/neural_net_prof
-OPT_TARGET      := $(BIN_DIR)/neural_net_opt
 TEST_TARGET     := $(BIN_DIR)/test_runner
 TEST_DBG_TARGET := $(BIN_DIR)/test_runner_debug
 
@@ -70,21 +67,21 @@ RESET  := \033[0m
 #   RULES
 # ==============================================================================
 
-.PHONY: all clean run run-debug run-opt profile memcheck format help perf-build perf-record perf-report
+.PHONY: all clean run run-debug profile memcheck format help perf-build perf-record perf-report
 
 all: $(TARGET) $(TEST_TARGET)
 
-# --- Standard Build ---
+# --- Standard Optimized Build ---
 $(TARGET): $(OBJS)
 	@mkdir -p $(dir $@)
 	@echo "$(BLUE)Linking $@...$(RESET)"
-	@$(CC) $(OBJS) -o $@ $(LDFLAGS)
-	@echo "$(GREEN)Build complete: $@$(RESET)"
+	@$(CC) $(OPT_FLAGS) $(OBJS) -o $@ $(LDFLAGS)
+	@echo "$(GREEN)Standard optimized build complete: $@$(RESET)"
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
 	@echo "Compiling $<..."
-	@$(CC) $(CFLAGS) -I$(SRC_DIR) -c $< -o $@
+	@$(CC) $(CFLAGS) $(OPT_FLAGS) -I$(SRC_DIR) -c $< -o $@
 
 # --- Debug Build ---
 debug: $(DEBUG_TARGET)
@@ -99,20 +96,6 @@ $(DEBUG_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
 	@echo "Compiling (debug) $<..."
 	@$(CC) $(CFLAGS) $(DEBUG_FLAGS) -I$(SRC_DIR) -c $< -o $@
-
-# --- Optimized Build ---
-opt: $(OPT_TARGET)
-
-$(OPT_TARGET): $(OPT_OBJS)
-	@mkdir -p $(dir $@)
-	@echo "$(BLUE)Linking optimized build $@...$(RESET)"
-	@$(CC) $(OPT_FLAGS) $(OPT_OBJS) -o $@ $(LDFLAGS)
-	@echo "$(GREEN)Optimized build complete: $@$(RESET)"
-
-$(OPT_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(dir $@)
-	@echo "Compiling (optimized) $<..."
-	@$(CC) $(CFLAGS) $(OPT_FLAGS) -I$(SRC_DIR) -c $< -o $@
 
 # --- Perf Profiling Build ---
 perf-build: $(PERF_TARGET)
@@ -175,10 +158,6 @@ run: all
 run-debug: debug
 	@./$(DEBUG_TARGET)
 
-run-opt: opt
-	@echo "$(YELLOW)Running optimized build...$(RESET)"
-	@time ./$(OPT_TARGET)
-
 run-profile: profile
 	@./$(PROF_TARGET)
 	llvm-profdata merge -output=mnist.profdata mnist.profraw
@@ -211,7 +190,6 @@ help:
 	@echo "Available targets:"
 	@echo "  all          : Build default target"
 	@echo "  debug        : Build with debug symbols"
-	@echo "  optimize     : Build with -O3 and native arch"
 	@echo "  test         : Build and run tests"
 	@echo "  clean        : Remove build artifacts"
 	@echo "  format       : Run clang-format"
@@ -231,6 +209,5 @@ perf-clean:
 # Include dependency files
 -include $(OBJS:.o=.d)
 -include $(DEBUG_OBJS:.o=.d)
--include $(OPT_OBJS:.o=.d)
 -include $(PERF_OBJS:.o=.d)
 -include $(PROF_OBJS:.o=.d)

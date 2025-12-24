@@ -1,6 +1,6 @@
 /*
-* config.h - Global config options.
-*/
+ * config.h - Global config options.
+ */
 
 #ifndef CONFIG_H
 #define CONFIG_H

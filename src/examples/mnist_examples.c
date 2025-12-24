@@ -6,6 +6,7 @@
 #include "../activations/activations.h"
 #include "../data/dataset.h"
 #include "../training/gradient_descent.h"
+#include "../utils/timing.h"
 #include "config.h"
 #include "nn/layer.h"
 #include "nn/nn.h"
@@ -251,7 +252,12 @@ void mnist_conv() {
     nn_add_layer(mnist_conv, 6, linear_layer_create(128, 10));
     optimizer_init(config.optimizer, mnist_conv);
 
+    Timer training_timer = {0};
+    timer_start(&training_timer);
     TrainingResult *mnist_conv_result = train_nn_batch_opt(mnist_conv, mnist_train, NULL, &config);
+    timer_stop(&training_timer);
+    printf("Training took: %f seconds\n", training_timer.elapsed);
+
     printf(
         "\nMNIST Batched Convolutional NN training with ADAM/cosine annealing stopped at %d epochs",
         mnist_conv_result->epochs_completed);
