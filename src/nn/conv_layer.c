@@ -93,6 +93,90 @@ Tensor *conv_layer_forward(ConvLayer *layer, const Tensor *input) {
     return Y;
 }
 
+Tensor *conv_layer_forward_stride_optimized(ConvLayer *layer, const Tensor *input) {
+    Tensor *X_pad = tensor_pad2d(input, layer->padding);
+
+    // Invariant hoisting
+
+    // Fetch padded input metadata once
+    float *X_pad_data = X_pad->data;
+    int X_pad_stride_c = X_pad->strides[0]; // H_in * W_in
+    int X_pad_stride_h = X_pad->strides[1]; // W_in
+
+    // Fetch weight tensor metadata once
+    float *W_data = layer->weights->data;
+    int W_stride_out = layer->weights->strides[0]; // C_in * K * K
+    int W_stride_in = layer->weights->strides[1];  // K * K
+    int W_stride_kh = layer->weights->strides[2];  // K
+
+    // Create output tensor and fetch metadata once.
+    int H_out = (input->shape[1] - layer->kernel_size + 2 * layer->padding) / layer->stride + 1;
+    int W_out = (input->shape[2] - layer->kernel_size + 2 * layer->padding) / layer->stride + 1;
+    Tensor *Y = tensor_create3d(layer->out_channels, H_out, W_out);
+    float *Y_data = Y->data;
+    int Y_stride_c = Y->strides[0]; // H_out * W_out;
+    int Y_stride_h = Y->strides[1]; // W_out
+
+    // Other Convolution parameters
+    int C_out = layer->out_channels;
+    int C_in = layer->in_channels;
+    int K = layer->kernel_size;
+    int stride = layer->stride;
+
+    // Core computation with direct addressing
+    for (int out_c = 0; out_c < C_out; out_c++) {
+        // Pre-compute weight base for current output channel
+        float *W_out_base = W_data + out_c * W_stride_out;
+
+        // Pre-compute output base for current channel;
+        float *Y_out_base = Y_data + out_c * Y_stride_c;
+
+        for (int out_h = 0; out_h < H_out; out_h++) {
+            // Pre-compute output row pointer
+            float *Y_row_ptr = Y_out_base + out_h * Y_stride_h;
+            for (int out_w = 0; out_w < W_out; out_w++) {
+                float sum = layer->biases->data[out_c];
+
+                // Input region for top-left corner
+                int h_start = out_h * stride;
+                int w_start = out_w * stride;
+
+                for (int in_c = 0; in_c < C_in; in_c++) {
+                    // Weight pointer for this (out_c, in_c) kernel
+                    float *W_kernel_base = W_out_base + in_c * W_stride_in;
+
+                    // Input channel base
+                    float *X_pad_channel_base = X_pad_data + in_c * X_pad_stride_c;
+
+                    for (int kh = 0; kh < K; kh++) {
+                        int h_in = h_start + kh;
+
+                        // Input row pointer
+                        float *X_row_ptr = X_pad_channel_base + h_in * X_pad_stride_h;
+                        // Weight row pointer
+                        float *W_row_ptr = W_kernel_base + kh * W_stride_kh;
+
+                        for (int kw = 0; kw < K; kw++) {
+                            int w_in = w_start + kw;
+                            sum += X_row_ptr[w_in] * W_row_ptr[kw];
+                        }
+                    }
+                }
+                *Y_row_ptr++ = sum; // Write and advance output ptr;
+            }
+        }
+    }
+    if (layer->input != NULL) {
+        tensor_free(layer->input);
+    }
+    if (layer->output != NULL) {
+        tensor_free(layer->output);
+    }
+    layer->input = X_pad; // Cache padded input for backward pass
+    layer->output = Y;
+    return Y;
+}
+
 Tensor *conv_layer_backward(ConvLayer *layer, const Tensor *upstream_grad) {
 
     // layer->input is already padded, so don't add 2*padding again
@@ -192,6 +276,117 @@ Tensor *conv_layer_backward(ConvLayer *layer, const Tensor *upstream_grad) {
         }
     }
     Tensor *dX = tensor_unpad2d(dX_pad, layer->padding);
+    tensor_free(dX_pad);
+    return dX;
+}
+
+Tensor *conv_layer_backward_stride_optimized(ConvLayer *layer, const Tensor *upstream_grad) {
+
+    // Fetch upstream gradient metadata once.
+    float *UG_data = upstream_grad->data;
+    int UG_stride_c = upstream_grad->strides[0]; // H_out * W_out
+    int UG_stride_h = upstream_grad->strides[1]; // W_out
+
+    // Fetch weight gradient metadata once.
+    float *GW_data = layer->grad_weights->data;
+    int GW_stride_out = layer->grad_weights->strides[0]; // C_in * K * K
+    int GW_stride_in = layer->grad_weights->strides[1];  // K * K
+    int GW_stride_kh = layer->grad_weights->strides[2];  // K
+
+    // Fetch input (padded) tensor metadata once.
+    float *X_data = layer->input->data;
+    int X_stride_c = layer->input->strides[0]; // H_in * W_in (padded)
+    int X_stride_h = layer->input->strides[1]; // W_in (padded)
+
+    // Other convolutional parameters
+    // Non-padded output dimensions.
+    int H_out = (layer->input->shape[1] - layer->kernel_size) / layer->stride + 1;
+    int W_out = (layer->input->shape[2] - layer->kernel_size) / layer->stride + 1;
+    int C_out = layer->out_channels;
+    int C_in = layer->in_channels;
+    int K = layer->kernel_size;
+    int stride = layer->stride;
+    int padding = layer->padding;
+
+    // 1. Gradient w.r.t biases
+    float *grad_bias_base = layer->grad_biases->data;
+    for (int out_c = 0; out_c < C_out; out_c++) {
+        float *UG_out_base = UG_data + out_c * UG_stride_c;
+        float sum = 0.0f;
+        for (int out_h = 0; out_h < H_out; out_h++) {
+            float *UG_row_ptr = UG_out_base + out_h * UG_stride_h;
+            for (int out_w = 0; out_w < W_out; out_w++) {
+                sum += UG_row_ptr[out_w];
+            }
+        }
+        grad_bias_base[out_c] = sum;
+    }
+
+    // 2. Gradient w.r.t kernels (weights)
+    for (int out_c = 0; out_c < C_out; out_c++) {
+        float *UG_out_base = UG_data + out_c * UG_stride_c;
+        float *GW_out_base = GW_data + out_c * GW_stride_out;
+        for (int in_c = 0; in_c < C_in; in_c++) {
+            float *GW_in_base = GW_out_base + in_c * GW_stride_in; // Kernel (out_c, in_c)
+            float *X_in_base = X_data + in_c * X_stride_c;
+            for (int kh = 0; kh < K; kh++) {
+                float *GW_row_ptr = GW_in_base + kh * GW_stride_kh;
+                for (int kw = 0; kw < K; kw++) {
+                    float sum = 0.0f;
+                    for (int out_h = 0; out_h < H_out; out_h++) { // Output row
+                        float *UG_row_ptr = UG_out_base + out_h * UG_stride_h;
+                        float *X_row_ptr = X_in_base + (out_h * stride + kh) * X_stride_h;
+                        for (int out_w = 0; out_w < W_out; out_w++) { // Output col
+                            int w_idx = out_w * layer->stride + kw;
+                            sum += UG_row_ptr[out_w] * X_row_ptr[w_idx];
+                        }
+                    }
+                    *GW_row_ptr++ = sum;
+                }
+            }
+        }
+    }
+
+    // Gradient w.r.t input
+
+    // Create padded gradient tensor and fetch metadata once.
+    Tensor *dX_pad =
+        tensor_create3d(layer->input->shape[0], layer->input->shape[1], layer->input->shape[2]);
+    int H_padded = dX_pad->shape[1];
+    int W_padded = dX_pad->shape[2];
+    float *dX_pad_data = dX_pad->data;
+    int dX_pad_stride_in = dX_pad->strides[0]; // H_in * W_in (padded)
+    int dX_pad_stride_h = dX_pad->strides[1];
+
+    // Fetch weight tensor metadata once
+    float *W_data = layer->weights->data;
+    int W_stride_out = layer->weights->strides[0]; // C_in * K * K
+    int W_stride_in = layer->weights->strides[1];  // K * K
+    int W_stride_kh = layer->weights->strides[2];  // K
+
+    for (int in_c = 0; in_c < C_in; in_c++) {
+        float *dX_pad_in_base = dX_pad_data + in_c * dX_pad_stride_in;
+        for (int h_in = 0; h_in < H_padded; h_in++) {
+            float *dX_pad_row_ptr = dX_pad_in_base + h_in * dX_pad_stride_h;
+            for (int w_in = 0; w_in < W_padded; w_in++) {
+                float sum = 0.0f;
+                for (int out_c = 0; out_c < C_out; out_c++) {
+                    float *W_in_base = W_data + out_c * W_stride_out + in_c * W_stride_in;
+                    float *UG_out_base = UG_data + out_c * UG_stride_c;
+                    for (int kh = 0; kh < K; kh++) {
+                        float *UG_row_ptr = UG_out_base + (h_in - kh) * UG_stride_h;
+                        float *W_row_ptr = W_in_base + kh * W_stride_kh;
+                        for (int kw = 0; kw < K; kw++) {
+                            sum += W_row_ptr[kw] + UG_row_ptr[w_in - kw];
+                        }
+                    }
+                }
+                *dX_pad_row_ptr++ = sum;
+            }
+        }
+    }
+
+    Tensor *dX = tensor_unpad2d(dX_pad, padding);
     tensor_free(dX_pad);
     return dX;
 }

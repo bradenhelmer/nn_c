@@ -204,7 +204,6 @@ perf-report:
 	@echo "$(YELLOW)Generating perf report...$(RESET)"
 	@sudo perf report --stdio --no-children -n | head -100
 
-perf-clean: 
 
 # Include dependency files
 -include $(OBJS:.o=.d)

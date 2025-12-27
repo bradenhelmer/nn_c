@@ -219,7 +219,7 @@ void mnist_aggressive() {
 }
 
 static void _print_conv_arch() {
-    printf("\tConv(1, 32, 5, 1, 2)  → 28×28×32\n");
+    printf("\tConv(1, 32, 5, 1, 2)   → 28×28×32\n");
     printf("\tReLU                   → 28×28×32\n");
     printf("\tMaxPool(2, 2)          → 14×14×32\n");
     printf("\tFlatten                → 6272\n");
@@ -256,7 +256,7 @@ void mnist_conv() {
     timer_start(&training_timer);
     TrainingResult *mnist_conv_result = train_nn_batch_opt(mnist_conv, mnist_train, NULL, &config);
     timer_stop(&training_timer);
-    printf("Training took: %f seconds\n", training_timer.elapsed);
+    printf("Training took: %.3f seconds\n", training_timer.elapsed);
 
     printf(
         "\nMNIST Batched Convolutional NN training with ADAM/cosine annealing stopped at %d epochs",

@@ -141,7 +141,9 @@ void conv_layer_init_weights(ConvLayer *layer);
 
 // Forward/backward
 Tensor *conv_layer_forward(ConvLayer *layer, const Tensor *input);
+Tensor *conv_layer_forward_stride_optimized(ConvLayer *layer, const Tensor *input);
 Tensor *conv_layer_backward(ConvLayer *layer, const Tensor *upstream_grad);
+Tensor *conv_layer_backward_stride_optimized(ConvLayer *layer, const Tensor *upstream_grad);
 
 // =============================================================================
 // MAX POOLING LAYER

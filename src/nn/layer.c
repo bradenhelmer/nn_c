@@ -41,7 +41,7 @@ Tensor *layer_forward(Layer *layer, const Tensor *input) {
     case LAYER_ACTIVATION:
         return activation_layer_forward((ActivationLayer *)layer->layer, input);
     case LAYER_CONV_2D:
-        return conv_layer_forward((ConvLayer *)layer->layer, input);
+        return conv_layer_forward_stride_optimized((ConvLayer *)layer->layer, input);
     case LAYER_MAX_POOL:
         return maxpool_layer_forward((MaxPoolLayer *)layer->layer, input);
     case LAYER_FLATTEN:
@@ -56,7 +56,7 @@ Tensor *layer_backward(Layer *layer, const Tensor *upstream_grad) {
     case LAYER_ACTIVATION:
         return activation_layer_backward((ActivationLayer *)layer->layer, upstream_grad);
     case LAYER_CONV_2D:
-        return conv_layer_backward((ConvLayer *)layer->layer, upstream_grad);
+        return conv_layer_backward_stride_optimized((ConvLayer *)layer->layer, upstream_grad);
     case LAYER_MAX_POOL:
         return maxpool_layer_backward((MaxPoolLayer *)layer->layer, upstream_grad);
     case LAYER_FLATTEN:
