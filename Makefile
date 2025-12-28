@@ -210,3 +210,5 @@ perf-report:
 -include $(DEBUG_OBJS:.o=.d)
 -include $(PERF_OBJS:.o=.d)
 -include $(PROF_OBJS:.o=.d)
+-include $(TEST_OBJS:.o=.d)
+-include $(TEST_DBG_OBJS:.o=.d)

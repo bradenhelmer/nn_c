@@ -133,6 +133,28 @@ typedef struct {
     Tensor *grad_biases;  // Same shape as biases
 } ConvLayer;
 
+// Convolution dimension parameters (computed from ConvLayer + input)
+typedef struct {
+    int C_in;     // Input channels
+    int C_out;    // Output channels
+    int H_in;     // Input height (unpadded)
+    int W_in;     // Input width (unpadded)
+    int H_padded; // Padded input height
+    int W_padded; // Padded input width
+    int H_out;    // Output height
+    int W_out;    // Output width
+    int K;        // Kernel size
+    int stride;   // Stride
+    int padding;  // Padding
+} ConvParams;
+
+// Compute convolution parameters from layer and input dimensions
+ConvParams conv_params_create(const ConvLayer *layer, const Tensor *input);
+
+// Compute convolution parameters from layer and already-padded input dimensions
+// Use this in backward pass where layer->input is already padded
+ConvParams conv_params_from_padded(const ConvLayer *layer, const Tensor *padded_input);
+
 // Lifecycle
 Layer *conv_layer_create(int in_channels, int out_channels, int kernel_size, int stride,
                          int padding);

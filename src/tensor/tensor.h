@@ -12,8 +12,10 @@ typedef struct {
     int *strides; // precomputed to faster indexing
     int ndim;     // Number of dimensions
     int size;     // Total elements
+    int owner;    // Does this tensor own the data? For views
 } Tensor;
 
+// Lifecycle
 Tensor *tensor_create1d(int x);
 Tensor *tensor_create2d(int x, int y);
 Tensor *tensor_create3d(int x, int y, int z);
@@ -51,6 +53,8 @@ void tensor_print_shape(const Tensor *t);
 void tensor_print(const Tensor *t);
 Tensor *tensor_flatten(const Tensor *t);
 Tensor *tensor_unflatten(const Tensor *t, int ndim, int *new_shape);
+Tensor *tensor_view(const Tensor *t, int ndim, int *shape);
+Tensor *tensor_reshape_inplace(Tensor *t, int ndim, int *new_shape);
 
 // Row operations for 2D tensors (used in batch processing)
 // Copies row `row_idx` from 2D tensor `src` into 1D tensor `dest`
@@ -94,6 +98,12 @@ void tensor_matvec_mul(Tensor *dest, const Tensor *mat, const Tensor *vec);
 // dest: 1D tensor of shape (n,)
 // Used for backpropagation: computes gradient w.r.t. input
 void tensor_matvec_mul_transpose(Tensor *dest, const Tensor *mat, const Tensor *vec);
+
+// Tensor matrix multiplication: dest = a * b
+// a: 2D tensor of shape (m, k)
+// b: 2D tensor of shape (k, n)
+// dest: 2D tensor of shape (m, n)
+void tensor_matmul(Tensor *dest, const Tensor *a, const Tensor *b);
 
 // Outer product: dest = a ⊗ b^T
 // a: 1D tensor of shape (m,)

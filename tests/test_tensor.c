@@ -384,6 +384,34 @@ void test_tensor_copy_independence() {
 }
 
 // =============================================================================
+// Tensor operation tests
+// =============================================================================
+void test_tensor_matmul() {
+    Tensor *a = tensor_create2d(2, 2);
+    a->data[0] = 1.0f;
+    a->data[1] = 2.0f;
+    a->data[2] = 3.0f;
+    a->data[3] = 4.0f;
+
+    Tensor *b = tensor_create2d(2, 1);
+    b->data[0] = 1.0f;
+    b->data[1] = 2.0f;
+
+    Tensor *dest = tensor_create2d(2, 1);
+
+    tensor_matmul(dest, a, b);
+
+    assert(float_equals(dest->data[0], 5.0f));
+    assert(float_equals(dest->data[1], 11.0f));
+
+    tensor_free(a);
+    tensor_free(b);
+    tensor_free(dest);
+
+    TEST_PASSED;
+}
+
+// =============================================================================
 // Test Runner
 // =============================================================================
 
@@ -416,6 +444,9 @@ void run_tensor_tests(void) {
     test_tensor_single_element();
     test_tensor_large();
     test_tensor_copy_independence();
+
+    printf("\n=== Tensor Operation Tests ===\n");
+    test_tensor_matmul();
 
     printf("\n=== All Tensor Tests Passed! ===\n");
 }

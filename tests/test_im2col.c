@@ -7,6 +7,7 @@
 #include "test_runner.h"
 #include "utils/utils.h"
 #include <assert.h>
+#include <math.h>
 #include <stdio.h>
 
 void test_im2col() {
@@ -64,6 +65,63 @@ void test_im2col() {
     TEST_PASSED;
 }
 
+void test_conv_forward_im2col() {
+    // Test that im2col forward pass produces same result as regular forward pass
+    // Setup: Small 2-channel input with 2 output channels, 3x3 kernel
+    Layer *l = conv_layer_create(2, 2, 3, 1, 1);
+    ConvLayer *layer = l->layer;
+
+    // Create input [2, 4, 4] (2 channels, 4x4)
+    Tensor *input = tensor_create3d(2, 4, 4);
+    for (int i = 0; i < input->size; i++) {
+        input->data[i] = (float)(i + 1);
+    }
+
+    // Set known weights and biases
+    for (int i = 0; i < layer->weights->size; i++) {
+        layer->weights->data[i] = 0.1f * (i % 9 - 4); // Small values centered around 0
+    }
+    layer->biases->data[0] = 0.5f;
+    layer->biases->data[1] = -0.5f;
+
+    // Run regular forward pass
+    Tensor *output_regular = conv_layer_forward(layer, input);
+    Tensor *output_regular_copy = tensor_clone(output_regular);
+
+    // Reset layer state
+    tensor_free(layer->input);
+    tensor_free(layer->output);
+    layer->input = NULL;
+    layer->output = NULL;
+
+    // Run im2col forward pass
+    Tensor *output_im2col = conv_layer_forward_im2col(layer, input);
+
+    // Verify shapes match
+    assert(output_regular_copy->ndim == output_im2col->ndim);
+    assert(output_regular_copy->shape[0] == output_im2col->shape[0]);
+    assert(output_regular_copy->shape[1] == output_im2col->shape[1]);
+    assert(output_regular_copy->shape[2] == output_im2col->shape[2]);
+
+    // Use slightly larger tolerance for numerical comparisons
+    // Im2col uses matrix multiplication which accumulates in different order
+    float tolerance = 1e-4f;
+    for (int i = 0; i < output_regular_copy->size; i++) {
+        float diff = fabsf(output_regular_copy->data[i] - output_im2col->data[i]);
+        if (diff > tolerance) {
+            fprintf(stderr, "TEST: Mismatch at index %d: regular=%.6f, im2col=%.6f, diff=%.8f\n", i,
+                    output_regular_copy->data[i], output_im2col->data[i], diff);
+            assert(0);
+        }
+    }
+
+    tensor_free(input);
+    tensor_free(output_regular_copy);
+    layer_free(l);
+    TEST_PASSED;
+}
+
 void run_im2col_tests(void) {
     test_im2col();
+    test_conv_forward_im2col();
 }
