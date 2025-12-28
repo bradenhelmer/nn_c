@@ -32,6 +32,9 @@ int main() {
     // Run conv layer tests
     run_conv_tests();
 
+    // Run im2col tests
+    run_im2col_tests();
+
     // Run pool layer tests
     run_pool_tests();
 

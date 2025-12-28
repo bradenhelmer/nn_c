@@ -145,6 +145,13 @@ Tensor *conv_layer_forward_stride_optimized(ConvLayer *layer, const Tensor *inpu
 Tensor *conv_layer_backward(ConvLayer *layer, const Tensor *upstream_grad);
 Tensor *conv_layer_backward_stride_optimized(ConvLayer *layer, const Tensor *upstream_grad);
 
+// Im2Col Optimization
+Tensor *im2col(Tensor *X_pad, int kernel_size, int stride);
+Tensor *col2im(Tensor *dX_col, int input_channels, int H_padded, int W_padded, int kernel_size,
+               int stride);
+Tensor *conv_layer_forward_im2col(ConvLayer *layer, const Tensor *input);
+Tensor *conv_layer_backward_im2col(ConvLayer *layer, const Tensor *upstream_grad);
+
 // =============================================================================
 // MAX POOLING LAYER
 // =============================================================================

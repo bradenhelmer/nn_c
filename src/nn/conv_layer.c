@@ -396,3 +396,53 @@ Tensor *conv_layer_backward_stride_optimized(ConvLayer *layer, const Tensor *ups
     tensor_free(dX_pad);
     return dX;
 }
+
+// Unfolds padded input tensor X_pad into matrix X_col.
+//
+// X_col = (C_in * K * K) x (H_out * W_out) matrix
+Tensor *im2col(Tensor *X_pad, int kernel_size, int stride) {
+
+    // Local parameters
+    int C_in = X_pad->shape[0];
+    int X_pad_stride_in = X_pad->strides[0];
+    int X_pad_stride_h = X_pad->strides[1];
+    int H_padded = X_pad->shape[1];
+    int W_padded = X_pad->shape[2];
+    int H_out = (H_padded - kernel_size) / stride + 1;
+    int W_out = (W_padded - kernel_size) / stride + 1;
+    int X_col_rows = C_in * kernel_size * kernel_size;
+    int X_col_cols = H_out * W_out;
+
+    // Create output X_col tensor
+    Tensor *X_col = tensor_create2d(X_col_rows, X_col_cols);
+
+    // Reshape
+    int col_idx = 0;
+    for (int out_h = 0; out_h < H_out; out_h++) {
+        for (int out_w = 0; out_w < W_out; out_w++) {
+            int row_idx = 0;
+            for (int c_in = 0; c_in < C_in; c_in++) {
+                float *X_pad_in_base = X_pad->data + c_in * X_pad_stride_in;
+                for (int kh = 0; kh < kernel_size; kh++) {
+                    int h_in = out_h * stride + kh;
+                    float *X_pad_row_ptr = X_pad_in_base + h_in * X_pad_stride_h;
+                    for (int kw = 0; kw < kernel_size; kw++) {
+                        int w_in = out_w * stride + kw;
+                        X_col->data[row_idx * X_col_cols + col_idx] = X_pad_row_ptr[w_in];
+                        row_idx++;
+                    }
+                }
+            }
+            col_idx++;
+        }
+    }
+    return X_col;
+}
+
+Tensor *col2im(Tensor *dX_col, int input_channels, int H_padded, int W_padded, int kernel_size,
+               int stride) {
+}
+Tensor *conv_layer_forward_im2col(ConvLayer *layer, const Tensor *input) {
+}
+Tensor *conv_layer_backward_im2col(ConvLayer *layer, const Tensor *upstream_grad) {
+}

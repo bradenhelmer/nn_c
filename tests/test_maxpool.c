@@ -1,5 +1,5 @@
 /*
- * test_pool.c - Tests for max pooling layer operations
+ * test_maxpool.c - Tests for max pooling layer operations
  *
  * Uses a worked example to verify forward and backward pass.
  */
@@ -22,7 +22,8 @@ void test_maxpool_forward() {
     // Pool size: 2, Stride: 2
     // Output Y: [1, 2, 2]
 
-    MaxPoolLayer *layer = maxpool_layer_create(2, 2)->layer;
+    Layer *l = maxpool_layer_create(2, 2);
+    MaxPoolLayer *layer = l->layer;
 
     // Input X[0]:
     // [1, 3, 2, 4]
@@ -63,7 +64,7 @@ void test_maxpool_forward() {
 
     tensor_free(input);
     tensor_free(output);
-    maxpool_layer_free(layer);
+    layer_free(l);
     TEST_PASSED;
 }
 
@@ -73,7 +74,8 @@ void test_maxpool_forward() {
 
 void test_maxpool_backward() {
     // Same setup as forward
-    MaxPoolLayer *layer = maxpool_layer_create(2, 2)->layer;
+    Layer *l = maxpool_layer_create(2, 2);
+    MaxPoolLayer *layer = l->layer;
 
     // Input X[0]:
     // [1, 3, 2, 4]
@@ -146,7 +148,7 @@ void test_maxpool_backward() {
     tensor_free(output);
     tensor_free(upstream_grad);
     tensor_free(dX);
-    maxpool_layer_free(layer);
+    layer_free(l);
     TEST_PASSED;
 }
 
@@ -155,14 +157,15 @@ void test_maxpool_backward() {
 // =============================================================================
 
 void test_maxpool_create() {
-    MaxPoolLayer *layer = maxpool_layer_create(2, 2)->layer;
+    Layer *l = maxpool_layer_create(2, 2);
+    MaxPoolLayer *layer = l->layer;
 
     assert(layer != NULL);
     assert(layer->pool_size == 2);
     assert(layer->stride == 2);
     assert(layer->max_indices == NULL);
 
-    maxpool_layer_free(layer);
+    layer_free(l);
     TEST_PASSED;
 }
 
@@ -175,34 +178,37 @@ void test_maxpool_forward_dimensions() {
     // H_out = (H_in - pool_size) / stride + 1
 
     // Case 1: 4x4 input, pool_size 2, stride 2 -> 2x2 output
-    MaxPoolLayer *layer1 = maxpool_layer_create(2, 2)->layer;
+    Layer *l1 = maxpool_layer_create(2, 2);
+    MaxPoolLayer *layer1 = l1->layer;
     Tensor *input1 = tensor_create3d(1, 4, 4);
     Tensor *out1 = maxpool_layer_forward(layer1, input1);
     assert(out1->shape[1] == 2);
     assert(out1->shape[2] == 2);
     tensor_free(input1);
     tensor_free(out1);
-    maxpool_layer_free(layer1);
+    layer_free(l1);
 
     // Case 2: 6x6 input, pool_size 2, stride 2 -> 3x3 output
-    MaxPoolLayer *layer2 = maxpool_layer_create(2, 2)->layer;
+    Layer *l2 = maxpool_layer_create(2, 2);
+    MaxPoolLayer *layer2 = l2->layer;
     Tensor *input2 = tensor_create3d(1, 6, 6);
     Tensor *out2 = maxpool_layer_forward(layer2, input2);
     assert(out2->shape[1] == 3);
     assert(out2->shape[2] == 3);
     tensor_free(input2);
     tensor_free(out2);
-    maxpool_layer_free(layer2);
+    layer_free(l2);
 
     // Case 3: 8x8 input, pool_size 3, stride 2 -> 3x3 output
-    MaxPoolLayer *layer3 = maxpool_layer_create(3, 2)->layer;
+    Layer *l3 = maxpool_layer_create(3, 2);
+    MaxPoolLayer *layer3 = l3->layer;
     Tensor *input3 = tensor_create3d(1, 8, 8);
     Tensor *out3 = maxpool_layer_forward(layer3, input3);
     assert(out3->shape[1] == 3);
     assert(out3->shape[2] == 3);
     tensor_free(input3);
     tensor_free(out3);
-    maxpool_layer_free(layer3);
+    layer_free(l3);
 
     TEST_PASSED;
 }
