@@ -374,10 +374,16 @@ Tensor *conv_layer_backward_stride_optimized(ConvLayer *layer, const Tensor *ups
                     float *W_in_base = W_data + out_c * W_stride_out + in_c * W_stride_in;
                     float *UG_out_base = UG_data + out_c * UG_stride_c;
                     for (int kh = 0; kh < K; kh++) {
-                        float *UG_row_ptr = UG_out_base + (h_in - kh) * UG_stride_h;
-                        float *W_row_ptr = W_in_base + kh * W_stride_kh;
-                        for (int kw = 0; kw < K; kw++) {
-                            sum += W_row_ptr[kw] + UG_row_ptr[w_in - kw];
+                        int i = (h_in - kh);
+                        if (i >= 0 && i < H_out) {
+                            float *UG_row_ptr = UG_out_base + i * UG_stride_h;
+                            float *W_row_ptr = W_in_base + kh * W_stride_kh;
+                            for (int kw = 0; kw < K; kw++) {
+                                int j = w_in - kw;
+                                if (j >= 0 && j < W_out) {
+                                    sum += W_row_ptr[kw] * UG_row_ptr[j];
+                                }
+                            }
                         }
                     }
                 }

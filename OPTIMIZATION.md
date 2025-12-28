@@ -115,7 +115,7 @@ Final images correctly classified: 9868
 Some pretty promising results from a model perspective, but that was slow.
 Just under 26 minutes total time, around 2 and a half minutes per epoch.
 
-## Initial Profiling
+## Initial Profiling & Indexing Optimization
 
 To analyze the run, lets create a build for running `perf` using the following flags:
 ```
