@@ -77,6 +77,7 @@ int tensor_argmax(const Tensor *t);
 // For conv layers
 Tensor *tensor_pad2d(const Tensor *t, int padding);
 Tensor *tensor_unpad2d(const Tensor *t, int padding);
+float tensor_sum_2drow(const Tensor *t, int row_idx);
 
 // Element-wise addition: dest = a + b
 // Works for tensors of any dimension (shapes must match)
@@ -111,5 +112,10 @@ void tensor_matmul(Tensor *dest, const Tensor *a, const Tensor *b);
 // dest: 2D tensor of shape (m, n)
 // Used for computing weight gradients: dW = dz ⊗ input
 void tensor_outer_product(Tensor *dest, const Tensor *a, const Tensor *b);
+
+// Transpose: returns t^T
+// t: 2D tensor of shape (m, n)
+// returns: 2D tensor of shape (n, m)
+Tensor *tensor_transpose2d(const Tensor *t);
 
 #endif /* ifndef TENSOR_H */

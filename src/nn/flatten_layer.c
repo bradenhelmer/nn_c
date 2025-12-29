@@ -40,5 +40,14 @@ Tensor *flatten_layer_forward(FlattenLayer *layer, const Tensor *input) {
 }
 
 Tensor *flatten_layer_backward(FlattenLayer *layer, const Tensor *upstream_grad) {
-    return tensor_unflatten(upstream_grad, layer->input_ndims, layer->input_shape);
+    // Create a view with the original shape
+    Tensor *view = tensor_unflatten(upstream_grad, layer->input_ndims, layer->input_shape);
+
+    // Clone the view to create an independent tensor
+    // This is necessary because nn_backward frees gradients after each layer,
+    // but a view shares data with upstream_grad which would be freed too early
+    Tensor *grad = tensor_clone(view);
+    tensor_free(view);
+
+    return grad;
 }

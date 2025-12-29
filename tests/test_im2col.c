@@ -18,8 +18,11 @@ void test_im2col() {
     X->data[2] = 3.0f;
     X->data[3] = 4.0f;
 
+    Layer *l = conv_layer_create(1, 1, 3, 1, 1);
+    ConvLayer *layer = l->layer;
+
     Tensor *X_pad = tensor_pad2d(X, 1);
-    Tensor *converted = im2col(X_pad, 3, 1);
+    Tensor *converted = im2col(layer, X_pad);
 
     assert(float_equals(converted->data[0], 0.0f));
     assert(float_equals(converted->data[1], 0.0f));

@@ -80,6 +80,38 @@ ConvParams conv_params_from_padded(const ConvLayer *layer, const Tensor *padded_
     return p;
 }
 
+// Create ConvParams directly from raw parameters - most flexible
+ConvParams conv_params_make(const ConvLayer *layer, int H_in, int W_in) {
+    ConvParams p;
+    p.C_in = layer->in_channels;
+    p.C_out = layer->out_channels;
+    p.K = layer->kernel_size;
+    p.stride = layer->stride;
+    p.padding = layer->padding;
+    p.H_in = H_in;
+    p.W_in = W_in;
+    p.H_padded = H_in + 2 * p.padding;
+    p.W_padded = W_in + 2 * p.padding;
+    p.H_out = (p.H_padded - p.K) / p.stride + 1;
+    p.W_out = (p.W_padded - p.K) / p.stride + 1;
+    return p;
+}
+
+// Create ConvParams from layer and upstream gradient shape (for backward pass)
+ConvParams conv_params_from_upstream(const ConvLayer *layer, const Tensor *upstream_grad) {
+    // upstream_grad shape: (C_out, H_out, W_out)
+    const int H_out = upstream_grad->shape[1];
+    const int W_out = upstream_grad->shape[2];
+
+    // Reverse the output dimension formula: H_out = (H_padded - K) / stride + 1
+    const int H_padded = (H_out - 1) * layer->stride + layer->kernel_size;
+    const int W_padded = (W_out - 1) * layer->stride + layer->kernel_size;
+    const int H_in = H_padded - 2 * layer->padding;
+    const int W_in = W_padded - 2 * layer->padding;
+
+    return conv_params_make(layer, H_in, W_in);
+}
+
 // Xavier weight initialization
 void conv_layer_init_weights(ConvLayer *layer) {
     int kernel_squared = layer->kernel_size * layer->kernel_size;
@@ -361,18 +393,19 @@ Tensor *conv_layer_backward_stride_optimized(ConvLayer *layer, const Tensor *ups
 // Unfolds padded input tensor X_pad into matrix X_col.
 //
 // X_col = (C_in * K * K) x (H_out * W_out) matrix
-Tensor *im2col(Tensor *X_pad, int kernel_size, int stride) {
+Tensor *im2col(ConvLayer *layer, Tensor *X_pad) {
+    ConvParams p = conv_params_from_padded(layer, X_pad);
+    const int C_in = p.C_in;
+    const int H_out = p.H_out;
+    const int W_out = p.W_out;
+    const int K = p.K;
+    const int stride = p.stride;
 
     // Local parameters
-    int C_in = X_pad->shape[0];
-    int X_pad_stride_in = X_pad->strides[0];
-    int X_pad_stride_h = X_pad->strides[1];
-    int H_padded = X_pad->shape[1];
-    int W_padded = X_pad->shape[2];
-    int H_out = (H_padded - kernel_size) / stride + 1;
-    int W_out = (W_padded - kernel_size) / stride + 1;
-    int X_col_rows = C_in * kernel_size * kernel_size;
-    int X_col_cols = H_out * W_out;
+    const int X_pad_stride_in = X_pad->strides[0];
+    const int X_pad_stride_h = X_pad->strides[1];
+    const int X_col_rows = C_in * K * K;
+    const int X_col_cols = H_out * W_out;
 
     // Create output X_col tensor
     Tensor *X_col = tensor_create2d(X_col_rows, X_col_cols);
@@ -384,10 +417,10 @@ Tensor *im2col(Tensor *X_pad, int kernel_size, int stride) {
             int row_idx = 0;
             for (int c_in = 0; c_in < C_in; c_in++) {
                 float *X_pad_in_base = X_pad->data + c_in * X_pad_stride_in;
-                for (int kh = 0; kh < kernel_size; kh++) {
+                for (int kh = 0; kh < K; kh++) {
                     int h_in = out_h * stride + kh;
                     float *X_pad_row_ptr = X_pad_in_base + h_in * X_pad_stride_h;
-                    for (int kw = 0; kw < kernel_size; kw++) {
+                    for (int kw = 0; kw < K; kw++) {
                         int w_in = out_w * stride + kw;
                         X_col->data[row_idx * X_col_cols + col_idx] = X_pad_row_ptr[w_in];
                         row_idx++;
@@ -402,28 +435,36 @@ Tensor *im2col(Tensor *X_pad, int kernel_size, int stride) {
 
 Tensor *conv_layer_forward_im2col(ConvLayer *layer, const Tensor *input) {
     ConvParams p = conv_params_create(layer, input);
+    const int C_in = p.C_in;
+    const int C_out = p.C_out;
+    const int H_out = p.H_out;
+    const int W_out = p.W_out;
+    const int K = p.K;
+
+    const int Y_flat_cols = H_out * W_out;
 
     // 1. Pad and transform input
     Tensor *X_pad = tensor_pad2d(input, p.padding);
-    Tensor *X_col = im2col(X_pad, p.K, p.stride);
+    Tensor *X_col = im2col(layer, X_pad);
 
     // 2. Get view of weights in (C_out, C_in * K * K)
-    Tensor *W_row = tensor_view(layer->weights, 2, (int[]){p.C_out, p.C_in * p.K * p.K});
+    Tensor *W_row = tensor_view(layer->weights, 2, (int[]){C_out, C_in * K * K});
 
     // 3. GEMM: Y_flat = W_row * X_col
-    Tensor *Y_flat = tensor_create2d(p.C_out, p.H_out * p.W_out);
+    Tensor *Y_flat = tensor_create2d(C_out, Y_flat_cols);
     tensor_matmul(Y_flat, W_row, X_col);
 
     // 4. Add biases (broadcast across spatial dimensions)
-    for (int c = 0; c < p.C_out; c++) {
+    for (int c = 0; c < C_out; c++) {
         float bias = layer->biases->data[c];
-        for (int i = 0; i < p.H_out * p.W_out; i++) {
-            Y_flat->data[c * (p.H_out * p.W_out) + i] += bias;
+        float *Y_flat_row_ptr = Y_flat->data + c * Y_flat_cols;
+        for (int i = 0; i < Y_flat_cols; i++) {
+            Y_flat_row_ptr[i] += bias;
         }
     }
 
     // 5. Reshape to (C_out, H_out, W_out) - keeps ownership
-    Tensor *Y = tensor_reshape_inplace(Y_flat, 3, (int[]){p.C_out, p.H_out, p.W_out});
+    Tensor *Y = tensor_reshape_inplace(Y_flat, 3, (int[]){C_out, H_out, W_out});
 
     // 6. Cleanup temporary views
     tensor_free(W_row);
@@ -442,9 +483,86 @@ Tensor *conv_layer_forward_im2col(ConvLayer *layer, const Tensor *input) {
     return Y;
 }
 
-Tensor *col2im(Tensor *dX_col, int input_channels, int H_padded, int W_padded, int kernel_size,
-               int stride) {
+Tensor *col2im(Tensor *dX_col, const ConvParams *p) {
+    const int C_in = p->C_in;
+    const int H_out = p->H_out;
+    const int W_out = p->W_out;
+    const int H_padded = p->H_padded;
+    const int W_padded = p->W_padded;
+    const int K = p->K;
+    const int stride = p->stride;
+
+    float *const dX_col_data = dX_col->data;
+    const int dX_col_row_stride = dX_col->strides[0];
+
+    Tensor *dX_pad = tensor_create3d(C_in, H_padded, W_padded);
+    float *const dX_pad_data = dX_pad->data;
+    const int dX_pad_stride_in = dX_pad->strides[0];
+    const int dX_pad_stride_h = dX_pad->strides[1];
+
+    int col_idx = 0;
+    for (int out_h = 0; out_h < H_out; out_h++) {
+        for (int out_w = 0; out_w < W_out; out_w++) {
+            int row_idx = 0;
+            for (int in_c = 0; in_c < C_in; in_c++) {
+                float *const dX_pad_in_base = dX_pad_data + in_c * dX_pad_stride_in;
+                for (int kh = 0; kh < K; kh++) {
+                    const int h_in = out_h * stride + kh;
+                    float *const dX_pad_row_ptr = dX_pad_in_base + h_in * dX_pad_stride_h;
+                    for (int kw = 0; kw < K; kw++) {
+                        const int w_in = out_w * stride + kw;
+                        dX_pad_row_ptr[w_in] += dX_col_data[row_idx * dX_col_row_stride + col_idx];
+                        row_idx++;
+                    }
+                }
+            }
+            col_idx++;
+        }
+    }
+    return dX_pad;
 }
 
 Tensor *conv_layer_backward_im2col(ConvLayer *layer, const Tensor *upstream_grad) {
+    ConvParams p = conv_params_from_upstream(layer, upstream_grad);
+
+    const int C_in = p.C_in;
+    const int C_out = p.C_out;
+    const int H_out = p.H_out;
+    const int W_out = p.W_out;
+    const int K = p.K;
+
+    // 1. Reshape upstream grad to (C_out, H_out, W_out)
+    Tensor *UG_flat = tensor_view(upstream_grad, 2, (int[]){C_out, H_out * W_out});
+
+    // 2. Sum bias gradient over spatial dimensions.
+    for (int out_c = 0; out_c < C_out; out_c++) {
+        layer->grad_biases->data[out_c] = tensor_sum_2drow(UG_flat, out_c);
+    }
+
+    // 3. Weight gradient: UG_flat × X_col^T
+    //    (C_out, H_out*W_out) × (H_out*W_out, C_in*K*K) = (C_out, C_in*K*K)
+    Tensor *grad_W_flat = tensor_create2d(C_out, C_in * K * K);
+    Tensor *X_col_transpose = tensor_transpose2d(layer->input);
+    tensor_matmul(grad_W_flat, UG_flat, X_col_transpose);
+    Tensor *grad_W = tensor_view(grad_W_flat, 4, (int[]){C_out, C_in, K, K});
+    tensor_copy(layer->grad_weights, grad_W);
+
+    // 4. Input gradient: W^T × UG_flat, then col2im
+    //    (C_in*K*K, C_out) × (C_out, H_out*W_out) = (C_in*K*K, H_out*W_out)
+    Tensor *dX_col = tensor_create2d(C_in * K * K, H_out * W_out);
+    Tensor *W_row = tensor_view(layer->weights, 2, (int[]){C_out, C_in * K * K});
+    Tensor *W_row_transpose = tensor_transpose2d(W_row);
+    tensor_matmul(dX_col, W_row_transpose, UG_flat);
+    Tensor *dX_pad = col2im(dX_col, &p);
+    Tensor *dX = tensor_unpad2d(dX_pad, p.padding);
+
+    free(UG_flat);
+    free(grad_W_flat);
+    free(grad_W);
+    free(dX_col);
+    free(W_row);
+    free(W_row_transpose);
+    free(dX_pad);
+
+    return dX;
 }

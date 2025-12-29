@@ -315,6 +315,24 @@ void tensor_outer_product(Tensor *dest, const Tensor *a, const Tensor *b) {
     }
 }
 
+Tensor *tensor_transpose2d(const Tensor *t) {
+    assert(t->ndim == 2);
+
+    int m = t->shape[0];
+    int n = t->shape[1];
+
+    Tensor *transposed = tensor_create2d(n, m);
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            float val = tensor_get2d(t, i, j);
+            tensor_set2d(transposed, j, i, val);
+        }
+    }
+
+    return transposed;
+}
+
 Tensor *tensor_pad2d(const Tensor *t, int padding) {
     int C = t->shape[0];
     int H = t->shape[1];
@@ -405,4 +423,16 @@ Tensor *tensor_reshape_inplace(Tensor *t, int ndim, int *new_shape) {
 
     t->size = new_size;
     return t;
+}
+
+float tensor_sum_2drow(const Tensor *t, int row_idx) {
+    assert(row_idx < t->shape[0]);
+    const int cols = t->shape[1];
+    float *row_ptr = t->data + row_idx + cols;
+    float sum = 0.0f;
+    for (int col = 0; col < cols; col++) {
+        sum += *row_ptr;
+        row_ptr++;
+    }
+    return sum;
 }

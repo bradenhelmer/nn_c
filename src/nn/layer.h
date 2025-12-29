@@ -148,12 +148,10 @@ typedef struct {
     int padding;  // Padding
 } ConvParams;
 
-// Compute convolution parameters from layer and input dimensions
 ConvParams conv_params_create(const ConvLayer *layer, const Tensor *input);
-
-// Compute convolution parameters from layer and already-padded input dimensions
-// Use this in backward pass where layer->input is already padded
 ConvParams conv_params_from_padded(const ConvLayer *layer, const Tensor *padded_input);
+ConvParams conv_params_make(const ConvLayer *layer, int H_in, int W_in);
+ConvParams conv_params_from_upstream(const ConvLayer *layer, const Tensor *upstream_grad);
 
 // Lifecycle
 Layer *conv_layer_create(int in_channels, int out_channels, int kernel_size, int stride,
@@ -168,9 +166,8 @@ Tensor *conv_layer_backward(ConvLayer *layer, const Tensor *upstream_grad);
 Tensor *conv_layer_backward_stride_optimized(ConvLayer *layer, const Tensor *upstream_grad);
 
 // Im2Col Optimization
-Tensor *im2col(Tensor *X_pad, int kernel_size, int stride);
-Tensor *col2im(Tensor *dX_col, int input_channels, int H_padded, int W_padded, int kernel_size,
-               int stride);
+Tensor *im2col(ConvLayer *layer, Tensor *X_pad);
+Tensor *col2im(Tensor *dX_col, const ConvParams *p);
 Tensor *conv_layer_forward_im2col(ConvLayer *layer, const Tensor *input);
 Tensor *conv_layer_backward_im2col(ConvLayer *layer, const Tensor *upstream_grad);
 
