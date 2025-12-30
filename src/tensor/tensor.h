@@ -101,6 +101,9 @@ void tensor_matmul(Tensor *dest, const Tensor *a, const Tensor *b);
 // Used for computing weight gradients: dW = dz ⊗ input
 void tensor_outer_product(Tensor *dest, const Tensor *a, const Tensor *b);
 
+// dest += a ⊗ b^T
+void tensor_outer_product_accumulate(Tensor *dest, const Tensor *a, const Tensor *b);
+
 // ============================================================================
 // Reduction Operations
 // ============================================================================

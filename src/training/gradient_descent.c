@@ -7,6 +7,7 @@
 #include "../data/batch.h"
 #include "../nn/loss.h"
 #include "config.h"
+#include "utils/timing.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -230,6 +231,7 @@ TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data,
     result->loss_history = malloc(config->max_epochs * sizeof(float));
     result->accuracy_history = malloc(config->max_epochs * sizeof(float));
     result->epochs_completed = config->max_epochs;
+    Timer epoch_timer;
 
     // Pre-allocate tensor buffers
     Tensor *input = tensor_create1d(train_data->X->shape[1]);
@@ -240,6 +242,7 @@ TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data,
     BatchIterator *batch_iter = batch_iterator_create(train_data, config->batch_size);
 
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
+        timer_start(&epoch_timer);
         float epoch_loss = 0.f;
         int correct = 0;
         int samples_seen = 0;
@@ -288,6 +291,7 @@ TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data,
             }
 #endif
         }
+        timer_stop(&epoch_timer);
 
         // 6. Divide metrics by total samples and not batches.
         result->loss_history[epoch] = epoch_loss / samples_seen;
@@ -302,8 +306,9 @@ TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data,
         }
 
         if (config->verbose) {
-            printf("Epoch %d: loss=%.4f, accuracy=%.2f%%\n", epoch, result->loss_history[epoch],
-                   result->accuracy_history[epoch] * 100);
+            printf("Epoch %d: loss=%.4f, accuracy=%.2f%%, time=%.3f seconds\n", epoch,
+                   result->loss_history[epoch], result->accuracy_history[epoch] * 100,
+                   epoch_timer.elapsed);
         }
 #if PROFILING
         if (samples_seen >= 1000) {

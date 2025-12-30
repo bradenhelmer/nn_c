@@ -4,6 +4,7 @@
  */
 #include "../utils/utils.h"
 #include "layer.h"
+#include "tensor/tensor.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -86,10 +87,7 @@ Tensor *linear_layer_forward(LinearLayer *layer, const Tensor *input) {
 Tensor *linear_layer_backward(LinearLayer *layer, const Tensor *upstream_grad) {
 
     // 1. Weights -> grad_weights = upstream_grad ⊗ input^T (outer product) - accumulate
-    Tensor *grad_sample = tensor_create2d(layer->output_size, layer->input_size);
-    tensor_outer_product(grad_sample, upstream_grad, layer->input);
-    tensor_add(layer->grad_weights, layer->grad_weights, grad_sample);
-    tensor_free(grad_sample);
+    tensor_outer_product_accumulate(layer->grad_weights, upstream_grad, layer->input);
 
     // 2. Bias -> grad_biases = upstream_grad - accumulate
     tensor_add(layer->grad_biases, layer->grad_biases, upstream_grad);

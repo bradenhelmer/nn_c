@@ -239,12 +239,17 @@ void tensor_matvec_mul(Tensor *dest, const Tensor *mat, const Tensor *vec) {
     int m = mat->shape[0];
     int n = mat->shape[1];
 
+    float *dest_data = dest->data;
+    float *mat_data = mat->data;
+    float *vec_data = vec->data;
+
     for (int i = 0; i < m; i++) {
         float sum = 0.0f;
+        float *mat_row_ptr = mat_data + i * n;
         for (int j = 0; j < n; j++) {
-            sum += tensor_get2d(mat, i, j) * vec->data[j];
+            sum += mat_row_ptr[j] * vec_data[j];
         }
-        dest->data[i] = sum;
+        dest_data[i] = sum;
     }
 }
 
@@ -261,9 +266,50 @@ void tensor_matvec_mul_transpose(Tensor *dest, const Tensor *mat, const Tensor *
     // Zero dest first since we accumulate
     tensor_fill(dest, 0.0f);
 
+    float *dest_data = dest->data;
+    float *mat_data = mat->data;
+    float *vec_data = vec->data;
+
     for (int i = 0; i < m; i++) {
+        float *mat_row_ptr = mat_data + i * n;
         for (int j = 0; j < n; j++) {
-            dest->data[j] += tensor_get2d(mat, i, j) * vec->data[i];
+            dest_data[j] += mat_row_ptr[j] * vec_data[i];
+        }
+    }
+}
+
+#define BLOCK_SIZE 64
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+static void _tensor_matmul_tiled(Tensor *dest, const Tensor *a, const Tensor *b) {
+    const int m = a->shape[0];
+    const int n = b->shape[1];
+    const int k = a->shape[1];
+
+    float *dest_base = dest->data;
+    float *a_base = a->data;
+    float *b_base = b->data;
+
+    for (int tile_row = 0; tile_row < m; tile_row += BLOCK_SIZE) {
+        for (int tile_col = 0; tile_col < n; tile_col += BLOCK_SIZE) {
+            for (int tile_inner = 0; tile_inner < k; tile_inner += BLOCK_SIZE) {
+
+                int row_end = MIN(tile_row + BLOCK_SIZE, m);
+                int col_end = MIN(tile_col + BLOCK_SIZE, n);
+                int inner_end = MIN(tile_inner + BLOCK_SIZE, k);
+
+                for (int row = tile_row; row < row_end; row++) {
+                    for (int inner = tile_inner; inner < inner_end; inner++) {
+                        float a_val = a_base[row * k + inner];
+                        float *b_row = b_base + inner * n + tile_col;
+                        float *c_row = dest_base + row * n + tile_col;
+
+                        for (int col = 0; col < col_end - tile_col; col++) {
+                            c_row[col] += a_val * b_row[col];
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -273,29 +319,31 @@ void tensor_matmul(Tensor *dest, const Tensor *a, const Tensor *b) {
     assert(b->ndim == 2);
     assert(dest->ndim == 2);
 
-    const int m = a->shape[0];
-    const int n = b->shape[1];
-    const int k = a->shape[1];
+    __attribute__((unused)) const int m = a->shape[0];
+    __attribute__((unused)) const int n = b->shape[1];
+    __attribute__((unused)) const int k = a->shape[1];
 
     assert(m == dest->shape[0]);
     assert(n == dest->shape[1]);
     assert(k == b->shape[0]);
 
-    float *dest_base = dest->data;
-    float *a_base = a->data;
-    float *b_base = b->data;
+    _tensor_matmul_tiled(dest, a, b);
 
-    for (int row = 0; row < m; row++) {
-        float *dest_row_ptr = dest_base + row * n;
-        float *a_row_ptr = a_base + row * k;
-        for (int col = 0; col < n; col++) {
-            float sum = 0.0f;
-            for (int inner = 0; inner < k; inner++) {
-                sum += a_row_ptr[inner] * b_base[inner * n + col];
-            }
-            *dest_row_ptr++ = sum;
-        }
-    }
+    // float *dest_base = dest->data;
+    // float *a_base = a->data;
+    // float *b_base = b->data;
+    //
+    // for (int row = 0; row < m; row++) {
+    //     float *dest_row_ptr = dest_base + row * n;
+    //     float *a_row_ptr = a_base + row * k;
+    //     for (int col = 0; col < n; col++) {
+    //         float sum = 0.0f;
+    //         for (int inner = 0; inner < k; inner++) {
+    //             sum += a_row_ptr[inner] * b_base[inner * n + col];
+    //         }
+    //         *dest_row_ptr++ = sum;
+    //     }
+    // }
 }
 
 void tensor_outer_product(Tensor *dest, const Tensor *a, const Tensor *b) {
@@ -308,9 +356,30 @@ void tensor_outer_product(Tensor *dest, const Tensor *a, const Tensor *b) {
     int m = a->shape[0];
     int n = b->shape[0];
 
+    float *a_data = a->data;
+    float *b_data = b->data;
+    float *dest_data = dest->data;
+
     for (int i = 0; i < m; i++) {
+        float *dest_row_ptr = dest_data + i * n;
         for (int j = 0; j < n; j++) {
-            tensor_set2d(dest, i, j, a->data[i] * b->data[j]);
+            dest_row_ptr[j] = a_data[i] * b_data[j];
+        }
+    }
+}
+
+void tensor_outer_product_accumulate(Tensor *dest, const Tensor *a, const Tensor *b) {
+    int m = a->shape[0];
+    int n = b->shape[0];
+    float *dest_data = dest->data;
+    float *a_data = a->data;
+    float *b_data = b->data;
+
+    for (int i = 0; i < m; i++) {
+        float a_val = a_data[i];
+        float *dest_row = dest_data + i * n;
+        for (int j = 0; j < n; j++) {
+            dest_row[j] += a_val * b_data[j];
         }
     }
 }
@@ -322,11 +391,13 @@ Tensor *tensor_transpose2d(const Tensor *t) {
     int n = t->shape[1];
 
     Tensor *transposed = tensor_create2d(n, m);
+    float *t_data = t->data;
+    float *transposed_data = transposed->data;
 
     for (int i = 0; i < m; i++) {
+        float *t_row_ptr = t_data + i * n;
         for (int j = 0; j < n; j++) {
-            float val = tensor_get2d(t, i, j);
-            tensor_set2d(transposed, j, i, val);
+            transposed_data[j * m + i] = t_row_ptr[j];
         }
     }
 
@@ -340,11 +411,22 @@ Tensor *tensor_pad2d(const Tensor *t, int padding) {
 
     Tensor *padded = tensor_create3d(C, H + 2 * padding, W + 2 * padding);
 
+    float *t_data = t->data;
+    const int t_c_stride = t->strides[0];
+    const int t_h_stride = t->strides[1];
+
+    float *padded_data = padded->data;
+    const int padded_c_stride = padded->strides[0];
+    const int padded_h_stride = padded->strides[1];
+
     for (int c = 0; c < C; c++) {
+        float *t_c_base = t_data + c * t_c_stride;
+        float *padded_c_base = padded_data + c * padded_c_stride;
         for (int h = 0; h < H; h++) {
+            float *t_row_ptr = t_c_base + h * t_h_stride;
+            float *padded_row_ptr = padded_c_base + (h + padding) * padded_h_stride;
             for (int w = 0; w < W; w++) {
-                float val = tensor_get3d(t, c, h, w);
-                tensor_set3d(padded, c, h + padding, w + padding, val);
+                padded_row_ptr[w + padding] = t_row_ptr[w];
             }
         }
     }
@@ -359,11 +441,22 @@ Tensor *tensor_unpad2d(const Tensor *t, int padding) {
 
     Tensor *unpadded = tensor_create3d(C, H - 2 * padding, W - 2 * padding);
 
+    float *t_data = t->data;
+    const int t_c_stride = t->strides[0];
+    const int t_h_stride = t->strides[1];
+
+    float *padded_data = unpadded->data;
+    const int unpadded_c_stride = unpadded->strides[0];
+    const int unpadded_h_stride = unpadded->strides[1];
+
     for (int c = 0; c < C; c++) {
+        float *t_c_base = t_data + c * t_c_stride;
+        float *unpadded_c_base = padded_data + c * unpadded_c_stride;
         for (int h = 0; h < H - 2 * padding; h++) {
+            float *t_row_ptr = t_c_base + (h + padding) * t_h_stride;
+            float *unpadded_row_ptr = unpadded_c_base + h * unpadded_h_stride;
             for (int w = 0; w < W - 2 * padding; w++) {
-                float val = tensor_get3d(t, c, h + padding, w + padding);
-                tensor_set3d(unpadded, c, h, w, val);
+                unpadded_row_ptr[w] = t_row_ptr[w + padding];
             }
         }
     }
