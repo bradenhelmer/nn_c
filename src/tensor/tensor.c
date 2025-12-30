@@ -428,7 +428,7 @@ Tensor *tensor_reshape_inplace(Tensor *t, int ndim, int *new_shape) {
 float tensor_sum_2drow(const Tensor *t, int row_idx) {
     assert(row_idx < t->shape[0]);
     const int cols = t->shape[1];
-    float *row_ptr = t->data + row_idx + cols;
+    float *row_ptr = t->data + row_idx * cols;
     float sum = 0.0f;
     for (int col = 0; col < cols; col++) {
         sum += *row_ptr;

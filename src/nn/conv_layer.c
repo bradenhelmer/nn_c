@@ -556,13 +556,14 @@ Tensor *conv_layer_backward_im2col(ConvLayer *layer, const Tensor *upstream_grad
     Tensor *dX_pad = col2im(dX_col, &p);
     Tensor *dX = tensor_unpad2d(dX_pad, p.padding);
 
-    free(UG_flat);
-    free(grad_W_flat);
-    free(grad_W);
-    free(dX_col);
-    free(W_row);
-    free(W_row_transpose);
-    free(dX_pad);
+    tensor_free(UG_flat);
+    tensor_free(X_col_transpose);
+    tensor_free(grad_W_flat);
+    tensor_free(grad_W);
+    tensor_free(dX_col);
+    tensor_free(W_row);
+    tensor_free(W_row_transpose);
+    tensor_free(dX_pad);
 
     return dX;
 }
