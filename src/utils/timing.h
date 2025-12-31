@@ -4,7 +4,6 @@
 
 #ifndef TIMING_H
 #define TIMING_H
-#define _POSIX_C_SOURCE 199309L
 #include <time.h>
 
 typedef struct {

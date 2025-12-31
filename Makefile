@@ -3,7 +3,7 @@ CC          := clang
 NVCC        := nvcc
 STD         := -std=c99
 # Base flags used in all builds (Dependencies included via -MMD -MP)
-CFLAGS      := $(STD) -Wall -Wextra -MMD -MP
+CFLAGS      := $(STD) -Wall -Wextra -MMD -MP -D_POSIX_C_SOURCE=199309L
 
 # --- CUDA Settings ---
 CUDA_PATH   := /usr/local/cuda-13.0

@@ -4,11 +4,85 @@
 #include "gpu_nn.h"
 #include "gpu_tensor.h"
 #include "nn/layer.h"
+#include <assert.h>
 #include <cuda_runtime.h>
 #include <stdlib.h>
+#include <string.h>
 
 static size_t _compute_workspace_size(NeuralNet *cpu_nn, int batch_size) {
-    return 1;
+    size_t total = 0;
+
+    // Input: (batch, 1, 28, 28) -> fixed for MNIST.
+    int h = 28, w = 28, c = 1;
+
+    for (int i = 0; i < cpu_nn->num_layers; i++) {
+        Layer *layer = cpu_nn->layers[i];
+        size_t activation_size = 0;
+
+        switch (layer->type) {
+        case LAYER_CONV_2D: {
+            ConvLayer *cfg = (ConvLayer *)layer->layer;
+            int h_out = (h + 2 * cfg->padding - cfg->kernel_size) / cfg->stride + 1;
+            int w_out = (w + 2 * cfg->padding - cfg->kernel_size) / cfg->stride + 1;
+
+            // Output activation
+            activation_size = batch_size * cfg->out_channels * h_out * w_out * sizeof(float);
+
+            // Im2col buffer
+            int im2col_rows = cfg->in_channels * cfg->kernel_size * cfg->kernel_size;
+            int im2col_cols = h_out * w_out * batch_size;
+            size_t im2col_size = im2col_rows * im2col_cols * sizeof(float);
+            total += im2col_size;
+
+            h = h_out;
+            w = w_out;
+            c = cfg->out_channels;
+            break;
+        }
+        case LAYER_MAX_POOL: {
+            MaxPoolLayer *cfg = (MaxPoolLayer *)layer->layer;
+            int h_out = (h - cfg->pool_size) / cfg->stride + 1;
+            int w_out = (w - cfg->pool_size) / cfg->stride + 1;
+
+            activation_size = batch_size * c * h_out * w_out * sizeof(float);
+
+            h = h_out;
+            w = w_out;
+            break;
+        }
+        case LAYER_FLATTEN: {
+            int flat_size = c * h * w;
+            activation_size = batch_size * flat_size * sizeof(float);
+            // Update dimensions for next layer
+            c = flat_size;
+            h = 1;
+            w = 1;
+            break;
+        }
+        case LAYER_LINEAR: {
+            LinearLayer *cfg = (LinearLayer *)layer->layer;
+            activation_size = batch_size * cfg->output_size * sizeof(float);
+            c = cfg->output_size;
+            break;
+        }
+        case LAYER_ACTIVATION: {
+            // Same size as input
+            activation_size = batch_size * c * h * w * sizeof(float);
+            break;
+        }
+        }
+
+        // Align each allocation
+        total += (activation_size + 255) & ~((size_t)255);
+    }
+
+    // Add buffer for gradient temporaries (roughly same as activations)
+    total *= 2;
+
+    // Add safety margin
+    total += 1024 * 1024; // 1 MB buffer
+
+    return total;
 }
 
 // Lifecyle
@@ -19,13 +93,13 @@ GPUNeuralNet *gpu_nn_create_from_cpu_nn(NeuralNet *cpu_nn, int batch_size) {
     gpu_nn->batch_size = batch_size;
 
     // 1. Count parameters
-    gpu_nn->layer_param_offset = (int *)malloc(gpu_nn->num_layers);
+    gpu_nn->layer_param_offset = (int *)malloc(sizeof(int) * gpu_nn->num_layers);
     int param_count = 0;
     for (int i = 0; i < gpu_nn->num_layers; i++) {
         LayerParameters lp = layer_get_parameters(cpu_nn->layers[i]);
         if (lp.num_pairs > 0) {
             gpu_nn->layer_param_offset[i] = param_count;
-            param_count += lp.num_pairs * 2;
+            param_count += lp.num_pairs;
         } else {
             gpu_nn->layer_param_offset[i] = -1;
         }
@@ -35,6 +109,7 @@ GPUNeuralNet *gpu_nn_create_from_cpu_nn(NeuralNet *cpu_nn, int batch_size) {
 
     // 2. Allocate and copy parameters
     gpu_nn->d_params = (GPUTensor **)malloc(sizeof(GPUTensor *) * param_count);
+    gpu_nn->d_grads = (GPUTensor **)malloc(sizeof(GPUTensor *) * param_count);
     int param_idx = 0;
     for (int i = 0; i < gpu_nn->num_layers; i++) {
         LayerParameters lp = layer_get_parameters(cpu_nn->layers[i]);
@@ -175,6 +250,7 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
             GPUTensor *weights = gpu_nn->d_params[p_idx];
             GPUTensor *biases = gpu_nn->d_params[p_idx + 1];
             // current = conv_layer_forward_gpu(...);
+            break;
         }
         case LAYER_LINEAR: {
             LinearLayer *linear_layer = (LinearLayer *)layer->layer;
@@ -182,17 +258,28 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
             GPUTensor *weights = gpu_nn->d_params[p_idx];
             GPUTensor *biases = gpu_nn->d_params[p_idx + 1];
             // current = linear_layer_forward_gpu(...);
+            break;
         }
         case LAYER_ACTIVATION: {
             ActivationLayer *al = (ActivationLayer *)layer->layer;
             // current = activation_forward_gpu(...)
+            break;
         }
         case LAYER_MAX_POOL: {
             MaxPoolLayer *mpl = (MaxPoolLayer *)layer->layer;
+            if (gpu_nn->layer_aux[i] == NULL) {
+                int h_out = (current->shape[2] - mpl->pool_size) / mpl->stride + 1;
+                int w_out = (current->shape[3] - mpl->pool_size) / mpl->stride + 1;
+                int indices_size = gpu_nn->batch_size * current->shape[1] * h_out * w_out;
+                cudaMalloc(&gpu_nn->layer_aux[i], indices_size * sizeof(int));
+            }
+            int *d_indices = (int *)gpu_nn->layer_aux[i];
             // current = maxpool_forward_gpu(...)
+            break;
         }
         case LAYER_FLATTEN: {
             // current = flatten_forward_gpu(...)
+            break;
         }
         }
         gpu_nn->d_activations[i] = current;
@@ -202,11 +289,11 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
 
 void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
     GPUTensor *output = gpu_nn->d_activations[gpu_nn->num_layers - 1];
-    GPUTensor *grad = workspace_alloc_tensor(gpu_nn, output->shape);
+    GPUTensor *grad = workspace_alloc_tensor(gpu_nn, output->ndim, output->shape);
 
     // gpu_softmax_cross_entropy_backward(grad, output, target)
 
-    for (int i = gpu_nn->num_layers; i >= 0; --i) {
+    for (int i = gpu_nn->num_layers - 1; i >= 0; --i) {
         Layer *layer = gpu_nn->cpu_nn->layers[i];
         GPUTensor *layer_input = (i == 0) ? gpu_nn->input : gpu_nn->d_activations[i - 1];
         switch (layer->type) {
@@ -217,6 +304,7 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
             GPUTensor *grad_weights = gpu_nn->d_grads[p_idx];
             GPUTensor *grad_biases = gpu_nn->d_grads[p_idx + 1];
             // current = conv_layer_backward_gpu(...);
+            break;
         }
         case LAYER_LINEAR: {
             LinearLayer *linear_layer = (LinearLayer *)layer->layer;
@@ -225,17 +313,21 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
             GPUTensor *grad_weights = gpu_nn->d_grads[p_idx];
             GPUTensor *grad_biases = gpu_nn->d_grads[p_idx + 1];
             // current = linear_layer_backward_gpu(...);
+            break;
         }
         case LAYER_ACTIVATION: {
             ActivationLayer *al = (ActivationLayer *)layer->layer;
             // current = activation_backward_gpu(...)
+            break;
         }
         case LAYER_MAX_POOL: {
             MaxPoolLayer *mpl = (MaxPoolLayer *)layer->layer;
             // current = maxpool_backward_gpu(...)
+            break;
         }
         case LAYER_FLATTEN: {
             // current = flatten_backward_gpu(...)
+            break;
         }
         }
     }
@@ -254,8 +346,43 @@ void gpu_nn_predict(GPUNeuralNet *gpu_nn, Tensor *host_input, Tensor *host_outpu
 
 // Workspace functions
 void workspace_reset(GPUNeuralNet *gpu_nn) {
+    gpu_nn->workspace_offset = 0;
 }
+
 float *workspace_alloc(GPUNeuralNet *gpu_nn, size_t bytes) {
+    // Align to 256 bytes for coalesced access
+    size_t aligned = (bytes + 255) & ~((size_t)255);
+
+    assert(gpu_nn->workspace_offset + aligned <= gpu_nn->workspace_size);
+
+    float *ptr = (float *)((char *)gpu_nn->d_workspace + gpu_nn->workspace_offset);
+    gpu_nn->workspace_offset += aligned;
+
+    return ptr;
 }
-GPUTensor *workspace_alloc_tensor(GPUNeuralNet *gpu_nn, int shape[GPU_MAX_RANK]) {
+
+GPUTensor *workspace_alloc_tensor(GPUNeuralNet *gpu_nn, int ndim, int shape[GPU_MAX_RANK]) {
+    int size = 1;
+    for (int i = 0; i < ndim; i++) {
+        size *= shape[i];
+    }
+
+    // Allocate from workspace.
+    float *d_data = workspace_alloc(gpu_nn, sizeof(float) * size);
+
+    // Create host GPUTensor wrapper
+    GPUTensor *gpu_t = (GPUTensor *)malloc(sizeof(GPUTensor));
+    gpu_t->d_data = d_data;
+    gpu_t->ndim = ndim;
+    memcpy(gpu_t->shape, shape, sizeof(int) * GPU_MAX_RANK);
+
+    // Compute strides
+    gpu_t->strides[ndim - 1] = 1;
+    for (int i = ndim - 2; i >= 0; i--) {
+        gpu_t->strides[i] = gpu_t->strides[i + 1] * shape[i + 1];
+    }
+    gpu_t->size = size;
+    gpu_t->capacity = size * sizeof(float);
+    gpu_t->owns_data = 0; // Workspace owns memory, not tensor.
+    gpu_t->device_id = 0;
 }

@@ -48,6 +48,10 @@ void gpu_tensor_free(GPUTensor *gpu_t) {
 // Host <-> device tranfers
 GPUTensor *gpu_tensor_from_cpu(Tensor *cpu_t) {
     assert(cpu_t->ndim <= 4);
+    int shape[GPU_MAX_RANK] = {0};
+    for (int i = 0; i < cpu_t->ndim; i++) {
+        shape[i] = cpu_t->shape[i];
+    }
     GPUTensor *gpu_t = gpu_tensor_create(cpu_t->ndim, cpu_t->shape);
     gpu_tensor_copy_from_host(gpu_t, cpu_t->data, cpu_t->size);
     return gpu_t;
@@ -68,7 +72,6 @@ void gpu_tensor_copy_from_host_async(GPUTensor *gpu_t, float *host_ptr, size_t n
                                      cudaStream_t stream) {
     cudaMemcpyAsync((void *)gpu_t->d_data, (const void *)host_ptr, sizeof(float) * num_elements,
                     cudaMemcpyHostToDevice, stream);
-    cudaStreamSynchronize(stream);
 }
 
 void gpu_tensor_copy_to_host(float *host_ptr, GPUTensor *gpu_t, size_t num_elements) {
@@ -80,7 +83,6 @@ void gpu_tensor_copy_to_host_async(float *host_ptr, GPUTensor *gpu_t, size_t num
                                    cudaStream_t stream) {
     cudaMemcpyAsync((void *)host_ptr, (const void *)gpu_t->d_data, sizeof(float) * num_elements,
                     cudaMemcpyDeviceToHost, stream);
-    cudaStreamSynchronize(stream);
 }
 
 static int _check_gpu_new_size(__attribute__((unused)) const GPUTensor *t, int ndim,

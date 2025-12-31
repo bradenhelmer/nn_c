@@ -67,6 +67,6 @@ void gpu_nn_predict(GPUNeuralNet *gpu_nn, Tensor *host_input, Tensor *host_outpu
 // Workspace functions
 void workspace_reset(GPUNeuralNet *gpu_nn);
 float *workspace_alloc(GPUNeuralNet *gpu_nn, size_t bytes);
-GPUTensor *workspace_alloc_tensor(GPUNeuralNet *gpu_nn, int shape[GPU_MAX_RANK]);
+GPUTensor *workspace_alloc_tensor(GPUNeuralNet *gpu_nn, int ndim, int shape[GPU_MAX_RANK]);
 
 #endif /* ifndef GPU_NN_H */
