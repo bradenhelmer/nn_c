@@ -8,6 +8,7 @@
 
 #include "../activations/activations.h"
 #include "../tensor/tensor.h"
+#include "gpu/gpu_tensor.h"
 
 // =============================================================================
 // LAYER GENERICS
