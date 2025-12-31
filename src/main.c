@@ -22,12 +22,7 @@ extern void mnist_momentum();
 extern void mnist_adam();
 extern void mnist_aggressive();
 extern void mnist_conv();
-
-static void gpu_test() {
-    GPUTensor *gpu_t = gpu_tensor_create(2, (int[]){128, 128, 0, 0});
-    printf("Capacity: %zu", gpu_t->capacity);
-    gpu_tensor_free(gpu_t);
-}
+extern void mnist_conv_gpu();
 
 int main() {
     // srand(time(NULL));
@@ -39,6 +34,6 @@ int main() {
     // mnist_adam();
     // mnist_aggressive();
     // mnist_conv();
-    gpu_test();
+    mnist_conv_gpu();
     return 0;
 }

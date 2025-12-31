@@ -13,7 +13,7 @@ NVCC_FLAGS  := -x cu --std=c99 --compiler-options -Wall
 
 # --- Build-Specific Flags ---
 # Debug: No optimization, debug symbols, debug macros
-DEBUG_FLAGS := -g -O0 -DDEBUG
+DEBUG_FLAGS := -g -O0 -DDEBUG -march=native -mavx512f
 # Release: High optim, native arch, LTO, no debug macros
 OPT_FLAGS   := -O3 -march=native -mavx512f -flto -DNDEBUG
 # Flags for perf profiling
@@ -240,7 +240,10 @@ lldb-test: $(TEST_DBG_TARGET)
 	@lldb $(TEST_DBG_TARGET)
 
 memcheck: debug
-	valgrind --exit-on-first-error=yes --leak-check=full --show-leak-kinds=all --track-origins=yes $(DEBUG_TARGET)
+	valgrind --error-exitcode=1 --leak-check=full --show-leak-kinds=all --track-origins=yes $(DEBUG_TARGET)
+
+memcheck-gpu: gpu-debug
+	valgrind --error-exitcode=1 --leak-check=full --show-leak-kinds=all --track-origins=yes $(GPU_DBG_TARGET)
 
 memcheck-test: $(TEST_DBG_TARGET)
 	valgrind --leak-check=full --show-leak-kinds=all $(TEST_DBG_TARGET)

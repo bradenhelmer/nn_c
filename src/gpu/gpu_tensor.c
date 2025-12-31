@@ -12,15 +12,24 @@ static inline void _gpu_tensor_set_size_metadata(GPUTensor *gpu_t, int ndim,
 
     gpu_t->ndim = ndim;
 
-    memcpy(gpu_t->shape, shape, sizeof(int) * GPU_MAX_RANK);
+    // Only copy ndim elements to avoid reading past the end of dynamically allocated CPU tensors
+    memcpy(gpu_t->shape, shape, sizeof(int) * ndim);
+    // Zero-initialize remaining elements
+    for (int i = ndim; i < GPU_MAX_RANK; i++) {
+        gpu_t->shape[i] = 0;
+    }
 
     // Compute strides left to right
-    int strides_local[GPU_MAX_RANK];
+    int strides_local[GPU_MAX_RANK] = {0};
     strides_local[ndim - 1] = 1;
     for (int i = ndim - 2; i >= 0; i--) {
         strides_local[i] = strides_local[i + 1] * shape[i + 1];
     }
-    memcpy(gpu_t->strides, strides_local, sizeof(int) * GPU_MAX_RANK);
+    memcpy(gpu_t->strides, strides_local, sizeof(int) * ndim);
+    // Zero-initialize remaining elements
+    for (int i = ndim; i < GPU_MAX_RANK; i++) {
+        gpu_t->strides[i] = 0;
+    }
     gpu_t->size = strides_local[0] * shape[0];
     gpu_t->capacity = sizeof(float) * gpu_t->size;
 }
@@ -39,6 +48,9 @@ GPUTensor *gpu_tensor_create_like(GPUTensor *other) {
 }
 
 void gpu_tensor_free(GPUTensor *gpu_t) {
+    if (gpu_t == NULL) {
+        return;
+    }
     if (gpu_t->owns_data) {
         cudaFree(gpu_t->d_data);
     }

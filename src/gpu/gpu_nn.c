@@ -133,6 +133,9 @@ GPUNeuralNet *gpu_nn_create_from_cpu_nn(NeuralNet *cpu_nn, int batch_size) {
     // 3. Allocate activation cache
     // Actual tensors are allocated during forward pass from workspace.
     gpu_nn->d_activations = (GPUTensor **)malloc(sizeof(GPUTensor *) * gpu_nn->num_layers);
+    for (int i = 0; i < gpu_nn->num_layers; i++) {
+        gpu_nn->d_activations[i] = NULL;
+    }
 
     // 4. Allocate layer auxiliary data.
     gpu_nn->layer_aux = (void **)malloc(sizeof(void *) * gpu_nn->num_layers);
