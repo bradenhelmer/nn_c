@@ -6,9 +6,12 @@
 #include "tensor.h"
 #include "../utils/utils.h"
 #include <assert.h>
+#include <immintrin.h>
+#include <pmmintrin.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <xmmintrin.h>
 
 static inline void _tensor_set_size_metadata(Tensor *t, int ndim, int *shape) {
     t->ndim = ndim;
@@ -229,13 +232,43 @@ void tensor_elementwise_mul(Tensor *dest, const Tensor *a, const Tensor *b) {
     }
 }
 
-void tensor_matvec_mul(Tensor *dest, const Tensor *mat, const Tensor *vec) {
-    assert(mat->ndim == 2);
-    assert(vec->ndim == 1);
-    assert(dest->ndim == 1);
-    assert(mat->shape[1] == vec->shape[0]);
-    assert(dest->shape[0] == mat->shape[0]);
+static void _tensor_matvec_mul_simd(Tensor *dest, const Tensor *mat, const Tensor *vec) {
+    const int m = mat->shape[0];
+    const int n = mat->shape[1];
+    float *dest_data = dest->data;
+    float *mat_data = mat->data;
+    float *vec_data = vec->data;
+    for (int row = 0; row < m; row++) {
+        float *mat_row_ptr = mat_data + row * n;
 
+        // Vectorized accumulator
+        __m512 sum_vec = _mm512_setzero_ps();
+
+        // Process 16 at at time
+        int col = 0;
+        for (; col <= n - 16; col += 16) {
+            __m512 mat_chunk = _mm512_loadu_ps(&mat_row_ptr[col]);
+            __m512 vec_chunk = _mm512_loadu_ps(&vec_data[col]);
+            sum_vec = _mm512_fmadd_ps(mat_chunk, vec_chunk, sum_vec);
+        }
+
+        // Horizontal sum: reduce 16 partial sums to 1
+        __m256 low = _mm512_extractf32x8_ps(sum_vec, 0);
+        __m256 high = _mm512_extractf32x8_ps(sum_vec, 1);
+        __m256 sum256 = _mm256_hadd_ps(high, low); // 8 floats
+        sum256 = _mm256_hadd_ps(sum256, sum256);   // 4 floats
+        sum256 = _mm256_hadd_ps(sum256, sum256);   // 2 floats
+        sum256 = _mm256_hadd_ps(sum256, sum256);   // 1 floats
+        float sum = _mm256_cvtss_f32(sum256);
+
+        for (; col < n; col++) {
+            sum += mat_row_ptr[col] * vec_data[col];
+        }
+        dest_data[row] = sum;
+    }
+}
+
+static void _tensor_matvec_mul_trivial(Tensor *dest, const Tensor *mat, const Tensor *vec) {
     int m = mat->shape[0];
     int n = mat->shape[1];
 
@@ -251,6 +284,16 @@ void tensor_matvec_mul(Tensor *dest, const Tensor *mat, const Tensor *vec) {
         }
         dest_data[i] = sum;
     }
+}
+
+void tensor_matvec_mul(Tensor *dest, const Tensor *mat, const Tensor *vec) {
+    assert(mat->ndim == 2);
+    assert(vec->ndim == 1);
+    assert(dest->ndim == 1);
+    assert(mat->shape[1] == vec->shape[0]);
+    assert(dest->shape[0] == mat->shape[0]);
+
+    _tensor_matvec_mul_simd(dest, mat, vec);
 }
 
 void tensor_matvec_mul_transpose(Tensor *dest, const Tensor *mat, const Tensor *vec) {
@@ -281,7 +324,7 @@ void tensor_matvec_mul_transpose(Tensor *dest, const Tensor *mat, const Tensor *
 #define BLOCK_SIZE 64
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-static void _tensor_matmul_tiled(Tensor *dest, const Tensor *a, const Tensor *b) {
+static void _tensor_matmul_tiled_simd(Tensor *dest, const Tensor *a, const Tensor *b) {
     const int m = a->shape[0];
     const int n = b->shape[1];
     const int k = a->shape[1];
@@ -297,19 +340,84 @@ static void _tensor_matmul_tiled(Tensor *dest, const Tensor *a, const Tensor *b)
                 int row_end = MIN(tile_row + BLOCK_SIZE, m);
                 int col_end = MIN(tile_col + BLOCK_SIZE, n);
                 int inner_end = MIN(tile_inner + BLOCK_SIZE, k);
+                int col_count = col_end - tile_col;
 
+                for (int row = tile_row; row < row_end; row++) {
+                    float *dest_row = dest_base + row * n + tile_col;
+
+                    for (int inner = tile_inner; inner < inner_end; inner++) {
+                        float a_val = a_base[row * k + inner];
+                        float *b_row = b_base + inner * n + tile_col;
+
+                        // Broadcast a_val to all 16 lanes
+                        __m512 a_vec = _mm512_set1_ps(a_val);
+
+                        // Process 16 at a time.
+                        int col = 0;
+                        for (; col < col_count - 16; col += 16) {
+                            __m512 b_vec = _mm512_loadu_ps(&b_row[col]);
+                            __m512 dest_vec = _mm512_loadu_ps(&dest_row[col]);
+                            dest_vec = _mm512_fmadd_ps(a_vec, b_vec, dest_vec);
+                            _mm512_storeu_ps(&dest_row[col], dest_vec);
+                        }
+
+                        for (; col < col_count; col++) {
+                            dest_row[col] += a_val * b_row[col];
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+static void _tensor_matmul_tiled(Tensor *dest, const Tensor *a, const Tensor *b) {
+    const int m = a->shape[0];
+    const int n = b->shape[1];
+    const int k = a->shape[1];
+    float *dest_base = dest->data;
+    float *a_base = a->data;
+    float *b_base = b->data;
+    for (int tile_row = 0; tile_row < m; tile_row += BLOCK_SIZE) {
+        for (int tile_col = 0; tile_col < n; tile_col += BLOCK_SIZE) {
+            for (int tile_inner = 0; tile_inner < k; tile_inner += BLOCK_SIZE) {
+                int row_end = MIN(tile_row + BLOCK_SIZE, m);
+                int col_end = MIN(tile_col + BLOCK_SIZE, n);
+                int inner_end = MIN(tile_inner + BLOCK_SIZE, k);
                 for (int row = tile_row; row < row_end; row++) {
                     for (int inner = tile_inner; inner < inner_end; inner++) {
                         float a_val = a_base[row * k + inner];
                         float *b_row = b_base + inner * n + tile_col;
                         float *c_row = dest_base + row * n + tile_col;
-
                         for (int col = 0; col < col_end - tile_col; col++) {
                             c_row[col] += a_val * b_row[col];
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+static void _tensor_matmul_trivial(Tensor *dest, const Tensor *a, const Tensor *b) {
+
+    const int m = a->shape[0];
+    const int n = b->shape[1];
+    const int k = a->shape[1];
+
+    float *dest_base = dest->data;
+    float *a_base = a->data;
+    float *b_base = b->data;
+
+    for (int row = 0; row < m; row++) {
+        float *dest_row_ptr = dest_base + row * n;
+        float *a_row_ptr = a_base + row * k;
+        for (int col = 0; col < n; col++) {
+            float sum = 0.0f;
+            for (int inner = 0; inner < k; inner++) {
+                sum += a_row_ptr[inner] * b_base[inner * n + col];
+            }
+            *dest_row_ptr++ = sum;
         }
     }
 }
@@ -328,22 +436,6 @@ void tensor_matmul(Tensor *dest, const Tensor *a, const Tensor *b) {
     assert(k == b->shape[0]);
 
     _tensor_matmul_tiled(dest, a, b);
-
-    // float *dest_base = dest->data;
-    // float *a_base = a->data;
-    // float *b_base = b->data;
-    //
-    // for (int row = 0; row < m; row++) {
-    //     float *dest_row_ptr = dest_base + row * n;
-    //     float *a_row_ptr = a_base + row * k;
-    //     for (int col = 0; col < n; col++) {
-    //         float sum = 0.0f;
-    //         for (int inner = 0; inner < k; inner++) {
-    //             sum += a_row_ptr[inner] * b_base[inner * n + col];
-    //         }
-    //         *dest_row_ptr++ = sum;
-    //     }
-    // }
 }
 
 void tensor_outer_product(Tensor *dest, const Tensor *a, const Tensor *b) {

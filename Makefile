@@ -8,9 +8,9 @@ CFLAGS      := $(STD) -Wall -Wextra -MMD -MP
 # Debug: No optimization, debug symbols, debug macros
 DEBUG_FLAGS := -g -O0 -DDEBUG
 # Release: High optim, native arch, LTO, no debug macros
-OPT_FLAGS   := -O3 -march=native -flto -DNDEBUG
+OPT_FLAGS   := -O3 -march=native -mavx512f -flto -DNDEBUG
 # Flags for perf profiling
-PERF_FLAGS  := -O3 -march=native -flto -g -fno-omit-frame-pointer -fno-inline -DNDEBUG -DPROFILING=1
+PERF_FLAGS  := -O3 -march=native -mavx512f -flto -g -fno-omit-frame-pointer -fno-inline -DNDEBUG -DPROFILING=1
 # Flags for instruction level profiling
 PROF_FLAGS  := -O3 -march=native -DPROFILING=1 -fprofile-instr-generate=mnist.profraw -fcoverage-mapping
 
