@@ -8,6 +8,8 @@
 #define EPSILON 1e-6
 #define PI 3.14159265358979323846
 
+#define UNUSED __attribute__((unused))
+
 // Equality
 int float_equals(float a, float b);
 

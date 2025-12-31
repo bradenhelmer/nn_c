@@ -18,6 +18,7 @@ typedef struct {
 // ============================================================================
 // Lifecycle Management
 // ============================================================================
+Tensor *tensor_create(int ndim, int *shape);
 Tensor *tensor_create1d(int x);
 Tensor *tensor_create2d(int x, int y);
 Tensor *tensor_create3d(int x, int y, int z);

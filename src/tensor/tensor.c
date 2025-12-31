@@ -29,7 +29,7 @@ static inline void _tensor_set_size_metadata(Tensor *t, int ndim, int *shape) {
     t->size = t->strides[0] * shape[0];
 }
 
-static inline Tensor *_tensor_create(int ndim, int *shape) {
+Tensor *tensor_create(int ndim, int *shape) {
     Tensor *t = (Tensor *)malloc(sizeof(Tensor));
     _tensor_set_size_metadata(t, ndim, shape);
     t->data = (float *)calloc(t->size, sizeof(float));
@@ -38,27 +38,27 @@ static inline Tensor *_tensor_create(int ndim, int *shape) {
 }
 
 Tensor *tensor_create1d(int x) {
-    return _tensor_create(1, (int[]){x});
+    return tensor_create(1, (int[]){x});
 }
 
 Tensor *tensor_create2d(int x, int y) {
-    return _tensor_create(2, (int[]){x, y});
+    return tensor_create(2, (int[]){x, y});
 }
 
 Tensor *tensor_create3d(int x, int y, int z) {
-    return _tensor_create(3, (int[]){x, y, z});
+    return tensor_create(3, (int[]){x, y, z});
 }
 
 Tensor *tensor_create4d(int x, int y, int z, int a) {
-    return _tensor_create(4, (int[]){x, y, z, a});
+    return tensor_create(4, (int[]){x, y, z, a});
 }
 
 Tensor *tensor_zeros(int ndim, int *shape) {
-    return _tensor_create(ndim, shape);
+    return tensor_create(ndim, shape);
 }
 
 Tensor *tensor_random(int ndim, int *shape, float min, float max) {
-    Tensor *t = _tensor_create(ndim, shape);
+    Tensor *t = tensor_create(ndim, shape);
     for (int i = 0; i < t->size; i++) {
         t->data[i] = rand_rangef(min, max);
     }
@@ -113,7 +113,7 @@ void tensor_copy(Tensor *dest, const Tensor *src) {
 }
 
 Tensor *tensor_clone(const Tensor *t) {
-    Tensor *clone = _tensor_create(t->ndim, t->shape);
+    Tensor *clone = tensor_create(t->ndim, t->shape);
     memcpy(clone->data, t->data, sizeof(float) * t->size);
     return clone;
 }
@@ -268,7 +268,7 @@ static void _tensor_matvec_mul_simd(Tensor *dest, const Tensor *mat, const Tenso
     }
 }
 
-static void _tensor_matvec_mul_trivial(Tensor *dest, const Tensor *mat, const Tensor *vec) {
+UNUSED static void _tensor_matvec_mul_trivial(Tensor *dest, const Tensor *mat, const Tensor *vec) {
     int m = mat->shape[0];
     int n = mat->shape[1];
 
@@ -324,7 +324,7 @@ void tensor_matvec_mul_transpose(Tensor *dest, const Tensor *mat, const Tensor *
 #define BLOCK_SIZE 64
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-static void _tensor_matmul_tiled_simd(Tensor *dest, const Tensor *a, const Tensor *b) {
+UNUSED static void _tensor_matmul_tiled_simd(Tensor *dest, const Tensor *a, const Tensor *b) {
     const int m = a->shape[0];
     const int n = b->shape[1];
     const int k = a->shape[1];
@@ -399,7 +399,7 @@ static void _tensor_matmul_tiled(Tensor *dest, const Tensor *a, const Tensor *b)
     }
 }
 
-static void _tensor_matmul_trivial(Tensor *dest, const Tensor *a, const Tensor *b) {
+UNUSED static void _tensor_matmul_trivial(Tensor *dest, const Tensor *a, const Tensor *b) {
 
     const int m = a->shape[0];
     const int n = b->shape[1];
