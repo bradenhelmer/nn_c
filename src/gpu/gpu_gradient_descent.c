@@ -37,7 +37,6 @@ TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, Dataset *train_data,
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
         timer_start(&epoch_timer);
         float epoch_loss = 0.f;
-        int correct = 0;
         int samples_seen = 0;
 
         batch_iterator_shuffle(batch_iter);
@@ -82,12 +81,17 @@ TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, Dataset *train_data,
 
         // 6. Divide metrics by total samples and not batches.
         result->loss_history[epoch] = epoch_loss / samples_seen;
-        result->accuracy_history[epoch] = (float)correct / samples_seen;
+
+        if (val_data != NULL) {
+            result->accuracy_history[epoch] = gpu_nn_evaluate_accuracy(
+                gpu_nn, val_data, d_input_batch, h_input_pinned
+            );
+        }
 
         batch_iterator_reset(batch_iter);
 
         if (config->verbose) {
-            printf("Epoch %d: loss=%.4f, accuracy=%.2f%%, time=%.3f seconds\n", epoch,
+            printf("Epoch %d: loss=%.4f, accuracy=%.2f%%, time=%.3fs\n", epoch,
                    result->loss_history[epoch], result->accuracy_history[epoch] * 100,
                    epoch_timer.elapsed);
         }
