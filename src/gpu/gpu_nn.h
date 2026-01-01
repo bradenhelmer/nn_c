@@ -11,6 +11,7 @@ typedef struct {
     NeuralNet *cpu_nn; // Borrowed for configuration (read only)
     int num_layers;
     int batch_size; // Fixed at creation
+    float learning_rate;
 
     // Parameter storage (indexed by layer)
     GPUTensor **d_params;    // Device parameters
@@ -55,11 +56,9 @@ void gpu_nn_free(GPUNeuralNet *gpu_nn);
 GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input);
 void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target);
 void gpu_nn_zero_gradients(GPUNeuralNet *gpu_nn);
-void gpu_nn_optimizer_step(GPUNeuralNet *gpu_nn, float learning_rate);
-
-// Batch training for convenience
-float gpu_nn_train_batch(GPUNeuralNet *gpu_nn, Tensor *host_input, Tensor *host_target,
-                         int batch_size);
+void gpu_nn_scale_gradients(GPUNeuralNet *gpu_nn, float scale);
+float gpu_nn_compute_loss(GPUNeuralNet *gpu_nn, GPUTensor *prediction, GPUTensor *target);
+void gpu_nn_optimizer_step(GPUNeuralNet *gpu_nn);
 
 // Evaluation
 void gpu_nn_predict(GPUNeuralNet *gpu_nn, Tensor *host_input, Tensor *host_output, int batch_size);

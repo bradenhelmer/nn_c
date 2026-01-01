@@ -8,6 +8,7 @@
 #include "../training/gradient_descent.h"
 #include "../utils/timing.h"
 #include "config.h"
+#include "gpu/gpu_gradient_descent.h"
 #include "gpu/gpu_nn.h"
 #include "nn/layer.h"
 #include "nn/nn.h"
@@ -305,11 +306,13 @@ void mnist_conv_gpu() {
     GPUNeuralNet *mnist_conv_gpu = gpu_nn_create_from_cpu_nn(mnist_conv, config.batch_size);
     printf("Workspace size: %zu\n", mnist_conv_gpu->workspace_size);
 
-    //     Timer training_timer = {0};
-    //     timer_start(&training_timer);
-    //     TrainingResult *mnist_conv_result = train_nn_batch_opt(mnist_conv, mnist_train, NULL,
-    //     &config); timer_stop(&training_timer); printf("Training took: %.3f seconds\n",
-    //     training_timer.elapsed);
+    Timer training_timer = {0};
+    timer_start(&training_timer);
+    TrainingResult *mnist_conv_result =
+        train_nn_gpu_batch(mnist_conv_gpu, mnist_train, NULL, &config);
+    timer_stop(&training_timer);
+    printf("Training took: %.3f seconds\n", training_timer.elapsed);
+
     //
     //     printf(
     //         "\nMNIST Batched Convolutional NN training with ADAM/cosine annealing stopped at %d

@@ -1,5 +1,5 @@
 /*
- * dataset.c
+ * gradient_descent.c
  *
  * Gradient descent function implementations.
  */
