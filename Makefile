@@ -9,7 +9,7 @@ CFLAGS      := $(STD) -Wall -Wextra -MMD -MP -D_POSIX_C_SOURCE=199309L
 CUDA_PATH   := /usr/local/cuda-13.0
 CUDA_INC    := -I$(CUDA_PATH)/include
 CUDA_LIB    := -L$(CUDA_PATH)/lib64 -lcudart -lcublas
-NVCC_FLAGS  := -x cu --std=c99 --compiler-options -Wall
+NVCC_FLAGS  := -x cu --compiler-options -Wall
 
 # --- Build-Specific Flags ---
 # Debug: No optimization, debug symbols, debug macros
@@ -22,6 +22,7 @@ PERF_FLAGS  := -O3 -march=native -mavx512f -flto -g -fno-omit-frame-pointer -fno
 PROF_FLAGS  := -O3 -march=native -DPROFILING=1 -fprofile-instr-generate=mnist.profraw -fcoverage-mapping
 
 LDFLAGS     := -lm $(CUDA_LIB)
+GPU_LDFLAGS := -lm -lstdc++ $(CUDA_LIB)
 
 # --- Directory Structure ---
 SRC_DIR     := src
@@ -151,7 +152,7 @@ gpu: $(GPU_TARGET)
 $(GPU_TARGET): $(GPU_OBJS)
 	@mkdir -p $(dir $@)
 	@echo "$(BLUE)Linking GPU build $@...$(RESET)"
-	@$(CC) $(OPT_FLAGS) $(GPU_OBJS) -o $@ $(LDFLAGS)
+	@$(CC) $(OPT_FLAGS) $(GPU_OBJS) -o $@ $(GPU_LDFLAGS)
 	@echo "$(GREEN)GPU build complete: $@$(RESET)"
 
 # Compile C files with clang for GPU build (optimized)
@@ -172,7 +173,7 @@ gpu-debug: $(GPU_DBG_TARGET)
 $(GPU_DBG_TARGET): $(GPU_DBG_OBJS)
 	@mkdir -p $(dir $@)
 	@echo "$(BLUE)Linking GPU debug build $@...$(RESET)"
-	@$(CC) $(DEBUG_FLAGS) $(GPU_DBG_OBJS) -o $@ $(LDFLAGS)
+	@$(CC) $(DEBUG_FLAGS) $(GPU_DBG_OBJS) -o $@ $(GPU_LDFLAGS)
 	@echo "$(GREEN)GPU debug build complete: $@$(RESET)"
 
 # Compile C files with clang for GPU debug build

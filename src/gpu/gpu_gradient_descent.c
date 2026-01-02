@@ -8,13 +8,12 @@
 #include "gpu/gpu_nn.h"
 #include "gpu/gpu_tensor.h"
 #include "utils/timing.h"
-#include "utils/utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, Dataset *train_data,
-                                   UNUSED Dataset *val_data, TrainingConfig *config) {
+TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, Dataset *train_data, Dataset *val_data,
+                                   TrainingConfig *config) {
 
     TrainingResult *result = (TrainingResult *)malloc(sizeof(TrainingResult));
     result->loss_history = malloc(config->max_epochs * sizeof(float));
@@ -83,9 +82,8 @@ TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, Dataset *train_data,
         result->loss_history[epoch] = epoch_loss / samples_seen;
 
         if (val_data != NULL) {
-            result->accuracy_history[epoch] = gpu_nn_evaluate_accuracy(
-                gpu_nn, val_data, d_input_batch, h_input_pinned
-            );
+            result->accuracy_history[epoch] =
+                gpu_nn_evaluate_accuracy(gpu_nn, val_data, d_input_batch, h_input_pinned);
         }
 
         batch_iterator_reset(batch_iter);

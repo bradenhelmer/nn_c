@@ -1,0 +1,22 @@
+List of current to-dos for nn_c (priortity decreasing)
+------------------------------------------------------
+
+- Get GPU execution working.
+
+- Overall project restructure for better general framework use.
+
+- Dynamic workspace size calculation for GPU execution
+
+- Dynamic training for datasets of arbitrary sizes?
+
+- More comprehensive unit tests. Gtest exploration?
+
+- Benchmarking framework
+
+- Arena allocator for CPU memory.
+
+- Explore other parallelism strategies like MPI/OpenMP
+
+- Python bindings?
+
+- Operator based autodiff?
