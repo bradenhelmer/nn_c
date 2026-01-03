@@ -43,10 +43,10 @@ extern const ScalarActivationPair LINEAR_ACTIVATION;
 // =============================================================================
 
 typedef enum {
-    SIGMOID,
-    RELU,
-    TANH,
-    LINEAR,
+    ACTIVATION_SIGMOID,
+    ACTIVATION_RELU,
+    ACTIVATION_TANH,
+    ACTIVATION_LINEAR,
 } ActivationType;
 
 // Sigmoid

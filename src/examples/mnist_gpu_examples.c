@@ -26,11 +26,11 @@ void mnist_gpu_basic() {
                              .verbose = 1,
                              .optimizer = optimizer_create_sgd(0.1f)};
 
-    NeuralNet *nn_mnist = nn_create(4, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
+    NeuralNet *nn_mnist = nn_create(4, 0.5f, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
     nn_add_layer(nn_mnist, 0, linear_layer_create(784, 128));
-    nn_add_layer(nn_mnist, 1, activation_layer_create(RELU));
+    nn_add_layer(nn_mnist, 1, activation_layer_create(ACTIVATION_RELU));
     nn_add_layer(nn_mnist, 2, linear_layer_create(128, 10));
-    nn_add_layer(nn_mnist, 3, activation_layer_create(LINEAR));
+    nn_add_layer(nn_mnist, 3, activation_layer_create(ACTIVATION_LINEAR));
     optimizer_init(config.optimizer, nn_mnist);
 
     // For fully-connected networks: height=1, width=1, channels=num_features

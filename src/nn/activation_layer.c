@@ -42,16 +42,16 @@ Tensor *activation_layer_forward(ActivationLayer *layer, const Tensor *input) {
     layer->output = tensor_clone(input);
 
     switch (layer->activation_type) {
-    case SIGMOID:
+    case ACTIVATION_SIGMOID:
         tensor_sigmoid(layer->output, input);
         break;
-    case RELU:
+    case ACTIVATION_RELU:
         tensor_relu(layer->output, input);
         break;
-    case TANH:
+    case ACTIVATION_TANH:
         tensor_tanh_activation(layer->output, input);
         break;
-    case LINEAR:
+    case ACTIVATION_LINEAR:
         tensor_linear(layer->output, input);
         break;
     }
@@ -64,16 +64,16 @@ Tensor *activation_layer_backward(ActivationLayer *layer, const Tensor *upstream
     // Note: derivatives expect the activated output (e.g., sigmoid derivative uses s*(1-s))
     Tensor *grad_input = tensor_clone(layer->output);
     switch (layer->activation_type) {
-    case SIGMOID:
+    case ACTIVATION_SIGMOID:
         tensor_sigmoid_derivative(grad_input, layer->output);
         break;
-    case RELU:
+    case ACTIVATION_RELU:
         tensor_relu_derivative(grad_input, layer->output);
         break;
-    case TANH:
+    case ACTIVATION_TANH:
         tensor_tanh_derivative(grad_input, layer->output);
         break;
-    case LINEAR:
+    case ACTIVATION_LINEAR:
         tensor_linear_derivative(grad_input, layer->output);
         break;
     }

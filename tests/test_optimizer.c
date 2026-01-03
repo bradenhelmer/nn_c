@@ -19,12 +19,12 @@
 // Create a simple 4-layer NeuralNet for testing (2 linear + 2 activation)
 static NeuralNet *create_test_nn(void) {
     // Create a simple network: 3 -> Linear(4) -> Tanh -> Linear(2) -> Sigmoid
-    NeuralNet *nn = nn_create(4, 0.01f, TENSOR_MSE_LOSS, NULL);
+    NeuralNet *nn = nn_create(4, 0.01f, LOSS_MSE, NULL);
 
     nn_add_layer(nn, 0, linear_layer_create(3, 4));
-    nn_add_layer(nn, 1, activation_layer_create(TANH));
+    nn_add_layer(nn, 1, activation_layer_create(ACTIVATION_TANH));
     nn_add_layer(nn, 2, linear_layer_create(4, 2));
-    nn_add_layer(nn, 3, activation_layer_create(SIGMOID));
+    nn_add_layer(nn, 3, activation_layer_create(ACTIVATION_SIGMOID));
 
     return nn;
 }

@@ -12,14 +12,14 @@
 #include <stdlib.h>
 
 // Lifecycle
-NeuralNet *nn_create(int num_layers, float learning_rate, TensorLossPair loss_pair,
+NeuralNet *nn_create(int num_layers, float learning_rate, LossType loss_type,
                      Classifier classifier) {
     assert(num_layers > 1);
     NeuralNet *nn = (NeuralNet *)malloc(sizeof(NeuralNet));
     nn->num_layers = num_layers;
     nn->layers = (Layer **)malloc(sizeof(Layer *) * num_layers);
     nn->learning_rate = learning_rate;
-    nn->loss = loss_pair;
+    nn->loss_type = loss_type;
     nn->classifier = classifier;
     return nn;
 }
@@ -54,7 +54,7 @@ void nn_backward(NeuralNet *nn, const Tensor *target) {
     // 1. Compute initial gradient from loss
     Tensor *output = layer_get_output(nn->layers[nn->num_layers - 1]);
     Tensor *gradient = tensor_clone(output);
-    nn->loss.loss_derivative(gradient, output, target);
+    nn_loss_derivative(nn, gradient, output, target);
 
     // 2. Propagate backward through layers
     Tensor *current_grad = gradient;
@@ -71,6 +71,28 @@ void nn_backward(NeuralNet *nn, const Tensor *target) {
         tensor_free(current_grad);
     }
     tensor_free(gradient);
+}
+
+float nn_loss(NeuralNet *nn, const Tensor *prediction, const Tensor *target) {
+    switch (nn->loss_type) {
+    case LOSS_MSE:
+        return tensor_mse(prediction, target);
+    case LOSS_CROSS_ENTROPY:
+        return tensor_cross_entropy(prediction, target);
+    case LOSS_SOFTMAX_CROSS_ENTROPY:
+        return tensor_softmax_cross_entropy(prediction, target);
+    }
+}
+void nn_loss_derivative(NeuralNet *nn, Tensor *result, const Tensor *prediction,
+                        const Tensor *target) {
+    switch (nn->loss_type) {
+    case LOSS_MSE:
+        tensor_mse_derivative(result, prediction, target);
+    case LOSS_CROSS_ENTROPY:
+        tensor_cross_entropy_derivative(result, prediction, target);
+    case LOSS_SOFTMAX_CROSS_ENTROPY:
+        tensor_softmax_cross_entropy_derivative(result, prediction, target);
+    }
 }
 
 void nn_zero_gradients(NeuralNet *nn) {

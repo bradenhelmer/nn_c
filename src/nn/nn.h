@@ -16,12 +16,12 @@ typedef struct {
     Layer **layers;
     int num_layers;
     float learning_rate;
-    TensorLossPair loss;
+    LossType loss_type;
     Classifier classifier;
 } NeuralNet;
 
 // Lifecycle
-NeuralNet *nn_create(int num_layers, float learning_rate, TensorLossPair loss_pair,
+NeuralNet *nn_create(int num_layers, float learning_rate, LossType loss_type,
                      Classifier classifier);
 void nn_add_layer(NeuralNet *nn, int index, Layer *layer);
 void nn_free(NeuralNet *nn);
@@ -29,7 +29,9 @@ void nn_free(NeuralNet *nn);
 // Forward/Backward
 Tensor *nn_forward(NeuralNet *nn, const Tensor *input);
 void nn_backward(NeuralNet *nn, const Tensor *target);
-float nn_loss(NeuralNet *nn, const Tensor *target);
+float nn_loss(NeuralNet *nn, const Tensor *prediction, const Tensor *target);
+void nn_loss_derivative(NeuralNet *nn, Tensor *gradient, const Tensor *output,
+                        const Tensor *target);
 
 // Training
 void nn_zero_gradients(NeuralNet *nn);

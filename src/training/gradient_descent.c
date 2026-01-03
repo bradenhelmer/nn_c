@@ -106,7 +106,7 @@ TrainingResult *train_nn(NeuralNet *nn, Dataset *train_data, UNUSED Dataset *val
             Tensor *prediction = nn_forward(nn, input);
             nn->classifier(classification, prediction);
 
-            epoch_loss += nn->loss.loss(prediction, target);
+            epoch_loss += nn_loss(nn, prediction, target);
             if (tensor_equals(classification, target)) {
                 correct++;
             }
@@ -177,7 +177,7 @@ TrainingResult *train_nn_batch(NeuralNet *nn, Dataset *train_data, UNUSED Datase
                 Tensor *prediction = nn_forward(nn, input);
                 nn->classifier(classification, prediction);
 
-                epoch_loss += nn->loss.loss(prediction, target);
+                epoch_loss += nn_loss(nn, prediction, target);
                 if (tensor_equals(classification, target)) {
                     correct++;
                 }
@@ -263,7 +263,7 @@ TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data, UNUSED Da
                 Tensor *prediction = nn_forward(nn, spatial_input);
                 nn->classifier(classification, prediction);
 
-                epoch_loss += nn->loss.loss(prediction, target);
+                epoch_loss += nn_loss(nn, prediction, target);
                 if (tensor_equals(classification, target)) {
                     correct++;
                 }

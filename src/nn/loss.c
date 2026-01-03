@@ -30,9 +30,6 @@ void tensor_mse_derivative(Tensor *result, const Tensor *prediction, const Tenso
     }
 }
 
-const TensorLossPair TENSOR_MSE_LOSS = {.loss = tensor_mse,
-                                        .loss_derivative = tensor_mse_derivative};
-
 #define EPSILON 1e-7f
 
 float tensor_cross_entropy(const Tensor *prediction, const Tensor *target) {
@@ -52,9 +49,6 @@ void tensor_cross_entropy_derivative(Tensor *result, const Tensor *prediction,
         result->data[i] = -target->data[i] / (prediction->data[i] + EPSILON);
     }
 }
-
-const TensorLossPair TENSOR_CROSS_ENTROPY_LOSS = {
-    .loss = tensor_cross_entropy, .loss_derivative = tensor_cross_entropy_derivative};
 
 // Helper: compute softmax on a 1D tensor in-place
 static void _tensor_softmax(Tensor *result, const Tensor *input) {
@@ -99,7 +93,3 @@ void tensor_softmax_cross_entropy_derivative(Tensor *result, const Tensor *logit
         result->data[i] -= target->data[i];
     }
 }
-
-const TensorLossPair TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS = {
-    .loss = tensor_softmax_cross_entropy,
-    .loss_derivative = tensor_softmax_cross_entropy_derivative};

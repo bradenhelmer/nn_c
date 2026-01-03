@@ -27,11 +27,11 @@ void nn_learning_xor() {
     TrainingConfig config = {.max_epochs = 10000, .tolerance = 1e-7, .batch_size = 1, .verbose = 0};
     Dataset *xor_data = create_xor_gate_dataset();
 
-    NeuralNet *nn_xor = nn_create(4, 0.5f, TENSOR_MSE_LOSS, xor_classifier);
+    NeuralNet *nn_xor = nn_create(4, 0.5f, LOSS_MSE, xor_classifier);
     nn_add_layer(nn_xor, 0, linear_layer_create(2, 2));
-    nn_add_layer(nn_xor, 1, activation_layer_create(SIGMOID));
+    nn_add_layer(nn_xor, 1, activation_layer_create(ACTIVATION_SIGMOID));
     nn_add_layer(nn_xor, 2, linear_layer_create(2, 1));
-    nn_add_layer(nn_xor, 3, activation_layer_create(SIGMOID));
+    nn_add_layer(nn_xor, 3, activation_layer_create(ACTIVATION_SIGMOID));
 
     TrainingResult *result_xor = train_nn(nn_xor, xor_data, NULL, &config);
 
@@ -54,11 +54,11 @@ void nn_learning_xor_batched() {
     TrainingConfig config = {.max_epochs = 50000, .tolerance = 1e-7, .batch_size = 1, .verbose = 0};
     Dataset *xor_data = create_xor_gate_dataset();
 
-    NeuralNet *nn_xor = nn_create(4, 0.3f, TENSOR_MSE_LOSS, xor_classifier);
+    NeuralNet *nn_xor = nn_create(4, 0.3f, LOSS_MSE, xor_classifier);
     nn_add_layer(nn_xor, 0, linear_layer_create(2, 2));
-    nn_add_layer(nn_xor, 1, activation_layer_create(SIGMOID));
+    nn_add_layer(nn_xor, 1, activation_layer_create(ACTIVATION_SIGMOID));
     nn_add_layer(nn_xor, 2, linear_layer_create(2, 1));
-    nn_add_layer(nn_xor, 3, activation_layer_create(SIGMOID));
+    nn_add_layer(nn_xor, 3, activation_layer_create(ACTIVATION_SIGMOID));
 
     TrainingResult *result_xor = train_nn_batch(nn_xor, xor_data, NULL, &config);
 
