@@ -156,7 +156,7 @@ Conv2DParams conv2d_params_from_upstream(const Conv2DLayer *layer, const Tensor 
 
 // Lifecycle
 Layer *conv2d_layer_create(int in_channels, int out_channels, int kernel_size, int stride,
-                         int padding);
+                           int padding);
 void conv2d_layer_free(Conv2DLayer *layer);
 void conv2d_layer_init_weights(Conv2DLayer *layer);
 

@@ -177,9 +177,19 @@ int gpu_tensor_is_contiguous(GPUTensor *gpu_t) {
     return 1;
 }
 
-// Device <-> device opeations
-// void gpu_tensor_copy(float *dest, float *src);
-// void gpu_tensor_async(float *dest, float *src, cudaStream_t stream);
+// Device <-> device operations
+void gpu_tensor_copy(GPUTensor *dest, const GPUTensor *src) {
+    assert(dest != NULL && src != NULL);
+    assert(dest->size == src->size && "Tensor size mismatch in gpu_tensor_copy");
+    cudaMemcpy(dest->d_data, src->d_data, src->size * sizeof(float), cudaMemcpyDeviceToDevice);
+}
+
+void gpu_tensor_copy_async(GPUTensor *dest, const GPUTensor *src, cudaStream_t stream) {
+    assert(dest != NULL && src != NULL);
+    assert(dest->size == src->size && "Tensor size mismatch in gpu_tensor_copy_async");
+    cudaMemcpyAsync(dest->d_data, src->d_data, src->size * sizeof(float), cudaMemcpyDeviceToDevice,
+                    stream);
+}
 
 void gpu_tensor_print_shape(const GPUTensor *gpu_t) {
     int i;

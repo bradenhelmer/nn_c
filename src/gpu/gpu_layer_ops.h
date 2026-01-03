@@ -4,6 +4,7 @@
  */
 #ifndef GPU_LAYER_OPS_H
 #define GPU_LAYER_OPS_H
+#include "activations/activations.h"
 #include "gpu/gpu_tensor.h"
 #include <cublas_v2.h>
 
@@ -15,7 +16,8 @@ extern "C" {
 GPUTensor *gpu_linear_layer_forward(cublasHandle_t cublas, GPUTensor *Y, const GPUTensor *X,
                                     const GPUTensor *W, const GPUTensor *b);
 GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const GPUTensor *X,
-                                     const GPUTensor *W, const GPUTensor *dW, const GPUTensor *db);
+                                     const GPUTensor *dX, const GPUTensor *W, const GPUTensor *dW,
+                                     const GPUTensor *db);
 
 // Conv2D Layer
 
@@ -24,7 +26,8 @@ GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const
 // Flatten Layer
 
 // Activation Layer
-GPUTensor *gpu_activation_layer_forward(GPUTensor *input);
+GPUTensor *gpu_activation_layer_forward(GPUTensor *input, ActivationType activation_type);
+GPUTensor *gpu_activation_layer_backward(GPUTensor *upstream_grad, ActivationType activation_type);
 
 // Loss functions
 void gpu_softmax_cross_entropy_loss(float *d_losses, const GPUTensor *prediction,

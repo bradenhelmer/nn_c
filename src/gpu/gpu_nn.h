@@ -28,11 +28,9 @@ typedef struct {
     int num_params;          // Total parameter tensors
     int *layer_param_offset; // layer_param_idx[2] = 4 means layer 2's weights start at d_params[4]
 
-    // Activation Cache (one per layer)
-    GPUTensor **d_activations; // Output of each layer for backward pass;
-
-    // Initial input for layer 0
-    GPUTensor *input;
+    // Input/Output Cache (one per layer)
+    GPUTensor **d_inputs;  // Input to each layer for backward pass
+    GPUTensor **d_outputs; // Output of each layer for backward pass
 
     // LAYER_CONV_2D:   NULL (im2col from workspace)
     // LAYER_MAX_POOL:  int* d_max_indices

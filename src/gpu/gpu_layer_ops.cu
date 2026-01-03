@@ -68,7 +68,8 @@ static void _gpu_sum_columns(float *db, const float *dY, int batch_size, int out
 }
 
 GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const GPUTensor *X,
-                                     const GPUTensor *W, const GPUTensor *dW, const GPUTensor *db) {
+                                     const GPUTensor *dX, const GPUTensor *W, const GPUTensor *dW,
+                                     const GPUTensor *db) {
     const int batch_size = X->shape[0];
     const int out_features = dW->shape[0];
     const int in_features = dW->shape[1];
@@ -91,73 +92,88 @@ GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const
     _gpu_sum_columns(db->d_data, dY->d_data, batch_size, out_features, beta_accum);
 
     // 3. Input gradient: dX = dY @ W
-    int dX_shape[4] = {batch_size, in_features, 0, 0};
-    GPUTensor *dX = gpu_tensor_create(2, dX_shape);
     cublasSgemm_v2(cublas, CUBLAS_OP_N, CUBLAS_OP_N, in_features, batch_size, out_features, &alpha,
                    W->d_data, in_features, dY->d_data, out_features, &beta_zero, dX->d_data,
                    in_features);
-    return dX;
+
+    return (GPUTensor *)dX;
 }
 
-#define FMAX(a, b) (a) > (b) ? (a) : (b)
-
-__global__ void softmax_cross_entropy_loss_kernel(float *d_losses, const float *prediction,
-                                                  const float *target, const int batch_size,
-                                                  const int num_classes) {
-    extern __shared__ float shared_max[];
-    extern __shared__ float shared_sum[];
-    extern __shared__ float softmax[];
-
-    int global_i = threadIdx.x;
-
-    float val = FLT_MIN;
-    if (global_i < batch_size) {
-        val = prediction[global_i];
+// Activation Layer
+GPUTensor *gpu_activation_layer_forward(GPUTensor *input, ActivationType activation_type) {
+    switch (activation_type) {
+    case ACTIVATION_SIGMOID:
+    case ACTIVATION_RELU:
+    case ACTIVATION_TANH:
+    case ACTIVATION_LINEAR:
+        break;
     }
-    shared_max[global_i] = val;
-    __syncthreads();
-
-    // Parallel reduction to find max value
-    int stride = blockDim.x / 2;
-    while (stride > 0) {
-        if (global_i < stride) {
-            shared_max[global_i] = FMAX(shared_max[global_i], shared_max[global_i + stride]);
-        }
-        __syncthreads();
-        stride /= 2;
-    }
-
-    float block_max = shared_max[0];
-
-    float exp_val = 0.0f;
-    if (global_i < batch_size) {
-        exp_val = expf(val - block_max);
-    }
-    shared_sum[global_i] = val;
-    __syncthreads();
-
-    // Parallel reduction for sum similar to reduction for max
-    stride = blockDim.x / 2;
-    while (stride > 0) {
-        if (global_i > stride) {
-            shared_sum[global_i] += shared_sum[global_i + stride];
-        }
-        __syncthreads();
-        stride /= 2;
-    }
-
-    // Normalize by sum
-    float block_sum = shared_sum[0];
-    if (global_i < batch_size) {
-        softmax[global_i] = exp_val / block_sum;
-    }
-
-    // Do cross entropy.
-
+    return NULL;
 }
 
-// Loss functions
-void gpu_softmax_cross_entropy_loss(float *d_losses, const GPUTensor *prediction,
-                                    const GPUTensor *target, const int batch_size,
-                                    const int num_classes) {
+GPUTensor *gpu_activation_layer_backward(GPUTensor *upstream_grad, ActivationType activation_type) {
+    return NULL;
 }
+
+// #define FMAX(a, b) (a) > (b) ? (a) : (b)
+//
+// __global__ void softmax_cross_entropy_loss_kernel(float *d_losses, const float *prediction,
+//                                                   const float *target, const int batch_size,
+//                                                   const int num_classes) {
+//     extern __shared__ float shared_max[];
+//     extern __shared__ float shared_sum[];
+//     extern __shared__ float softmax[];
+//
+//     int global_i = threadIdx.x;
+//
+//     float val = FLT_MIN;
+//     if (global_i < batch_size) {
+//         val = prediction[global_i];
+//     }
+//     shared_max[global_i] = val;
+//     __syncthreads();
+//
+//     // Parallel reduction to find max value
+//     int stride = blockDim.x / 2;
+//     while (stride > 0) {
+//         if (global_i < stride) {
+//             shared_max[global_i] = FMAX(shared_max[global_i], shared_max[global_i + stride]);
+//         }
+//         __syncthreads();
+//         stride /= 2;
+//     }
+//
+//     float block_max = shared_max[0];
+//
+//     float exp_val = 0.0f;
+//     if (global_i < batch_size) {
+//         exp_val = expf(val - block_max);
+//     }
+//     shared_sum[global_i] = val;
+//     __syncthreads();
+//
+//     // Parallel reduction for sum similar to reduction for max
+//     stride = blockDim.x / 2;
+//     while (stride > 0) {
+//         if (global_i > stride) {
+//             shared_sum[global_i] += shared_sum[global_i + stride];
+//         }
+//         __syncthreads();
+//         stride /= 2;
+//     }
+//
+//     // Normalize by sum
+//     float block_sum = shared_sum[0];
+//     if (global_i < batch_size) {
+//         softmax[global_i] = exp_val / block_sum;
+//     }
+//
+//     // Do cross entropy.
+//
+// }
+//
+// // Loss functions
+// void gpu_softmax_cross_entropy_loss(float *d_losses, const GPUTensor *prediction,
+//                                     const GPUTensor *target, const int batch_size,
+//                                     const int num_classes) {
+// }

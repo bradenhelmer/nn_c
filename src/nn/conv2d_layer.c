@@ -11,7 +11,7 @@
 #include <string.h>
 
 Layer *conv2d_layer_create(int in_channels, int out_channels, int kernel_size, int stride,
-                         int padding) {
+                           int padding) {
     Conv2DLayer *cl = (Conv2DLayer *)malloc(sizeof(Conv2DLayer));
     cl->in_channels = in_channels;
     cl->out_channels = out_channels;

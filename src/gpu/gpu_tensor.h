@@ -53,9 +53,9 @@ GPUTensor *gpu_tensor_view(GPUTensor *gpu_t, int ndim, int new_shape[GPU_MAX_RAN
 GPUTensor *gpu_tensor_flatten(GPUTensor *gpu_t);
 int gpu_tensor_is_contiguous(GPUTensor *gpu_t);
 
-// Device <-> device opeations
-void gpu_tensor_copy(float *dest, float *src);
-void gpu_tensor_async(float *dest, float *src, cudaStream_t stream);
+// Device <-> device operations
+void gpu_tensor_copy(GPUTensor *dest, const GPUTensor *src);
+void gpu_tensor_copy_async(GPUTensor *dest, const GPUTensor *src, cudaStream_t stream);
 
 // Utils
 void gpu_tensor_print_shape(const GPUTensor *gpu_t);

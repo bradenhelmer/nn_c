@@ -4,6 +4,11 @@ List of current to-dos for nn_c (priortity decreasing)
 - Get GPU execution working.
 
 - Overall project restructure for better general framework use.
+    - Eventual python bindings.
+    - Heterogenious hardware, rocm, metal, etc...
+    - General project cleanup and reorganization, current strucutre is a bit messy in my opinion.
+    - Keeping modularity in mind for future contributors.
+    - Unified function signature conventions for activations/layers/loss
 
 - Decouple adam optimizer from GPUNeuralNet
 

@@ -13,7 +13,6 @@
 static size_t _compute_workspace_size(NeuralNet *cpu_nn, int batch_size, InputShape input_shape) {
     size_t total = 0;
 
-    // Use dynamic input shape instead of hardcoded MNIST dimensions
     int h = input_shape.height;
     int w = input_shape.width;
     int c = input_shape.channels;
@@ -134,11 +133,13 @@ GPUNeuralNet *gpu_nn_create_from_cpu_nn(NeuralNet *cpu_nn, int batch_size, Input
         layer_parameters_free(&lp);
     }
 
-    // 3. Allocate activation cache
+    // 3. Allocate input/output caches
     // Actual tensors are allocated during forward pass from workspace.
-    gpu_nn->d_activations = (GPUTensor **)malloc(sizeof(GPUTensor *) * gpu_nn->num_layers);
+    gpu_nn->d_inputs = (GPUTensor **)malloc(sizeof(GPUTensor *) * gpu_nn->num_layers);
+    gpu_nn->d_outputs = (GPUTensor **)malloc(sizeof(GPUTensor *) * gpu_nn->num_layers);
     for (int i = 0; i < gpu_nn->num_layers; i++) {
-        gpu_nn->d_activations[i] = NULL;
+        gpu_nn->d_inputs[i] = NULL;
+        gpu_nn->d_outputs[i] = NULL;
     }
 
     // 4. Allocate layer auxiliary data.
@@ -218,20 +219,22 @@ void gpu_nn_free(GPUNeuralNet *gpu_nn) {
     // Free layer param offset array
     free(gpu_nn->layer_param_offset);
 
-    // Free activation tensors and layer auxiliary data if present.
+    // Free input/output cache tensors and layer auxiliary data if present.
     for (int i = 0; i < gpu_nn->num_layers; i++) {
-        GPUTensor *d_activation = gpu_nn->d_activations[i];
-        if (d_activation != NULL) {
-            gpu_tensor_free(d_activation);
+        if (gpu_nn->d_inputs[i] != NULL) {
+            gpu_tensor_free(gpu_nn->d_inputs[i]);
         }
-        gpu_tensor_free(gpu_nn->d_activations[i]);
+        if (gpu_nn->d_outputs[i] != NULL) {
+            gpu_tensor_free(gpu_nn->d_outputs[i]);
+        }
         void *layer_auxiliary_data = gpu_nn->layer_aux[i];
         if (layer_auxiliary_data != NULL) {
             free(layer_auxiliary_data);
         }
     }
     // Free storage pointers
-    free(gpu_nn->d_activations);
+    free(gpu_nn->d_inputs);
+    free(gpu_nn->d_outputs);
     free(gpu_nn->layer_aux);
 
     // Free workspace device memory
@@ -246,14 +249,21 @@ void gpu_nn_free(GPUNeuralNet *gpu_nn) {
 // Training
 GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
 
-    // Cache initial input
-    gpu_nn->input = input;
-
     workspace_reset(gpu_nn);
     GPUTensor *current = input;
 
     for (int i = 0; i < gpu_nn->num_layers; i++) {
         Layer *layer = gpu_nn->cpu_nn->layers[i];
+
+        // Cache input (persistent copy for backward pass)
+        GPUTensor **input_cache_ptr = &gpu_nn->d_inputs[i];
+        if (*input_cache_ptr != NULL) {
+            gpu_tensor_free(*input_cache_ptr);
+        }
+        // Allocate persistent storage and copy data from workspace
+        *input_cache_ptr = gpu_tensor_create_like(current);
+        gpu_tensor_copy(*input_cache_ptr, current);
+
         switch (layer->type) {
         case LAYER_CONV_2D: {
             // ConvLayer *conv_layer = (ConvLayer *)layer->layer;
@@ -264,16 +274,19 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
             break;
         }
         case LAYER_LINEAR: {
-            LinearLayer *linear_layer = (LinearLayer *)layer->layer;
+            LinearLayer *ll = (LinearLayer *)gpu_nn->cpu_nn->layers[i]->layer;
             int p_idx = gpu_nn->layer_param_offset[i];
             GPUTensor *weights = gpu_nn->d_params[p_idx];
             GPUTensor *biases = gpu_nn->d_params[p_idx + 1];
-            current = gpu_linear_layer_forward(gpu_nn->cublas, current, current, weights, biases);
+            GPUTensor *output = workspace_alloc_tensor(
+                gpu_nn, 4, (int[]){gpu_nn->batch_size, ll->output_size, 1, 1});
+
+            current = gpu_linear_layer_forward(gpu_nn->cublas, output, current, weights, biases);
             break;
         }
         case LAYER_ACTIVATION: {
-            // ActivationLayer *al = (ActivationLayer *)layer->layer;
-            // // current = activation_forward_gpu(...)
+            ActivationLayer *al = (ActivationLayer *)layer->layer;
+            current = gpu_activation_layer_forward(current, al->activation_type);
             break;
         }
         case LAYER_MAX_POOL: {
@@ -293,20 +306,31 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
             break;
         }
         }
-        gpu_nn->d_activations[i] = current;
+
+        // Cache output (persistent copy for backward pass)
+        GPUTensor **output_cache_ptr = &gpu_nn->d_outputs[i];
+        if (*output_cache_ptr != NULL) {
+            gpu_tensor_free(*output_cache_ptr);
+        }
+        // Allocate persistent storage and copy data from workspace
+        *output_cache_ptr = gpu_tensor_create_like(current);
+        gpu_tensor_copy(*output_cache_ptr, current);
     }
     return current;
 }
 
 void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
-    GPUTensor *output = gpu_nn->d_activations[gpu_nn->num_layers - 1];
+    // Reset workspace to reuse memory from forward pass
+    workspace_reset(gpu_nn);
+
+    GPUTensor *output = gpu_nn->d_outputs[gpu_nn->num_layers - 1];
     GPUTensor *grad = workspace_alloc_tensor(gpu_nn, output->ndim, output->shape);
 
     // gpu_softmax_cross_entropy_backward(grad, output, target)
 
     for (int i = gpu_nn->num_layers - 1; i >= 0; --i) {
         Layer *layer = gpu_nn->cpu_nn->layers[i];
-        GPUTensor *layer_input = (i == 0) ? gpu_nn->input : gpu_nn->d_activations[i - 1];
+        GPUTensor *layer_input = gpu_nn->d_inputs[i];
         switch (layer->type) {
         case LAYER_CONV_2D: {
             // ConvLayer *conv_layer = (ConvLayer *)layer->layer;
@@ -318,11 +342,17 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
             break;
         }
         case LAYER_LINEAR: {
+            LinearLayer *ll = (LinearLayer *)gpu_nn->cpu_nn->layers[i]->layer;
             int p_idx = gpu_nn->layer_param_offset[i];
             GPUTensor *weights = gpu_nn->d_params[p_idx];
             GPUTensor *grad_weights = gpu_nn->d_grads[p_idx];
             GPUTensor *grad_biases = gpu_nn->d_grads[p_idx + 1];
-            grad = gpu_linear_layer_backward(gpu_nn->cublas, grad, layer_input, weights,
+            GPUTensor *dX =
+                workspace_alloc_tensor(gpu_nn, 4,
+                                       (int[]){gpu_nn->batch_size, ll->input_size, 1,
+                                               1}); // Temp dX for use inside backward pass.
+
+            grad = gpu_linear_layer_backward(gpu_nn->cublas, grad, layer_input, dX, weights,
                                              grad_weights, grad_biases);
             break;
         }
