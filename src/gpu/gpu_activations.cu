@@ -26,7 +26,7 @@ void gpu_tensor_relu(GPUTensor *output, GPUTensor *input) {
 }
 
 static __device__ float _relu_scalar_derivative(float relu_output) {
-    return relu_output > 0.f ? 1.f : 0.f;
+    return relu_output > 0.0f ? 1.0f : 0.0f;
 }
 
 __global__ void relu_derivative_kernel(float *output, float *relu_output, const int size) {
@@ -43,7 +43,7 @@ void gpu_tensor_relu_derivative(GPUTensor *output, GPUTensor *relu_output) {
 }
 
 static __device__ float _sigmoid_scalar(float x) {
-    return 1.f / (1.f + expf(-(x)));
+    return 1.0f / (1.0f + expf(-(x)));
 }
 
 __global__ void sigmoid_kernel(float *output, float *input, const int size) {
