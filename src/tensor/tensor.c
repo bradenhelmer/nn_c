@@ -427,9 +427,9 @@ void tensor_matmul(Tensor *dest, const Tensor *a, const Tensor *b) {
     assert(b->ndim == 2);
     assert(dest->ndim == 2);
 
-    __attribute__((unused)) const int m = a->shape[0];
-    __attribute__((unused)) const int n = b->shape[1];
-    __attribute__((unused)) const int k = a->shape[1];
+    UNUSED const int m = a->shape[0];
+    UNUSED const int n = b->shape[1];
+    UNUSED const int k = a->shape[1];
 
     assert(m == dest->shape[0]);
     assert(n == dest->shape[1]);
@@ -572,7 +572,7 @@ Tensor *tensor_unflatten(const Tensor *t, int ndim, int *new_shape) {
     return tensor_view(t, ndim, new_shape);
 }
 
-static int _check_new_size(__attribute__((unused)) const Tensor *t, int ndim, int *new_shape) {
+static int _check_new_size(UNUSED const Tensor *t, int ndim, int *new_shape) {
     int new_size = 1;
     for (int i = 0; i < ndim; i++) {
         new_size *= new_shape[i];

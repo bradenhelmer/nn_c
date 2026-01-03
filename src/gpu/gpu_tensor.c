@@ -2,6 +2,7 @@
  * gpu_tensor.c -  GPU tensor implementations.
  */
 #include "gpu_tensor.h"
+#include "utils/utils.h"
 #include <assert.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -98,8 +99,7 @@ void gpu_tensor_copy_to_host_async(float *host_ptr, GPUTensor *gpu_t, size_t num
                     cudaMemcpyDeviceToHost, stream);
 }
 
-static int _check_gpu_new_size(__attribute__((unused)) const GPUTensor *t, int ndim,
-                               int *new_shape) {
+static int _check_gpu_new_size(UNUSED const GPUTensor *t, int ndim, int *new_shape) {
     assert(ndim <= 4);
     int new_size = 1;
     for (int i = 0; i < ndim; i++) {

@@ -2,6 +2,7 @@
  * activations.c - Activation functions implementations
  */
 #include "activations.h"
+#include "utils/utils.h"
 #include <assert.h>
 #include <math.h>
 
@@ -37,7 +38,7 @@ float linear_scalar(float x) {
     return x;
 }
 
-float linear_scalar_derivative(__attribute__((unused)) float x) {
+float linear_scalar_derivative(UNUSED float x) {
     return 1.0f;
 }
 

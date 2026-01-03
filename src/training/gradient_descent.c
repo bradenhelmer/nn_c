@@ -8,6 +8,7 @@
 #include "../nn/loss.h"
 #include "config.h"
 #include "utils/timing.h"
+#include "utils/utils.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,8 +19,7 @@ void training_result_free(TrainingResult *result) {
     free(result);
 }
 
-TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data,
-                                 __attribute__((unused)) Dataset *val_data,
+TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data, UNUSED Dataset *val_data,
                                  TrainingConfig *config) {
 
     // 1. Result Tracking
@@ -78,8 +78,8 @@ TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data,
     return result;
 }
 
-TrainingResult *train_nn(NeuralNet *nn, Dataset *train_data,
-                         __attribute__((unused)) Dataset *val_data, TrainingConfig *config) {
+TrainingResult *train_nn(NeuralNet *nn, Dataset *train_data, UNUSED Dataset *val_data,
+                         TrainingConfig *config) {
 
     // 1. Result Tracking
     TrainingResult *result = (TrainingResult *)malloc(sizeof(TrainingResult));
@@ -139,8 +139,8 @@ TrainingResult *train_nn(NeuralNet *nn, Dataset *train_data,
     return result;
 }
 
-TrainingResult *train_nn_batch(NeuralNet *nn, Dataset *train_data,
-                               __attribute__((unused)) Dataset *val_data, TrainingConfig *config) {
+TrainingResult *train_nn_batch(NeuralNet *nn, Dataset *train_data, UNUSED Dataset *val_data,
+                               TrainingConfig *config) {
 
     // 1. Result Tracking
     TrainingResult *result = (TrainingResult *)malloc(sizeof(TrainingResult));
@@ -222,8 +222,7 @@ TrainingResult *train_nn_batch(NeuralNet *nn, Dataset *train_data,
     return result;
 }
 
-TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data,
-                                   __attribute__((unused)) Dataset *val_data,
+TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data, UNUSED Dataset *val_data,
                                    TrainingConfig *config) {
 
     // 1. Result Tracking

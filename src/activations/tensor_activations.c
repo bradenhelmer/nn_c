@@ -2,6 +2,7 @@
  * tensor_activations.c - Tensor activation implementations.
  */
 #include "activations.h"
+#include "utils/utils.h"
 #include <assert.h>
 
 void tensor_sigmoid(Tensor *result, const Tensor *input) {
@@ -53,7 +54,7 @@ void tensor_linear(Tensor *result, const Tensor *input) {
     }
 }
 
-void tensor_linear_derivative(Tensor *result, __attribute__((unused)) const Tensor *input) {
+void tensor_linear_derivative(Tensor *result, UNUSED const Tensor *input) {
     for (int i = 0; i < result->size; i++) {
         result->data[i] = 1.0f;
     }
