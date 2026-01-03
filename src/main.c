@@ -22,7 +22,9 @@ extern void mnist_momentum();
 extern void mnist_adam();
 extern void mnist_aggressive();
 extern void mnist_conv();
-extern void mnist_conv_gpu();
+
+// MNIST GPU
+extern void mnist_gpu_basic();
 
 int main() {
     // srand(time(NULL));
@@ -34,6 +36,6 @@ int main() {
     // mnist_adam();
     // mnist_aggressive();
     // mnist_conv();
-    mnist_conv_gpu();
+    mnist_gpu_basic();
     return 0;
 }

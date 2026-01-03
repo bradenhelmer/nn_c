@@ -1,11 +1,15 @@
 /*
- * gpu_layer_ops.h - Declarations for GPU forward/backward layer passes.
+ * gpu_layer_ops.h - Declarations for GPU forward/backward layer operations.
  *
  */
 #ifndef GPU_LAYER_OPS_H
 #define GPU_LAYER_OPS_H
 #include "gpu/gpu_tensor.h"
 #include <cublas_v2.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // Linear Layer
 GPUTensor *gpu_linear_layer_forward(cublasHandle_t cublas, GPUTensor *Y, const GPUTensor *X,
@@ -19,6 +23,16 @@ GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const
 
 // Flatten Layer
 
-// Activations Layer
+// Activation Layer
+GPUTensor *gpu_activation_layer_forward(GPUTensor *input);
+
+// Loss functions
+void gpu_softmax_cross_entropy_loss(float *d_losses, const GPUTensor *prediction,
+                                    const GPUTensor *target, const int batch_size,
+                                    const int num_classes);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ifndef GPU_LAYER_OPS_H */

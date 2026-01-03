@@ -5,9 +5,7 @@ List of current to-dos for nn_c (priortity decreasing)
 
 - Overall project restructure for better general framework use.
 
-- Dynamic workspace size calculation for GPU execution
-
-- Dynamic training for datasets of arbitrary sizes?
+- Decouple adam optimizer from GPUNeuralNet
 
 - More comprehensive unit tests. Gtest exploration?
 

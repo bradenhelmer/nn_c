@@ -2,7 +2,6 @@
  * mnist_examples.c - MNSIT example demonstrations
  *
  */
-
 #include "../activations/activations.h"
 #include "../data/dataset.h"
 #include "../training/gradient_descent.h"
@@ -14,13 +13,13 @@
 #include "nn/nn.h"
 #include <stdio.h>
 
-static void mnist_classifier(Tensor *dest, const Tensor *prediction) {
+void mnist_classifier(Tensor *dest, const Tensor *prediction) {
     tensor_fill(dest, 0.0f);
     int max_index = tensor_argmax(prediction);
     dest->data[max_index] = 1.0f;
 }
 
-static void test_mnist(NeuralNet *nn, Dataset *data, const char *name) {
+void test_mnist(NeuralNet *nn, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
     int correct = 0;
     Tensor *input = tensor_create1d(data->X->shape[1]);
@@ -278,60 +277,4 @@ void mnist_conv() {
     dataset_free(mnist_train);
     dataset_free(mnist_test);
     training_result_free(mnist_conv_result);
-}
-
-void mnist_conv_gpu() {
-    printf("\n\nTraining MNIST with 2D convolutional Neural network on GPU...\n");
-    _print_conv_arch();
-
-    Dataset *mnist_train = create_mnist_train_dataset();
-    Dataset *mnist_test = create_mnist_test_dataset();
-
-    TrainingConfig config = {.max_epochs = PROFILING ? 1 : 10,
-                             .batch_size = 64,
-                             .verbose = 1,
-                             .optimizer = optimizer_create_adam(0.001f, 0.9f, 0.999f, 1e-8),
-                             .scheduler = scheduler_create_cosine(0.001f, 1e-5f, 20),
-                             .l2_lambda = 1e-4f};
-    NeuralNet *mnist_conv = nn_create(7, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
-    nn_add_layer(mnist_conv, 0, conv_layer_create(1, 32, 5, 1, 2));
-    nn_add_layer(mnist_conv, 1, activation_layer_create(TENSOR_RELU_ACTIVATION));
-    nn_add_layer(mnist_conv, 2, maxpool_layer_create(2, 2));
-    nn_add_layer(mnist_conv, 3, flatten_layer_create());
-    nn_add_layer(mnist_conv, 4, linear_layer_create(6272, 128));
-    nn_add_layer(mnist_conv, 5, activation_layer_create(TENSOR_RELU_ACTIVATION));
-    nn_add_layer(mnist_conv, 6, linear_layer_create(128, 10));
-    optimizer_init(config.optimizer, mnist_conv);
-
-    GPUNeuralNet *mnist_conv_gpu = gpu_nn_create_from_cpu_nn(mnist_conv, config.batch_size);
-    printf("Workspace size: %zu\n", mnist_conv_gpu->workspace_size);
-
-    Timer training_timer = {0};
-    timer_start(&training_timer);
-    TrainingResult *mnist_conv_result =
-        train_nn_gpu_batch(mnist_conv_gpu, mnist_train, NULL, &config);
-    timer_stop(&training_timer);
-    printf("Training took: %.3f seconds\n", training_timer.elapsed);
-
-    //
-    //     printf(
-    //         "\nMNIST Batched Convolutional NN training with ADAM/cosine annealing stopped at %d
-    //         epochs", mnist_conv_result->epochs_completed);
-    //     printf("\nFinal accuracy: %.2f%%\n",
-    //            mnist_conv_result->accuracy_history[mnist_conv_result->epochs_completed - 1] *
-    //            100);
-    //
-    // #if !PROFILING
-    //     test_mnist_conv(mnist_conv, mnist_test,
-    //                     "MNIST test images on batched convolutional NN with cosine annealing and
-    //                     L2 " "regularization");
-    // #endif
-
-    gpu_nn_free(mnist_conv_gpu);
-    nn_free(mnist_conv);
-    optimizer_free(config.optimizer);
-    scheduler_free(config.scheduler);
-    dataset_free(mnist_train);
-    dataset_free(mnist_test);
-    // training_result_free(mnist_conv_result);
 }

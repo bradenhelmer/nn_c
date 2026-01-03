@@ -4,6 +4,7 @@
 #include "gpu_tensor.h"
 #include <assert.h>
 #include <cuda_runtime.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -43,8 +44,8 @@ GPUTensor *gpu_tensor_create(int ndim, int shape[GPU_MAX_RANK]) {
     return gpu_t;
 }
 
-GPUTensor *gpu_tensor_create_like(GPUTensor *other) {
-    return gpu_tensor_create(other->ndim, other->shape);
+GPUTensor *gpu_tensor_create_like(const GPUTensor *other) {
+    return gpu_tensor_create(other->ndim, (int *)other->shape);
 }
 
 void gpu_tensor_free(GPUTensor *gpu_t) {
@@ -179,3 +180,12 @@ int gpu_tensor_is_contiguous(GPUTensor *gpu_t) {
 // Device <-> device opeations
 // void gpu_tensor_copy(float *dest, float *src);
 // void gpu_tensor_async(float *dest, float *src, cudaStream_t stream);
+
+void gpu_tensor_print_shape(const GPUTensor *gpu_t) {
+    int i;
+    printf("Shape: {");
+    for (i = 0; i < gpu_t->ndim - 1; i++) {
+        printf("%d, ", gpu_t->shape[i]);
+    }
+    printf("%d}", gpu_t->shape[i]);
+}

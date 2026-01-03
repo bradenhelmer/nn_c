@@ -9,6 +9,10 @@
 #include <cuda_runtime.h>
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define GPU_MAX_RANK 4
 
 typedef struct {
@@ -30,7 +34,7 @@ typedef struct {
 
 // Lifecycle
 GPUTensor *gpu_tensor_create(int ndim, int shape[GPU_MAX_RANK]);
-GPUTensor *gpu_tensor_create_like(GPUTensor *other);
+GPUTensor *gpu_tensor_create_like(const GPUTensor *other);
 void gpu_tensor_free(GPUTensor *gpu_t);
 
 // Host <-> device tranfers
@@ -52,5 +56,12 @@ int gpu_tensor_is_contiguous(GPUTensor *gpu_t);
 // Device <-> device opeations
 void gpu_tensor_copy(float *dest, float *src);
 void gpu_tensor_async(float *dest, float *src, cudaStream_t stream);
+
+// Utils
+void gpu_tensor_print_shape(const GPUTensor *gpu_t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ifndef GPU_TENSOR_H */

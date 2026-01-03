@@ -8,11 +8,19 @@
 #include "nn/nn.h"
 #include <cublas_v2.h>
 
+// Input shape descriptor for dynamic workspace sizing
+typedef struct {
+    int height;   // Image height (1 for fully-connected networks)
+    int width;    // Image width (1 for fully-connected networks)
+    int channels; // Number of channels (or feature size for FC)
+} InputShape;
+
 typedef struct {
     NeuralNet *cpu_nn; // Borrowed for configuration (read only)
     int num_layers;
     int batch_size; // Fixed at creation
     float learning_rate;
+    InputShape input_shape;
 
     // Parameter storage (indexed by layer)
     GPUTensor **d_params;    // Device parameters
@@ -49,7 +57,7 @@ typedef struct {
 } GPUNeuralNet;
 
 // Lifecyle
-GPUNeuralNet *gpu_nn_create_from_cpu_nn(NeuralNet *cpu_nn, int batch_size);
+GPUNeuralNet *gpu_nn_create_from_cpu_nn(NeuralNet *cpu_nn, int batch_size, InputShape input_shape);
 void gpu_nn_to_cpu_nn(GPUNeuralNet *gpu_nn);
 void gpu_nn_free(GPUNeuralNet *gpu_nn);
 

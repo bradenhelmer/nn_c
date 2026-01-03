@@ -21,17 +21,24 @@ TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, Dataset *train_data, Da
     result->epochs_completed = config->max_epochs;
     Timer epoch_timer;
 
+    // Compute sizes from input_shape and dataset
+    int input_elements =
+        gpu_nn->input_shape.height * gpu_nn->input_shape.width * gpu_nn->input_shape.channels;
+    int output_size = train_data->Y->shape[1]; // Number of output classes/features
+
     // 2. Batch iterator
     BatchIterator *batch_iter = batch_iterator_create(train_data, config->batch_size);
 
-    // Persistent GPU buffers for reuse each batch.
-    GPUTensor *d_input_batch = gpu_tensor_create(4, (int[]){config->batch_size, 1, 28, 28});
-    GPUTensor *d_target_batch = gpu_tensor_create(2, (int[]){config->batch_size, 10});
+    // Persistent GPU buffers for reuse each batch (4D: NCHW format)
+    GPUTensor *d_input_batch =
+        gpu_tensor_create(4, (int[]){config->batch_size, gpu_nn->input_shape.channels,
+                                     gpu_nn->input_shape.height, gpu_nn->input_shape.width});
+    GPUTensor *d_target_batch = gpu_tensor_create(2, (int[]){config->batch_size, output_size});
 
     // Pinned host memory for faster transfers
     float *h_input_pinned, *h_target_pinned;
-    cudaMallocHost((void **)&h_input_pinned, config->batch_size * 784 * sizeof(float));
-    cudaMallocHost((void **)&h_target_pinned, config->batch_size * 10 * sizeof(float));
+    cudaMallocHost((void **)&h_input_pinned, config->batch_size * input_elements * sizeof(float));
+    cudaMallocHost((void **)&h_target_pinned, config->batch_size * output_size * sizeof(float));
 
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
         timer_start(&epoch_timer);
@@ -48,12 +55,16 @@ TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, Dataset *train_data, Da
             int actual_batch_size = batch->size;
 
             // Copy to pinned memory first
-            memcpy(h_input_pinned, batch->X->data, actual_batch_size * 784 * sizeof(float));
-            memcpy(h_target_pinned, batch->Y->data, actual_batch_size * 10 * sizeof(float));
+            memcpy(h_input_pinned, batch->X->data,
+                   actual_batch_size * input_elements * sizeof(float));
+            memcpy(h_target_pinned, batch->Y->data,
+                   actual_batch_size * output_size * sizeof(float));
 
             // Transfer to GPU
-            gpu_tensor_copy_from_host(d_input_batch, h_input_pinned, actual_batch_size * 784);
-            gpu_tensor_copy_from_host(d_target_batch, h_target_pinned, actual_batch_size * 10);
+            gpu_tensor_copy_from_host(d_input_batch, h_input_pinned,
+                                      actual_batch_size * input_elements);
+            gpu_tensor_copy_from_host(d_target_batch, h_target_pinned,
+                                      actual_batch_size * output_size);
 
             // Update shape for partial batches
             d_input_batch->shape[0] = actual_batch_size;
@@ -61,18 +72,26 @@ TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, Dataset *train_data, Da
 
             // 2. Forward pass
             gpu_nn_zero_gradients(gpu_nn);
-            GPUTensor *prediction = gpu_nn_forward(gpu_nn, d_target_batch);
+            GPUTensor *prediction = gpu_nn_forward(gpu_nn, d_input_batch);
+            if (!samples_seen) {
+                printf("Input Size: ");
+                gpu_tensor_print_shape(d_input_batch);
+                printf("\nPrediction Size: ");
+                gpu_tensor_print_shape(prediction);
+                printf("\nTarget Size: ");
+                gpu_tensor_print_shape(d_target_batch);
+            }
 
             // 3. Compute loss (fused with backward start)
-            float batch_loss = gpu_nn_compute_loss(gpu_nn, prediction, d_target_batch);
-            epoch_loss += batch_loss * actual_batch_size;
-
-            // 4. Backward pass
-            gpu_nn_backward(gpu_nn, d_target_batch);
-
-            // 5. Update weights
-            gpu_nn_scale_gradients(gpu_nn, 1.0f / actual_batch_size);
-            gpu_nn_optimizer_step(gpu_nn);
+            // float batch_loss = gpu_nn_compute_loss(gpu_nn, prediction, d_target_batch);
+            // epoch_loss += batch_loss * actual_batch_size;
+            //
+            // // 4. Backward pass
+            // gpu_nn_backward(gpu_nn, d_target_batch);
+            //
+            // // 5. Update weights
+            // gpu_nn_scale_gradients(gpu_nn, 1.0f / actual_batch_size);
+            // gpu_nn_optimizer_step(gpu_nn);
 
             samples_seen += actual_batch_size;
         }

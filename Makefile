@@ -21,8 +21,7 @@ PERF_FLAGS  := -O3 -march=native -mavx512f -flto -g -fno-omit-frame-pointer -fno
 # Flags for instruction level profiling
 PROF_FLAGS  := -O3 -march=native -DPROFILING=1 -fprofile-instr-generate=mnist.profraw -fcoverage-mapping
 
-LDFLAGS     := -lm $(CUDA_LIB)
-GPU_LDFLAGS := -lm -lstdc++ $(CUDA_LIB)
+LDFLAGS     := -lm -lstdc++ $(CUDA_LIB) -Wl,-rpath,/usr/local/lib/x86_64-unknown-linux-gnu
 
 # --- Directory Structure ---
 SRC_DIR     := src
@@ -43,14 +42,19 @@ GPU_DBG_DIR := $(BUILD_DIR)/gpu_debug_obj
 # --- Source Discovery (Recursive) ---
 # Uses 'find' to locate all .c files in SRC_DIR
 SRCS        := $(shell find $(SRC_DIR) -name '*.c')
+# CUDA source files
+CUDA_SRCS   := $(shell find $(SRC_DIR) -name '*.cu')
 # Map source files to object files for each build type
-OBJS        := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
-DEBUG_OBJS  := $(patsubst $(SRC_DIR)/%.c, $(DEBUG_DIR)/%.o, $(SRCS))
+C_OBJS      := $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
+CU_OBJS     := $(patsubst $(SRC_DIR)/%.cu, $(OBJ_DIR)/%.cu.o, $(CUDA_SRCS))
+OBJS        := $(C_OBJS) $(CU_OBJS)
+DEBUG_C_OBJS  := $(patsubst $(SRC_DIR)/%.c, $(DEBUG_DIR)/%.o, $(SRCS))
+DEBUG_CU_OBJS := $(patsubst $(SRC_DIR)/%.cu, $(DEBUG_DIR)/%.cu.o, $(CUDA_SRCS))
+DEBUG_OBJS    := $(DEBUG_C_OBJS) $(DEBUG_CU_OBJS)
 PERF_OBJS   := $(patsubst $(SRC_DIR)/%.c, $(PERF_DIR)/%.o, $(SRCS))
 PROF_OBJS   := $(patsubst $(SRC_DIR)/%.c, $(PROF_DIR)/%.o, $(SRCS))
 
 # --- CUDA Source Discovery ---
-CUDA_SRCS   := $(shell find $(SRC_DIR) -name '*.cu')
 GPU_C_OBJS  := $(patsubst $(SRC_DIR)/%.c, $(GPU_OBJ_DIR)/%.o, $(SRCS))
 GPU_CU_OBJS := $(patsubst $(SRC_DIR)/%.cu, $(GPU_OBJ_DIR)/%.cu.o, $(CUDA_SRCS))
 GPU_OBJS    := $(GPU_C_OBJS) $(GPU_CU_OBJS)
@@ -104,6 +108,12 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@echo "Compiling $<..."
 	@$(CC) $(CFLAGS) $(OPT_FLAGS) -I$(SRC_DIR) $(CUDA_INC) -c $< -o $@
 
+# Compile CUDA files with nvcc for standard build
+$(OBJ_DIR)/%.cu.o: $(SRC_DIR)/%.cu
+	@mkdir -p $(dir $@)
+	@echo "Compiling (CUDA) $<..."
+	@$(NVCC) $(NVCC_FLAGS) -O3 -I$(SRC_DIR) $(CUDA_INC) -c $< -o $@
+
 # --- Debug Build ---
 debug: $(DEBUG_TARGET)
 
@@ -117,6 +127,12 @@ $(DEBUG_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(dir $@)
 	@echo "Compiling (debug) $<..."
 	@$(CC) $(CFLAGS) $(DEBUG_FLAGS) -I$(SRC_DIR) $(CUDA_INC) -c $< -o $@
+
+# Compile CUDA files with nvcc for debug build
+$(DEBUG_DIR)/%.cu.o: $(SRC_DIR)/%.cu
+	@mkdir -p $(dir $@)
+	@echo "Compiling (CUDA debug) $<..."
+	@$(NVCC) $(NVCC_FLAGS) -g -G -O0 -I$(SRC_DIR) $(CUDA_INC) -c $< -o $@
 
 # --- Perf Profiling Build ---
 perf-build: $(PERF_TARGET)
@@ -152,7 +168,7 @@ gpu: $(GPU_TARGET)
 $(GPU_TARGET): $(GPU_OBJS)
 	@mkdir -p $(dir $@)
 	@echo "$(BLUE)Linking GPU build $@...$(RESET)"
-	@$(CC) $(OPT_FLAGS) $(GPU_OBJS) -o $@ $(GPU_LDFLAGS)
+	@$(CC) $(OPT_FLAGS) $(GPU_OBJS) -o $@ $(LDFLAGS)
 	@echo "$(GREEN)GPU build complete: $@$(RESET)"
 
 # Compile C files with clang for GPU build (optimized)
@@ -173,7 +189,7 @@ gpu-debug: $(GPU_DBG_TARGET)
 $(GPU_DBG_TARGET): $(GPU_DBG_OBJS)
 	@mkdir -p $(dir $@)
 	@echo "$(BLUE)Linking GPU debug build $@...$(RESET)"
-	@$(CC) $(DEBUG_FLAGS) $(GPU_DBG_OBJS) -o $@ $(GPU_LDFLAGS)
+	@$(CC) $(DEBUG_FLAGS) $(GPU_DBG_OBJS) -o $@ $(LDFLAGS)
 	@echo "$(GREEN)GPU debug build complete: $@$(RESET)"
 
 # Compile C files with clang for GPU debug build
@@ -280,8 +296,8 @@ perf-report:
 
 
 # Include dependency files
--include $(OBJS:.o=.d)
--include $(DEBUG_OBJS:.o=.d)
+-include $(C_OBJS:.o=.d)
+-include $(DEBUG_C_OBJS:.o=.d)
 -include $(PERF_OBJS:.o=.d)
 -include $(PROF_OBJS:.o=.d)
 -include $(TEST_OBJS:.o=.d)
