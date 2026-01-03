@@ -80,6 +80,7 @@ TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, Dataset *train_data, Da
                 gpu_tensor_print_shape(prediction);
                 printf("\nTarget Size: ");
                 gpu_tensor_print_shape(d_target_batch);
+                printf("\n");
             }
 
             // 3. Compute loss (fused with backward start)

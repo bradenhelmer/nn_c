@@ -29,9 +29,9 @@ void nn_learning_xor() {
 
     NeuralNet *nn_xor = nn_create(4, 0.5f, TENSOR_MSE_LOSS, xor_classifier);
     nn_add_layer(nn_xor, 0, linear_layer_create(2, 2));
-    nn_add_layer(nn_xor, 1, activation_layer_create(TENSOR_SIGMOID_ACTIVATION));
+    nn_add_layer(nn_xor, 1, activation_layer_create(SIGMOID));
     nn_add_layer(nn_xor, 2, linear_layer_create(2, 1));
-    nn_add_layer(nn_xor, 3, activation_layer_create(TENSOR_SIGMOID_ACTIVATION));
+    nn_add_layer(nn_xor, 3, activation_layer_create(SIGMOID));
 
     TrainingResult *result_xor = train_nn(nn_xor, xor_data, NULL, &config);
 
@@ -56,9 +56,9 @@ void nn_learning_xor_batched() {
 
     NeuralNet *nn_xor = nn_create(4, 0.3f, TENSOR_MSE_LOSS, xor_classifier);
     nn_add_layer(nn_xor, 0, linear_layer_create(2, 2));
-    nn_add_layer(nn_xor, 1, activation_layer_create(TENSOR_SIGMOID_ACTIVATION));
+    nn_add_layer(nn_xor, 1, activation_layer_create(SIGMOID));
     nn_add_layer(nn_xor, 2, linear_layer_create(2, 1));
-    nn_add_layer(nn_xor, 3, activation_layer_create(TENSOR_SIGMOID_ACTIVATION));
+    nn_add_layer(nn_xor, 3, activation_layer_create(SIGMOID));
 
     TrainingResult *result_xor = train_nn_batch(nn_xor, xor_data, NULL, &config);
 

@@ -22,9 +22,9 @@ static NeuralNet *create_test_nn(void) {
     NeuralNet *nn = nn_create(4, 0.01f, TENSOR_MSE_LOSS, NULL);
 
     nn_add_layer(nn, 0, linear_layer_create(3, 4));
-    nn_add_layer(nn, 1, activation_layer_create(TENSOR_TANH_ACTIVATION));
+    nn_add_layer(nn, 1, activation_layer_create(TANH));
     nn_add_layer(nn, 2, linear_layer_create(4, 2));
-    nn_add_layer(nn, 3, activation_layer_create(TENSOR_SIGMOID_ACTIVATION));
+    nn_add_layer(nn, 3, activation_layer_create(SIGMOID));
 
     return nn;
 }

@@ -52,7 +52,3 @@ const ScalarActivationPair TANH_ACTIVATION = {
 
 const ScalarActivationPair LINEAR_ACTIVATION = {
     .forward = linear_scalar, .derivative = linear_scalar_derivative, .name = "linear"};
-
-// =============================================================================
-// TENSOR ACTIVATION FUNCTIONS
-// =============================================================================

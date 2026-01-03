@@ -2,13 +2,14 @@
  * activation_layer.c - Activation layer implementations.
  *
  */
+#include "activations/activations.h"
 #include "layer.h"
 #include <stdlib.h>
 
-Layer *activation_layer_create(TensorActivationPair activation) {
+Layer *activation_layer_create(ActivationType activation_type) {
     ActivationLayer *layer = (ActivationLayer *)malloc(sizeof(ActivationLayer));
 
-    layer->activation = activation;
+    layer->activation_type = activation_type;
     layer->input = NULL;
     layer->output = NULL;
 
@@ -39,7 +40,22 @@ Tensor *activation_layer_forward(ActivationLayer *layer, const Tensor *input) {
 
     // Apply activation: output = f(input)
     layer->output = tensor_clone(input);
-    layer->activation.forward(layer->output, input);
+
+    switch (layer->activation_type) {
+    case SIGMOID:
+        tensor_sigmoid(layer->output, input);
+        break;
+    case RELU:
+        tensor_relu(layer->output, input);
+        break;
+    case TANH:
+        tensor_tanh_activation(layer->output, input);
+        break;
+    case LINEAR:
+        tensor_linear(layer->output, input);
+        break;
+    }
+
     return layer->output;
 }
 
@@ -47,7 +63,20 @@ Tensor *activation_layer_backward(ActivationLayer *layer, const Tensor *upstream
     // Compute gradient: dL/dinput = dL/doutput ⊙ f'(output)
     // Note: derivatives expect the activated output (e.g., sigmoid derivative uses s*(1-s))
     Tensor *grad_input = tensor_clone(layer->output);
-    layer->activation.derivative(grad_input, layer->output);
+    switch (layer->activation_type) {
+    case SIGMOID:
+        tensor_sigmoid_derivative(grad_input, layer->output);
+        break;
+    case RELU:
+        tensor_relu_derivative(grad_input, layer->output);
+        break;
+    case TANH:
+        tensor_tanh_derivative(grad_input, layer->output);
+        break;
+    case LINEAR:
+        tensor_linear_derivative(grad_input, layer->output);
+        break;
+    }
     tensor_elementwise_mul(grad_input, upstream_grad, grad_input);
 
     return grad_input;

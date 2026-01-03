@@ -85,9 +85,9 @@ void mnist_sgd() {
 
     NeuralNet *nn_mnist = nn_create(4, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
     nn_add_layer(nn_mnist, 0, linear_layer_create(784, 128));
-    nn_add_layer(nn_mnist, 1, activation_layer_create(TENSOR_RELU_ACTIVATION));
+    nn_add_layer(nn_mnist, 1, activation_layer_create(RELU));
     nn_add_layer(nn_mnist, 2, linear_layer_create(128, 10));
-    nn_add_layer(nn_mnist, 3, activation_layer_create(TENSOR_LINEAR_ACTIVATION));
+    nn_add_layer(nn_mnist, 3, activation_layer_create(LINEAR));
     optimizer_init(config.optimizer, nn_mnist);
 
     TrainingResult *mnist_sgd_result = train_nn_batch_opt(nn_mnist, mnist_train, NULL, &config);
@@ -121,9 +121,9 @@ void mnist_momentum() {
 
     NeuralNet *nn_mnist = nn_create(4, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
     nn_add_layer(nn_mnist, 0, linear_layer_create(784, 128));
-    nn_add_layer(nn_mnist, 1, activation_layer_create(TENSOR_RELU_ACTIVATION));
+    nn_add_layer(nn_mnist, 1, activation_layer_create(RELU));
     nn_add_layer(nn_mnist, 2, linear_layer_create(128, 10));
-    nn_add_layer(nn_mnist, 3, activation_layer_create(TENSOR_LINEAR_ACTIVATION));
+    nn_add_layer(nn_mnist, 3, activation_layer_create(LINEAR));
     optimizer_init(config.optimizer, nn_mnist);
 
     TrainingResult *mnist_sgd_result = train_nn_batch_opt(nn_mnist, mnist_train, NULL, &config);
@@ -156,9 +156,9 @@ void mnist_adam() {
 
     NeuralNet *nn_mnist = nn_create(4, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
     nn_add_layer(nn_mnist, 0, linear_layer_create(784, 128));
-    nn_add_layer(nn_mnist, 1, activation_layer_create(TENSOR_RELU_ACTIVATION));
+    nn_add_layer(nn_mnist, 1, activation_layer_create(RELU));
     nn_add_layer(nn_mnist, 2, linear_layer_create(128, 10));
-    nn_add_layer(nn_mnist, 3, activation_layer_create(TENSOR_LINEAR_ACTIVATION));
+    nn_add_layer(nn_mnist, 3, activation_layer_create(LINEAR));
     optimizer_init(config.optimizer, nn_mnist);
 
     TrainingResult *mnist_sgd_result = train_nn_batch_opt(nn_mnist, mnist_train, NULL, &config);
@@ -194,9 +194,9 @@ void mnist_aggressive() {
 
     NeuralNet *nn_mnist = nn_create(4, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
     nn_add_layer(nn_mnist, 0, linear_layer_create(784, 128));
-    nn_add_layer(nn_mnist, 1, activation_layer_create(TENSOR_RELU_ACTIVATION));
+    nn_add_layer(nn_mnist, 1, activation_layer_create(RELU));
     nn_add_layer(nn_mnist, 2, linear_layer_create(128, 10));
-    nn_add_layer(nn_mnist, 3, activation_layer_create(TENSOR_LINEAR_ACTIVATION));
+    nn_add_layer(nn_mnist, 3, activation_layer_create(LINEAR));
     optimizer_init(config.optimizer, nn_mnist);
 
     TrainingResult *mnist_sgd_result = train_nn_batch_opt(nn_mnist, mnist_train, NULL, &config);
@@ -245,11 +245,11 @@ void mnist_conv() {
                              .l2_lambda = 1e-4f};
     NeuralNet *mnist_conv = nn_create(7, 0.5f, TENSOR_SOFTMAX_CROSS_ENTROPY_LOSS, mnist_classifier);
     nn_add_layer(mnist_conv, 0, conv_layer_create(1, 32, 5, 1, 2));
-    nn_add_layer(mnist_conv, 1, activation_layer_create(TENSOR_RELU_ACTIVATION));
+    nn_add_layer(mnist_conv, 1, activation_layer_create(RELU));
     nn_add_layer(mnist_conv, 2, maxpool_layer_create(2, 2));
     nn_add_layer(mnist_conv, 3, flatten_layer_create());
     nn_add_layer(mnist_conv, 4, linear_layer_create(6272, 128));
-    nn_add_layer(mnist_conv, 5, activation_layer_create(TENSOR_RELU_ACTIVATION));
+    nn_add_layer(mnist_conv, 5, activation_layer_create(RELU));
     nn_add_layer(mnist_conv, 6, linear_layer_create(128, 10));
     optimizer_init(config.optimizer, mnist_conv);
 

@@ -42,6 +42,13 @@ extern const ScalarActivationPair LINEAR_ACTIVATION;
 // TENSOR ACTIVATION FUNCTIONS
 // =============================================================================
 
+typedef enum {
+    SIGMOID,
+    RELU,
+    TANH,
+    LINEAR,
+} ActivationType;
+
 // Sigmoid
 void tensor_sigmoid(Tensor *result, const Tensor *input);
 void tensor_sigmoid_derivative(Tensor *result, const Tensor *sigmoid_output);
@@ -60,20 +67,5 @@ void tensor_linear_derivative(Tensor *result, const Tensor *input);
 
 // Softmax (operates on whole 1D tensor)
 void tensor_softmax(Tensor *result, const Tensor *input);
-
-// Tensor Activation Types
-typedef void (*tensor_activation_func)(Tensor *, const Tensor *);
-typedef void (*tensor_activation_derivative_func)(Tensor *, const Tensor *);
-
-typedef struct {
-    tensor_activation_func forward;
-    tensor_activation_derivative_func derivative;
-    const char *name;
-} TensorActivationPair;
-
-extern const TensorActivationPair TENSOR_SIGMOID_ACTIVATION;
-extern const TensorActivationPair TENSOR_RELU_ACTIVATION;
-extern const TensorActivationPair TENSOR_TANH_ACTIVATION;
-extern const TensorActivationPair TENSOR_LINEAR_ACTIVATION;
 
 #endif /* ifndef ACTIVATIONS_H */

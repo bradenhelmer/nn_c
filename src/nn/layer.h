@@ -96,7 +96,7 @@ void linear_layer_init_he(LinearLayer *layer);
 // =============================================================================
 
 typedef struct {
-    TensorActivationPair activation;
+    ActivationType activation_type;
 
     // Cached for backward pass
     Tensor *input;  // input to activation (pre-activation values)
@@ -104,7 +104,7 @@ typedef struct {
 } ActivationLayer;
 
 // Lifecycle
-Layer *activation_layer_create(TensorActivationPair activation);
+Layer *activation_layer_create(ActivationType activation_type);
 void activation_layer_free(ActivationLayer *layer);
 
 // Forward/backward
