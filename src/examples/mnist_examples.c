@@ -243,7 +243,7 @@ void mnist_conv() {
                              .scheduler = scheduler_create_cosine(0.001f, 1e-5f, 20),
                              .l2_lambda = 1e-4f};
     NeuralNet *mnist_conv = nn_create(7, 0.5f, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
-    nn_add_layer(mnist_conv, 0, conv_layer_create(1, 32, 5, 1, 2));
+    nn_add_layer(mnist_conv, 0, conv2d_layer_create(1, 32, 5, 1, 2));
     nn_add_layer(mnist_conv, 1, activation_layer_create(ACTIVATION_RELU));
     nn_add_layer(mnist_conv, 2, maxpool_layer_create(2, 2));
     nn_add_layer(mnist_conv, 3, flatten_layer_create());

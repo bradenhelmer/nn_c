@@ -132,7 +132,7 @@ typedef struct {
     // Gradients
     Tensor *grad_weights; // Same shape as weights
     Tensor *grad_biases;  // Same shape as biases
-} ConvLayer;
+} Conv2DLayer;
 
 // Convolution dimension parameters (computed from ConvLayer + input)
 typedef struct {
@@ -147,30 +147,30 @@ typedef struct {
     int K;        // Kernel size
     int stride;   // Stride
     int padding;  // Padding
-} ConvParams;
+} Conv2DParams;
 
-ConvParams conv_params_create(const ConvLayer *layer, const Tensor *input);
-ConvParams conv_params_from_padded(const ConvLayer *layer, const Tensor *padded_input);
-ConvParams conv_params_make(const ConvLayer *layer, int H_in, int W_in);
-ConvParams conv_params_from_upstream(const ConvLayer *layer, const Tensor *upstream_grad);
+Conv2DParams conv2d_params_create(const Conv2DLayer *layer, const Tensor *input);
+Conv2DParams conv2d_params_from_padded(const Conv2DLayer *layer, const Tensor *padded_input);
+Conv2DParams conv2d_params_make(const Conv2DLayer *layer, int H_in, int W_in);
+Conv2DParams conv2d_params_from_upstream(const Conv2DLayer *layer, const Tensor *upstream_grad);
 
 // Lifecycle
-Layer *conv_layer_create(int in_channels, int out_channels, int kernel_size, int stride,
+Layer *conv2d_layer_create(int in_channels, int out_channels, int kernel_size, int stride,
                          int padding);
-void conv_layer_free(ConvLayer *layer);
-void conv_layer_init_weights(ConvLayer *layer);
+void conv2d_layer_free(Conv2DLayer *layer);
+void conv2d_layer_init_weights(Conv2DLayer *layer);
 
 // Forward/backward
-Tensor *conv_layer_forward(ConvLayer *layer, const Tensor *input);
-Tensor *conv_layer_forward_stride_optimized(ConvLayer *layer, const Tensor *input);
-Tensor *conv_layer_backward(ConvLayer *layer, const Tensor *upstream_grad);
-Tensor *conv_layer_backward_stride_optimized(ConvLayer *layer, const Tensor *upstream_grad);
+Tensor *conv2d_layer_forward(Conv2DLayer *layer, const Tensor *input);
+Tensor *conv2d_layer_forward_stride_optimized(Conv2DLayer *layer, const Tensor *input);
+Tensor *conv2d_layer_backward(Conv2DLayer *layer, const Tensor *upstream_grad);
+Tensor *conv2d_layer_backward_stride_optimized(Conv2DLayer *layer, const Tensor *upstream_grad);
 
 // Im2Col Optimization
-Tensor *im2col(ConvLayer *layer, Tensor *X_pad);
-Tensor *col2im(Tensor *dX_col, const ConvParams *p);
-Tensor *conv_layer_forward_im2col(ConvLayer *layer, const Tensor *input);
-Tensor *conv_layer_backward_im2col(ConvLayer *layer, const Tensor *upstream_grad);
+Tensor *conv2d_im2col(Conv2DLayer *layer, Tensor *X_pad);
+Tensor *conv2d_col2im(Tensor *dX_col, const Conv2DParams *p);
+Tensor *conv_layer_forward_im2col(Conv2DLayer *layer, const Tensor *input);
+Tensor *conv_layer_backward_im2col(Conv2DLayer *layer, const Tensor *upstream_grad);
 
 // =============================================================================
 // MAX POOLING LAYER

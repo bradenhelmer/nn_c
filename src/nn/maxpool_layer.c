@@ -1,5 +1,5 @@
 /*
- * pool_layer.c
+ * maxpool_layer.c
  *
  * Max pooling layer Implementations.
  */

@@ -22,7 +22,7 @@ void layer_free(Layer *layer) {
         activation_layer_free((ActivationLayer *)layer->layer);
         break;
     case LAYER_CONV_2D:
-        conv_layer_free((ConvLayer *)layer->layer);
+        conv2d_layer_free((Conv2DLayer *)layer->layer);
         break;
     case LAYER_MAX_POOL:
         maxpool_layer_free((MaxPoolLayer *)layer->layer);
@@ -41,7 +41,7 @@ Tensor *layer_forward(Layer *layer, const Tensor *input) {
     case LAYER_ACTIVATION:
         return activation_layer_forward((ActivationLayer *)layer->layer, input);
     case LAYER_CONV_2D:
-        return conv_layer_forward_im2col((ConvLayer *)layer->layer, input);
+        return conv_layer_forward_im2col((Conv2DLayer *)layer->layer, input);
     case LAYER_MAX_POOL:
         return maxpool_layer_forward((MaxPoolLayer *)layer->layer, input);
     case LAYER_FLATTEN:
@@ -56,7 +56,7 @@ Tensor *layer_backward(Layer *layer, const Tensor *upstream_grad) {
     case LAYER_ACTIVATION:
         return activation_layer_backward((ActivationLayer *)layer->layer, upstream_grad);
     case LAYER_CONV_2D:
-        return conv_layer_backward_im2col((ConvLayer *)layer->layer, upstream_grad);
+        return conv_layer_backward_im2col((Conv2DLayer *)layer->layer, upstream_grad);
     case LAYER_MAX_POOL:
         return maxpool_layer_backward((MaxPoolLayer *)layer->layer, upstream_grad);
     case LAYER_FLATTEN:
@@ -72,7 +72,7 @@ Tensor *layer_get_output(Layer *layer) {
     case LAYER_ACTIVATION:
         return ((ActivationLayer *)layer->layer)->output;
     case LAYER_CONV_2D:
-        return ((ConvLayer *)layer->layer)->output;
+        return ((Conv2DLayer *)layer->layer)->output;
     case LAYER_MAX_POOL:
         return ((MaxPoolLayer *)layer->layer)->output;
     case LAYER_FLATTEN:
@@ -90,7 +90,7 @@ void layer_zero_gradients(Layer *layer) {
         break;
     }
     case LAYER_CONV_2D: {
-        ConvLayer *cl = (ConvLayer *)layer->layer;
+        Conv2DLayer *cl = (Conv2DLayer *)layer->layer;
         tensor_fill(cl->grad_weights, 0.f);
         tensor_fill(cl->grad_biases, 0.f);
         break;
@@ -116,7 +116,7 @@ void layer_update_weights(Layer *layer, float learning_rate) {
         break;
     }
     case LAYER_CONV_2D: {
-        ConvLayer *cl = (ConvLayer *)layer->layer;
+        Conv2DLayer *cl = (Conv2DLayer *)layer->layer;
         for (int i = 0; i < cl->weights->size; ++i) {
             cl->weights->data[i] -= learning_rate * cl->grad_weights->data[i];
         }
@@ -142,7 +142,7 @@ void layer_scale_gradients(Layer *layer, float scale) {
         break;
     }
     case LAYER_CONV_2D: {
-        ConvLayer *cl = (ConvLayer *)layer->layer;
+        Conv2DLayer *cl = (Conv2DLayer *)layer->layer;
         tensor_scale(cl->grad_weights, cl->grad_weights, scale);
         tensor_scale(cl->grad_biases, cl->grad_biases, scale);
         break;
@@ -165,7 +165,7 @@ void layer_add_l2_gradient(Layer *layer, float lambda) {
         break;
     }
     case LAYER_CONV_2D: {
-        ConvLayer *cl = (ConvLayer *)layer->layer;
+        Conv2DLayer *cl = (Conv2DLayer *)layer->layer;
         for (int i = 0; i < cl->weights->size; i++) {
             cl->grad_weights->data[i] += lambda * cl->weights->data[i];
         }
@@ -193,7 +193,7 @@ LayerParameters layer_get_parameters(Layer *layer) {
         break;
     }
     case LAYER_CONV_2D: {
-        ConvLayer *cl = (ConvLayer *)layer->layer;
+        Conv2DLayer *cl = (Conv2DLayer *)layer->layer;
         params.num_pairs = 2;
         params.pairs = (ParameterPair *)malloc(sizeof(ParameterPair) * 2);
         params.pairs[0].param = cl->weights;

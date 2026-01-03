@@ -24,7 +24,7 @@ static size_t _compute_workspace_size(NeuralNet *cpu_nn, int batch_size, InputSh
 
         switch (layer->type) {
         case LAYER_CONV_2D: {
-            ConvLayer *cfg = (ConvLayer *)layer->layer;
+            Conv2DLayer *cfg = (Conv2DLayer *)layer->layer;
             int h_out = (h + 2 * cfg->padding - cfg->kernel_size) / cfg->stride + 1;
             int w_out = (w + 2 * cfg->padding - cfg->kernel_size) / cfg->stride + 1;
 

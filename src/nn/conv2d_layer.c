@@ -10,9 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-Layer *conv_layer_create(int in_channels, int out_channels, int kernel_size, int stride,
+Layer *conv2d_layer_create(int in_channels, int out_channels, int kernel_size, int stride,
                          int padding) {
-    ConvLayer *cl = (ConvLayer *)malloc(sizeof(ConvLayer));
+    Conv2DLayer *cl = (Conv2DLayer *)malloc(sizeof(Conv2DLayer));
     cl->in_channels = in_channels;
     cl->out_channels = out_channels;
     cl->kernel_size = kernel_size;
@@ -24,11 +24,11 @@ Layer *conv_layer_create(int in_channels, int out_channels, int kernel_size, int
     cl->output = NULL;
     cl->grad_weights = tensor_create4d(out_channels, in_channels, kernel_size, kernel_size);
     cl->grad_biases = tensor_create1d(out_channels);
-    conv_layer_init_weights(cl);
+    conv2d_layer_init_weights(cl);
     return layer_create(LAYER_CONV_2D, (void *)cl);
 }
 
-void conv_layer_free(ConvLayer *layer) {
+void conv2d_layer_free(Conv2DLayer *layer) {
     tensor_free(layer->weights);
     tensor_free(layer->biases);
     tensor_free(layer->grad_weights);
@@ -43,8 +43,8 @@ void conv_layer_free(ConvLayer *layer) {
 }
 
 // Compute convolution parameters from layer and input dimensions
-ConvParams conv_params_create(const ConvLayer *layer, const Tensor *input) {
-    ConvParams p;
+Conv2DParams conv2d_params_create(const Conv2DLayer *layer, const Tensor *input) {
+    Conv2DParams p;
     p.C_in = layer->in_channels;
     p.C_out = layer->out_channels;
     p.K = layer->kernel_size;
@@ -62,8 +62,8 @@ ConvParams conv_params_create(const ConvLayer *layer, const Tensor *input) {
 }
 
 // Compute convolution parameters from layer and already-padded input
-ConvParams conv_params_from_padded(const ConvLayer *layer, const Tensor *padded_input) {
-    ConvParams p;
+Conv2DParams conv2d_params_from_padded(const Conv2DLayer *layer, const Tensor *padded_input) {
+    Conv2DParams p;
     p.C_in = layer->in_channels;
     p.C_out = layer->out_channels;
     p.K = layer->kernel_size;
@@ -81,8 +81,8 @@ ConvParams conv_params_from_padded(const ConvLayer *layer, const Tensor *padded_
 }
 
 // Create ConvParams directly from raw parameters - most flexible
-ConvParams conv_params_make(const ConvLayer *layer, int H_in, int W_in) {
-    ConvParams p;
+Conv2DParams conv2d_params_make(const Conv2DLayer *layer, int H_in, int W_in) {
+    Conv2DParams p;
     p.C_in = layer->in_channels;
     p.C_out = layer->out_channels;
     p.K = layer->kernel_size;
@@ -98,7 +98,7 @@ ConvParams conv_params_make(const ConvLayer *layer, int H_in, int W_in) {
 }
 
 // Create ConvParams from layer and upstream gradient shape (for backward pass)
-ConvParams conv_params_from_upstream(const ConvLayer *layer, const Tensor *upstream_grad) {
+Conv2DParams conv2d_params_from_upstream(const Conv2DLayer *layer, const Tensor *upstream_grad) {
     // upstream_grad shape: (C_out, H_out, W_out)
     const int H_out = upstream_grad->shape[1];
     const int W_out = upstream_grad->shape[2];
@@ -109,11 +109,11 @@ ConvParams conv_params_from_upstream(const ConvLayer *layer, const Tensor *upstr
     const int H_in = H_padded - 2 * layer->padding;
     const int W_in = W_padded - 2 * layer->padding;
 
-    return conv_params_make(layer, H_in, W_in);
+    return conv2d_params_make(layer, H_in, W_in);
 }
 
 // Xavier weight initialization
-void conv_layer_init_weights(ConvLayer *layer) {
+void conv2d_layer_init_weights(Conv2DLayer *layer) {
     int kernel_squared = layer->kernel_size * layer->kernel_size;
     int fan_in = layer->in_channels * kernel_squared;
     int fan_out = layer->out_channels * kernel_squared;
@@ -123,8 +123,8 @@ void conv_layer_init_weights(ConvLayer *layer) {
     }
 }
 
-Tensor *conv_layer_forward(ConvLayer *layer, const Tensor *input) {
-    ConvParams p = conv_params_create(layer, input);
+Tensor *conv2d_layer_forward(Conv2DLayer *layer, const Tensor *input) {
+    Conv2DParams p = conv2d_params_create(layer, input);
     Tensor *X_pad = tensor_pad2d(input, p.padding);
     Tensor *Y = tensor_create3d(p.C_out, p.H_out, p.W_out);
 
@@ -159,8 +159,8 @@ Tensor *conv_layer_forward(ConvLayer *layer, const Tensor *input) {
     return Y;
 }
 
-Tensor *conv_layer_forward_stride_optimized(ConvLayer *layer, const Tensor *input) {
-    ConvParams p = conv_params_create(layer, input);
+Tensor *conv2d_layer_forward_stride_optimized(Conv2DLayer *layer, const Tensor *input) {
+    Conv2DParams p = conv2d_params_create(layer, input);
     Tensor *X_pad = tensor_pad2d(input, p.padding);
 
     // Fetch padded input metadata once
@@ -223,9 +223,9 @@ Tensor *conv_layer_forward_stride_optimized(ConvLayer *layer, const Tensor *inpu
     return Y;
 }
 
-Tensor *conv_layer_backward(ConvLayer *layer, const Tensor *upstream_grad) {
+Tensor *conv2d_layer_backward(Conv2DLayer *layer, const Tensor *upstream_grad) {
     // Create params from cached padded input (layer->input is already padded)
-    ConvParams p = conv_params_from_padded(layer, layer->input);
+    Conv2DParams p = conv2d_params_from_padded(layer, layer->input);
 
     // 1. Gradient w.r.t biases
     for (int out_c = 0; out_c < p.C_out; out_c++) {
@@ -286,9 +286,9 @@ Tensor *conv_layer_backward(ConvLayer *layer, const Tensor *upstream_grad) {
     return dX;
 }
 
-Tensor *conv_layer_backward_stride_optimized(ConvLayer *layer, const Tensor *upstream_grad) {
+Tensor *conv2d_layer_backward_stride_optimized(Conv2DLayer *layer, const Tensor *upstream_grad) {
     // Create params from cached padded input
-    ConvParams p = conv_params_from_padded(layer, layer->input);
+    Conv2DParams p = conv2d_params_from_padded(layer, layer->input);
 
     // Fetch upstream gradient metadata once
     float *UG_data = upstream_grad->data;
@@ -393,8 +393,8 @@ Tensor *conv_layer_backward_stride_optimized(ConvLayer *layer, const Tensor *ups
 // Unfolds padded input tensor X_pad into matrix X_col.
 //
 // X_col = (C_in * K * K) x (H_out * W_out) matrix
-Tensor *im2col(ConvLayer *layer, Tensor *X_pad) {
-    ConvParams p = conv_params_from_padded(layer, X_pad);
+Tensor *conv2d_im2col(Conv2DLayer *layer, Tensor *X_pad) {
+    Conv2DParams p = conv2d_params_from_padded(layer, X_pad);
     const int C_in = p.C_in;
     const int H_out = p.H_out;
     const int W_out = p.W_out;
@@ -433,8 +433,8 @@ Tensor *im2col(ConvLayer *layer, Tensor *X_pad) {
     return X_col;
 }
 
-Tensor *conv_layer_forward_im2col(ConvLayer *layer, const Tensor *input) {
-    ConvParams p = conv_params_create(layer, input);
+Tensor *conv_layer_forward_im2col(Conv2DLayer *layer, const Tensor *input) {
+    Conv2DParams p = conv2d_params_create(layer, input);
     const int C_in = p.C_in;
     const int C_out = p.C_out;
     const int H_out = p.H_out;
@@ -445,7 +445,7 @@ Tensor *conv_layer_forward_im2col(ConvLayer *layer, const Tensor *input) {
 
     // 1. Pad and transform input
     Tensor *X_pad = tensor_pad2d(input, p.padding);
-    Tensor *X_col = im2col(layer, X_pad);
+    Tensor *X_col = conv2d_im2col(layer, X_pad);
 
     // 2. Get view of weights in (C_out, C_in * K * K)
     Tensor *W_row = tensor_view(layer->weights, 2, (int[]){C_out, C_in * K * K});
@@ -483,7 +483,7 @@ Tensor *conv_layer_forward_im2col(ConvLayer *layer, const Tensor *input) {
     return Y;
 }
 
-Tensor *col2im(Tensor *dX_col, const ConvParams *p) {
+Tensor *conv2d_col2im(Tensor *dX_col, const Conv2DParams *p) {
     const int C_in = p->C_in;
     const int H_out = p->H_out;
     const int W_out = p->W_out;
@@ -522,8 +522,8 @@ Tensor *col2im(Tensor *dX_col, const ConvParams *p) {
     return dX_pad;
 }
 
-Tensor *conv_layer_backward_im2col(ConvLayer *layer, const Tensor *upstream_grad) {
-    ConvParams p = conv_params_from_upstream(layer, upstream_grad);
+Tensor *conv_layer_backward_im2col(Conv2DLayer *layer, const Tensor *upstream_grad) {
+    Conv2DParams p = conv2d_params_from_upstream(layer, upstream_grad);
 
     const int C_in = p.C_in;
     const int C_out = p.C_out;
@@ -553,7 +553,7 @@ Tensor *conv_layer_backward_im2col(ConvLayer *layer, const Tensor *upstream_grad
     Tensor *W_row = tensor_view(layer->weights, 2, (int[]){C_out, C_in * K * K});
     Tensor *W_row_transpose = tensor_transpose2d(W_row);
     tensor_matmul(dX_col, W_row_transpose, UG_flat);
-    Tensor *dX_pad = col2im(dX_col, &p);
+    Tensor *dX_pad = conv2d_col2im(dX_col, &p);
     Tensor *dX = tensor_unpad2d(dX_pad, p.padding);
 
     tensor_free(UG_flat);
