@@ -286,7 +286,8 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
         }
         case LAYER_ACTIVATION: {
             ActivationLayer *al = (ActivationLayer *)layer->layer;
-            current = gpu_activation_layer_forward(current, al->activation_type);
+            GPUTensor *output = workspace_alloc_tensor(gpu_nn, current->ndim, current->shape);
+            current = gpu_activation_layer_forward(output, current, al->activation_type);
             break;
         }
         case LAYER_MAX_POOL: {
@@ -394,7 +395,7 @@ float gpu_nn_compute_loss(GPUNeuralNet *gpu_nn, GPUTensor *prediction, GPUTensor
     float *d_losses = workspace_alloc(gpu_nn, batch_size * sizeof(float));
 
     // Launch softmax cross entropy loss kernel
-    gpu_softmax_cross_entropy_loss(d_losses, prediction, target, batch_size, num_classes);
+    // gpu_softmax_cross_entropy_loss(d_losses, prediction, target, batch_size, num_classes);
 }
 
 // Evaluation

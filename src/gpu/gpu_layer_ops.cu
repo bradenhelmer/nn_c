@@ -100,7 +100,7 @@ GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const
 }
 
 // Activation Layer
-GPUTensor *gpu_activation_layer_forward(GPUTensor *input, ActivationType activation_type) {
+GPUTensor *gpu_activation_layer_forward(GPUTensor *output, GPUTensor *input, ActivationType activation_type) {
     switch (activation_type) {
     case ACTIVATION_SIGMOID:
     case ACTIVATION_RELU:

@@ -26,8 +26,10 @@ GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const
 // Flatten Layer
 
 // Activation Layer
-GPUTensor *gpu_activation_layer_forward(GPUTensor *input, ActivationType activation_type);
-GPUTensor *gpu_activation_layer_backward(GPUTensor *upstream_grad, ActivationType activation_type);
+GPUTensor *gpu_activation_layer_forward(GPUTensor *output, GPUTensor *input,
+                                        ActivationType activation_type);
+GPUTensor *gpu_activation_layer_backward(GPUTensor *output, GPUTensor *upstream_grad,
+                                         ActivationType activation_type);
 
 // Loss functions
 void gpu_softmax_cross_entropy_loss(float *d_losses, const GPUTensor *prediction,

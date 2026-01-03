@@ -65,7 +65,4 @@ void tensor_tanh_derivative(Tensor *result, const Tensor *tanh_output);
 void tensor_linear(Tensor *result, const Tensor *input);
 void tensor_linear_derivative(Tensor *result, const Tensor *input);
 
-// Softmax (operates on whole 1D tensor)
-void tensor_softmax(Tensor *result, const Tensor *input);
-
 #endif /* ifndef ACTIVATIONS_H */
