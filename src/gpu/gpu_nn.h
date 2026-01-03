@@ -65,6 +65,8 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target);
 void gpu_nn_zero_gradients(GPUNeuralNet *gpu_nn);
 void gpu_nn_scale_gradients(GPUNeuralNet *gpu_nn, float scale);
 float gpu_nn_compute_loss(GPUNeuralNet *gpu_nn, GPUTensor *prediction, GPUTensor *target);
+void gpu_nn_compute_loss_gradient(LossType loss_type, GPUTensor *grad, const GPUTensor *prediction,
+                                  const GPUTensor *target);
 void gpu_nn_optimizer_step(GPUNeuralNet *gpu_nn);
 
 // Evaluation

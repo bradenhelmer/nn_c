@@ -2,6 +2,7 @@
  * gpu_layer_ops.cu - GPU layer passes implementations.
  *
  */
+#include "gpu/gpu_activations.h"
 #include "gpu/gpu_tensor.h"
 #include "gpu_layer_ops.h"
 #include <float.h>
@@ -100,80 +101,37 @@ GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const
 }
 
 // Activation Layer
-GPUTensor *gpu_activation_layer_forward(GPUTensor *output, GPUTensor *input, ActivationType activation_type) {
+GPUTensor *gpu_activation_layer_forward(GPUTensor *output, GPUTensor *input,
+                                        ActivationType activation_type) {
     switch (activation_type) {
     case ACTIVATION_SIGMOID:
+        gpu_tensor_sigmoid(output, input);
     case ACTIVATION_RELU:
+        gpu_tensor_relu(output, input);
     case ACTIVATION_TANH:
+        gpu_tensor_tanh(output, input);
     case ACTIVATION_LINEAR:
+        gpu_tensor_linear(output, input);
         break;
     }
-    return NULL;
+    return output;
 }
 
-GPUTensor *gpu_activation_layer_backward(GPUTensor *upstream_grad, ActivationType activation_type) {
-    return NULL;
+GPUTensor *gpu_activation_layer_backward(GPUTensor *output, GPUTensor *upstream_grad,
+                                         ActivationType activation_type) {
+    switch (activation_type) {
+    case ACTIVATION_SIGMOID:
+        gpu_tensor_sigmoid_derivative(output, upstream_grad);
+        break;
+    case ACTIVATION_RELU:
+        gpu_tensor_relu_derivative(output, upstream_grad);
+        break;
+    case ACTIVATION_TANH:
+        gpu_tensor_tanh_derivative(output, upstream_grad);
+        break;
+    case ACTIVATION_LINEAR:
+        gpu_tensor_linear_derivative(output, upstream_grad);
+        break;
+    }
+    return output;
 }
-
-// #define FMAX(a, b) (a) > (b) ? (a) : (b)
-//
-// __global__ void softmax_cross_entropy_loss_kernel(float *d_losses, const float *prediction,
-//                                                   const float *target, const int batch_size,
-//                                                   const int num_classes) {
-//     extern __shared__ float shared_max[];
-//     extern __shared__ float shared_sum[];
-//     extern __shared__ float softmax[];
-//
-//     int global_i = threadIdx.x;
-//
-//     float val = FLT_MIN;
-//     if (global_i < batch_size) {
-//         val = prediction[global_i];
-//     }
-//     shared_max[global_i] = val;
-//     __syncthreads();
-//
-//     // Parallel reduction to find max value
-//     int stride = blockDim.x / 2;
-//     while (stride > 0) {
-//         if (global_i < stride) {
-//             shared_max[global_i] = FMAX(shared_max[global_i], shared_max[global_i + stride]);
-//         }
-//         __syncthreads();
-//         stride /= 2;
-//     }
-//
-//     float block_max = shared_max[0];
-//
-//     float exp_val = 0.0f;
-//     if (global_i < batch_size) {
-//         exp_val = expf(val - block_max);
-//     }
-//     shared_sum[global_i] = val;
-//     __syncthreads();
-//
-//     // Parallel reduction for sum similar to reduction for max
-//     stride = blockDim.x / 2;
-//     while (stride > 0) {
-//         if (global_i > stride) {
-//             shared_sum[global_i] += shared_sum[global_i + stride];
-//         }
-//         __syncthreads();
-//         stride /= 2;
-//     }
-//
-//     // Normalize by sum
-//     float block_sum = shared_sum[0];
-//     if (global_i < batch_size) {
-//         softmax[global_i] = exp_val / block_sum;
-//     }
-//
-//     // Do cross entropy.
-//
-// }
-//
-// // Loss functions
-// void gpu_softmax_cross_entropy_loss(float *d_losses, const GPUTensor *prediction,
-//                                     const GPUTensor *target, const int batch_size,
-//                                     const int num_classes) {
-// }

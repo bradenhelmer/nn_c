@@ -3,6 +3,7 @@
  */
 #include "gpu_nn.h"
 #include "gpu_layer_ops.h"
+#include "gpu_loss.h"
 #include "gpu_tensor.h"
 #include "nn/layer.h"
 #include <assert.h>
@@ -327,7 +328,7 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
     GPUTensor *output = gpu_nn->d_outputs[gpu_nn->num_layers - 1];
     GPUTensor *grad = workspace_alloc_tensor(gpu_nn, output->ndim, output->shape);
 
-    // gpu_softmax_cross_entropy_backward(grad, output, target)
+    gpu_nn_compute_loss_gradient(gpu_nn->cpu_nn->loss_type, grad, output, target);
 
     for (int i = gpu_nn->num_layers - 1; i >= 0; --i) {
         Layer *layer = gpu_nn->cpu_nn->layers[i];
@@ -358,8 +359,8 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
             break;
         }
         case LAYER_ACTIVATION: {
-            // ActivationLayer *al = (ActivationLayer *)layer->layer;
-            // current = activation_backward_gpu(...)
+            ActivationLayer *al = (ActivationLayer *)layer->layer;
+            grad = gpu_activation_layer_backward(grad, output, al->activation_type);
             break;
         }
         case LAYER_MAX_POOL: {
@@ -388,14 +389,34 @@ void gpu_nn_optimizer_step(GPUNeuralNet *gpu_nn) {
 }
 
 float gpu_nn_compute_loss(GPUNeuralNet *gpu_nn, GPUTensor *prediction, GPUTensor *target) {
-    const int batch_size = prediction->shape[0];
-    const int num_classes = prediction->shape[1];
+    // Compute loss based on loss type
+    switch (gpu_nn->cpu_nn->loss_type) {
+    case LOSS_SOFTMAX_CROSS_ENTROPY:
+        return gpu_softmax_cross_entropy_loss(prediction, target);
+    case LOSS_MSE:
+        // TODO: Implement MSE loss on GPU if needed
+        return 0.0f;
+    case LOSS_CROSS_ENTROPY:
+        // TODO: Implement cross-entropy loss on GPU if needed
+        return 0.0f;
+    default:
+        return 0.0f;
+    }
+}
 
-    // Allocate temporary for per-sample losses
-    float *d_losses = workspace_alloc(gpu_nn, batch_size * sizeof(float));
-
-    // Launch softmax cross entropy loss kernel
-    // gpu_softmax_cross_entropy_loss(d_losses, prediction, target, batch_size, num_classes);
+void gpu_nn_compute_loss_gradient(LossType loss_type, GPUTensor *grad, const GPUTensor *prediction,
+                                  const GPUTensor *target) {
+    switch (loss_type) {
+    case LOSS_SOFTMAX_CROSS_ENTROPY:
+        gpu_softmax_cross_entropy_backward(grad, prediction, target);
+        break;
+    case LOSS_MSE:
+        // TODO: Implement MSE gradient on GPU if needed
+        break;
+    case LOSS_CROSS_ENTROPY:
+        // TODO: Implement cross-entropy gradient on GPU if needed
+        break;
+    }
 }
 
 // Evaluation

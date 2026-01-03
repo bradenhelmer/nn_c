@@ -31,11 +31,6 @@ GPUTensor *gpu_activation_layer_forward(GPUTensor *output, GPUTensor *input,
 GPUTensor *gpu_activation_layer_backward(GPUTensor *output, GPUTensor *upstream_grad,
                                          ActivationType activation_type);
 
-// Loss functions
-void gpu_softmax_cross_entropy_loss(float *d_losses, const GPUTensor *prediction,
-                                    const GPUTensor *target, const int batch_size,
-                                    const int num_classes);
-
 #ifdef __cplusplus
 }
 #endif
