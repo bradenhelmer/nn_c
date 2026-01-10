@@ -6,14 +6,15 @@
 #include "gpu_gradient_descent.h"
 #include "data/batch.h"
 #include "gpu/gpu_nn.h"
+#include "gpu/gpu_optimizer.h"
 #include "gpu/gpu_tensor.h"
 #include "utils/timing.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, Dataset *train_data, Dataset *val_data,
-                                   TrainingConfig *config) {
+TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, GPUOptimizer *opt, Dataset *train_data,
+                                   Dataset *val_data, TrainingConfig *config) {
 
     TrainingResult *result = (TrainingResult *)malloc(sizeof(TrainingResult));
     result->loss_history = malloc(config->max_epochs * sizeof(float));
@@ -83,7 +84,7 @@ TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, Dataset *train_data, Da
 
             // 5. Update weights
             gpu_nn_scale_gradients(gpu_nn, 1.0f / actual_batch_size);
-            // gpu_nn_optimizer_step(gpu_nn);
+            gpu_nn_optimizer_step(gpu_nn, opt);
 
             samples_seen += actual_batch_size;
         }

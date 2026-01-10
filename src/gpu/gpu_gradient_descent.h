@@ -7,9 +7,10 @@
 #define GPU_GRADIENT_DESCENT_H
 #include "data/dataset.h"
 #include "gpu/gpu_nn.h"
+#include "gpu/gpu_optimizer.h"
 #include "training/gradient_descent.h"
 
-TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, Dataset *train_data, Dataset *val_data,
-                                   TrainingConfig *config);
+TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, GPUOptimizer *opt, Dataset *train_data,
+                                   Dataset *val_data, TrainingConfig *config);
 
 #endif /* ifndef GPU_GRADIENT_DESCENT_H */

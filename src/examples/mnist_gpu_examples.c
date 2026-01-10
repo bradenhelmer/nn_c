@@ -6,6 +6,7 @@
 #include "../data/dataset.h"
 #include "gpu/gpu_gradient_descent.h"
 #include "gpu/gpu_nn.h"
+#include "gpu/gpu_optimizer.h"
 #include "nn/layer.h"
 #include "nn/nn.h"
 #include "utils/timing.h"
@@ -15,7 +16,7 @@ extern void test_mnist(NeuralNet *nn, Dataset *data, const char *name);
 extern void mnist_classifier(Tensor *dest, const Tensor *prediction);
 
 void mnist_gpu_basic() {
-    printf("\n\nTraining MNIST with lienar layer GPU execution...\n");
+    printf("\n\nTraining MNIST with linear layer GPU execution...\n");
 
     Dataset *mnist_train = create_mnist_train_dataset();
     Dataset *mnist_test = create_mnist_test_dataset();
@@ -38,10 +39,14 @@ void mnist_gpu_basic() {
     GPUNeuralNet *mnist_gpu_nn =
         gpu_nn_create_from_cpu_nn(nn_mnist, config.batch_size, input_shape);
 
+    // Create and initialize GPU optimizer
+    GPUOptimizer *gpu_opt = gpu_optimizer_create_sgd(0.1f);
+    gpu_optimizer_init(gpu_opt, mnist_gpu_nn);
+
     Timer training_timer = {0};
     timer_start(&training_timer);
     TrainingResult *mnist_gpu_basic_result =
-        train_nn_gpu_batch(mnist_gpu_nn, mnist_train, NULL, &config);
+        train_nn_gpu_batch(mnist_gpu_nn, gpu_opt, mnist_train, NULL, &config);
     timer_stop(&training_timer);
     printf("GPU Training took: %.3f seconds\n", training_timer.elapsed);
 
@@ -54,6 +59,7 @@ void mnist_gpu_basic() {
 
     nn_free(nn_mnist);
     gpu_nn_free(mnist_gpu_nn);
+    gpu_optimizer_free(gpu_opt);
     optimizer_free(config.optimizer);
     dataset_free(mnist_train);
     dataset_free(mnist_test);

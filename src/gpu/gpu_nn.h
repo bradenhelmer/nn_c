@@ -8,6 +8,9 @@
 #include "nn/nn.h"
 #include <cublas_v2.h>
 
+// Forward declaration for optimizer
+struct GPUOptimizer;
+
 // Input shape descriptor for dynamic workspace sizing
 typedef struct {
     int height;   // Image height (1 for fully-connected networks)
@@ -15,7 +18,7 @@ typedef struct {
     int channels; // Number of channels (or feature size for FC)
 } InputShape;
 
-typedef struct {
+typedef struct GPUNeuralNet {
     NeuralNet *cpu_nn; // Borrowed for configuration (read only)
     int num_layers;
     int batch_size; // Fixed at creation
@@ -46,12 +49,6 @@ typedef struct {
     cublasHandle_t cublas;
     cudaStream_t compute_stream;
     cudaStream_t transfer_stream; // For async Host <-> Device
-
-    // Optimizer state (ADAM)
-    GPUTensor **d_m; // First moment per param.
-    GPUTensor **d_v; // Second moment per param.
-    int t;           // Timestep counter
-    float beta1, beta2, eps;
 } GPUNeuralNet;
 
 // Lifecyle
@@ -67,7 +64,7 @@ void gpu_nn_scale_gradients(GPUNeuralNet *gpu_nn, float scale);
 float gpu_nn_compute_loss(GPUNeuralNet *gpu_nn, GPUTensor *prediction, GPUTensor *target);
 void gpu_nn_compute_loss_gradient(LossType loss_type, GPUTensor *grad, const GPUTensor *prediction,
                                   const GPUTensor *target);
-void gpu_nn_optimizer_step(GPUNeuralNet *gpu_nn);
+void gpu_nn_optimizer_step(GPUNeuralNet *gpu_nn, struct GPUOptimizer *opt);
 
 // Evaluation
 void gpu_nn_predict(GPUNeuralNet *gpu_nn, Tensor *host_input, Tensor *host_output, int batch_size);

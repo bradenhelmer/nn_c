@@ -4,6 +4,7 @@
 #include "gpu_nn.h"
 #include "gpu_layer_ops.h"
 #include "gpu_loss.h"
+#include "gpu_optimizer.h"
 #include "gpu_tensor.h"
 #include "nn/layer.h"
 #include <assert.h>
@@ -173,17 +174,6 @@ GPUNeuralNet *gpu_nn_create_from_cpu_nn(NeuralNet *cpu_nn, int batch_size, Input
     cudaStreamCreate(&gpu_nn->compute_stream);
     cudaStreamCreate(&gpu_nn->transfer_stream);
 
-    // 7. Initialize optimizer state (Adam)
-    gpu_nn->d_m = (GPUTensor **)malloc(sizeof(GPUTensor *) * param_count);
-    gpu_nn->d_v = (GPUTensor **)malloc(sizeof(GPUTensor *) * param_count);
-    for (int i = 0; i < param_count; i++) {
-        gpu_nn->d_m[i] = gpu_tensor_create_like(gpu_nn->d_params[i]);
-        gpu_nn->d_v[i] = gpu_tensor_create_like(gpu_nn->d_params[i]);
-    }
-    gpu_nn->t = 0;
-    gpu_nn->beta1 = 0.9f;
-    gpu_nn->beta2 = 0.999f;
-    gpu_nn->eps = 1e-8f;
     return gpu_nn;
 }
 
@@ -203,19 +193,15 @@ void gpu_nn_to_cpu_nn(GPUNeuralNet *gpu_nn) {
 
 void gpu_nn_free(GPUNeuralNet *gpu_nn) {
 
-    // Free parameter/optimizer tensors
+    // Free parameter tensors
     for (int i = 0; i < gpu_nn->num_params; i++) {
         gpu_tensor_free(gpu_nn->d_params[i]);
         gpu_tensor_free(gpu_nn->d_grads[i]);
-        gpu_tensor_free(gpu_nn->d_m[i]);
-        gpu_tensor_free(gpu_nn->d_v[i]);
     }
 
     // Free actual storage pointers
     free(gpu_nn->d_params);
     free(gpu_nn->d_grads);
-    free(gpu_nn->d_m);
-    free(gpu_nn->d_v);
 
     // Free layer param offset array
     free(gpu_nn->layer_param_offset);
@@ -404,7 +390,13 @@ void gpu_nn_scale_gradients(GPUNeuralNet *gpu_nn, float scale) {
     }
 }
 
-void gpu_nn_optimizer_step(GPUNeuralNet *gpu_nn) {
+void gpu_nn_optimizer_step(GPUNeuralNet *gpu_nn, struct GPUOptimizer *opt) {
+    // TODO(human): Implement optimizer step based on opt->type
+    // Available types: OPTIMIZER_SGD, OPTIMIZER_MOMENTUM, OPTIMIZER_ADAM
+    // Parameters accessible: gpu_nn->d_params, gpu_nn->d_grads, gpu_nn->num_params
+    // Optimizer state: opt->d_v (momentum), opt->d_m/opt->d_s (adam)
+    (void)gpu_nn;
+    (void)opt;
 }
 
 float gpu_nn_compute_loss(GPUNeuralNet *gpu_nn, GPUTensor *prediction, GPUTensor *target) {
