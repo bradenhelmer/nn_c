@@ -10,8 +10,6 @@ List of current to-dos for nn_c (priortity decreasing)
     - Keeping modularity in mind for future contributors.
     - Unified function signature conventions for activations/layers/loss
 
-- Decouple adam optimizer from GPUNeuralNet
-
 - More comprehensive unit tests. Gtest exploration?
 
 - Benchmarking framework
