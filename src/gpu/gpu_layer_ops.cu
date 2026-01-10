@@ -106,10 +106,13 @@ GPUTensor *gpu_activation_layer_forward(GPUTensor *output, GPUTensor *input,
     switch (activation_type) {
     case ACTIVATION_SIGMOID:
         gpu_tensor_sigmoid(output, input);
+        break;
     case ACTIVATION_RELU:
         gpu_tensor_relu(output, input);
+        break;
     case ACTIVATION_TANH:
         gpu_tensor_tanh(output, input);
+        break;
     case ACTIVATION_LINEAR:
         gpu_tensor_linear(output, input);
         break;

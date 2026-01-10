@@ -9,7 +9,7 @@
 #define BLOCKS(size) ((size) + (THREADS) - (1)) / (THREADS)
 
 static __device__ float _relu_scalar(float x) {
-    return x <= 0.0f ? 1.0f : 0.0f;
+    return x > 0.0f ? x : 0.0f;
 }
 
 __global__ void relu_kernel(float *output, float *input, const int size) {

@@ -73,24 +73,15 @@ TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, Dataset *train_data, Da
             // 2. Forward pass
             gpu_nn_zero_gradients(gpu_nn);
             GPUTensor *prediction = gpu_nn_forward(gpu_nn, d_input_batch);
-            if (!samples_seen) {
-                printf("Input Size: ");
-                gpu_tensor_print_shape(d_input_batch);
-                printf("\nPrediction Size: ");
-                gpu_tensor_print_shape(prediction);
-                printf("\nTarget Size: ");
-                gpu_tensor_print_shape(d_target_batch);
-                printf("\n");
-            }
 
             // 3. Compute loss (fused with backward start)
-            // float batch_loss = gpu_nn_compute_loss(gpu_nn, prediction, d_target_batch);
-            // epoch_loss += batch_loss * actual_batch_size;
-            //
-            // // 4. Backward pass
-            // gpu_nn_backward(gpu_nn, d_target_batch);
-            //
-            // // 5. Update weights
+            float batch_loss = gpu_nn_compute_loss(gpu_nn, prediction, d_target_batch);
+            epoch_loss += batch_loss * actual_batch_size;
+
+            // 4. Backward pass
+            gpu_nn_backward(gpu_nn, d_target_batch);
+
+            // 5. Update weights
             // gpu_nn_scale_gradients(gpu_nn, 1.0f / actual_batch_size);
             // gpu_nn_optimizer_step(gpu_nn);
 

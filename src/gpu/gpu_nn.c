@@ -325,14 +325,15 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
     // Reset workspace to reuse memory from forward pass
     workspace_reset(gpu_nn);
 
-    GPUTensor *output = gpu_nn->d_outputs[gpu_nn->num_layers - 1];
-    GPUTensor *grad = workspace_alloc_tensor(gpu_nn, output->ndim, output->shape);
+    GPUTensor *final_output = gpu_nn->d_outputs[gpu_nn->num_layers - 1];
+    GPUTensor *grad = workspace_alloc_tensor(gpu_nn, final_output->ndim, final_output->shape);
 
-    gpu_nn_compute_loss_gradient(gpu_nn->cpu_nn->loss_type, grad, output, target);
+    gpu_nn_compute_loss_gradient(gpu_nn->cpu_nn->loss_type, grad, final_output, target);
 
     for (int i = gpu_nn->num_layers - 1; i >= 0; --i) {
         Layer *layer = gpu_nn->cpu_nn->layers[i];
         GPUTensor *layer_input = gpu_nn->d_inputs[i];
+        GPUTensor *layer_output = gpu_nn->d_outputs[i];
         switch (layer->type) {
         case LAYER_CONV_2D: {
             // ConvLayer *conv_layer = (ConvLayer *)layer->layer;
@@ -360,7 +361,7 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
         }
         case LAYER_ACTIVATION: {
             ActivationLayer *al = (ActivationLayer *)layer->layer;
-            grad = gpu_activation_layer_backward(grad, output, al->activation_type);
+            grad = gpu_activation_layer_backward(grad, layer_output, al->activation_type);
             break;
         }
         case LAYER_MAX_POOL: {
