@@ -384,6 +384,24 @@ void gpu_nn_zero_gradients(GPUNeuralNet *gpu_nn) {
 }
 
 void gpu_nn_scale_gradients(GPUNeuralNet *gpu_nn, float scale) {
+    for (int i = 0; i < gpu_nn->num_layers; i++) {
+        Layer *layer = gpu_nn->cpu_nn->layers[i];
+        switch (layer->type) {
+        case LAYER_CONV_2D:
+        case LAYER_LINEAR: {
+            const int p_idx = gpu_nn->layer_param_offset[i];
+            GPUTensor *grad_weights = gpu_nn->d_grads[p_idx];
+            GPUTensor *grad_biases = gpu_nn->d_grads[p_idx + 1];
+            gpu_tensor_scale(grad_weights, grad_weights, scale);
+            gpu_tensor_scale(grad_biases, grad_biases, scale);
+            break;
+        }
+        case LAYER_ACTIVATION:
+        case LAYER_MAX_POOL:
+        case LAYER_FLATTEN:
+            break;
+        }
+    }
 }
 
 void gpu_nn_optimizer_step(GPUNeuralNet *gpu_nn) {

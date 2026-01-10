@@ -60,6 +60,9 @@ void gpu_tensor_copy_async(GPUTensor *dest, const GPUTensor *src, cudaStream_t s
 // Utils
 void gpu_tensor_print_shape(const GPUTensor *gpu_t);
 
+// Operations
+void gpu_tensor_scale(const GPUTensor *dest, const GPUTensor *src, float scale);
+
 #ifdef __cplusplus
 }
 #endif

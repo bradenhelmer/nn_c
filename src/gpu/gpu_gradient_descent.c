@@ -82,7 +82,7 @@ TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, Dataset *train_data, Da
             gpu_nn_backward(gpu_nn, d_target_batch);
 
             // 5. Update weights
-            // gpu_nn_scale_gradients(gpu_nn, 1.0f / actual_batch_size);
+            gpu_nn_scale_gradients(gpu_nn, 1.0f / actual_batch_size);
             // gpu_nn_optimizer_step(gpu_nn);
 
             samples_seen += actual_batch_size;
