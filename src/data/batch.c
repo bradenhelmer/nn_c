@@ -4,7 +4,7 @@
  * Batch training implementations.
  */
 #include "batch.h"
-#include "../utils/utils.h"
+#include "utils/utils.h"
 #include <math.h>
 #include <stdlib.h>
 

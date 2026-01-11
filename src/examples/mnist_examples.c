@@ -2,10 +2,10 @@
  * mnist_examples.c - MNSIT example demonstrations
  *
  */
-#include "../activations/activations.h"
-#include "../data/dataset.h"
-#include "../training/gradient_descent.h"
-#include "../utils/timing.h"
+#include "activations/activations.h"
+#include "data/dataset.h"
+#include "training/gradient_descent.h"
+#include "utils/timing.h"
 #include "config.h"
 #include "nn/layer.h"
 #include "nn/loss.h"

@@ -2,8 +2,8 @@
  * mnist_gpu_examples.c - MNSIT GPU example demonstrations
  *
  */
-#include "../activations/activations.h"
-#include "../data/dataset.h"
+#include "activations/activations.h"
+#include "data/dataset.h"
 #include "gpu/gpu_gradient_descent.h"
 #include "gpu/gpu_nn.h"
 #include "gpu/gpu_optimizer.h"

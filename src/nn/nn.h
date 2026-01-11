@@ -6,7 +6,7 @@
 
 #ifndef NN_H
 #define NN_H
-#include "../data/dataset.h"
+#include "data/dataset.h"
 #include "layer.h"
 #include "loss.h"
 

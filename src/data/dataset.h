@@ -5,7 +5,7 @@
  */
 #ifndef DATASET_H
 #define DATASET_H
-#include "../tensor/tensor.h"
+#include "tensor/tensor.h"
 
 typedef struct {
     Tensor *X; // 2D: (num_samples, num_features)

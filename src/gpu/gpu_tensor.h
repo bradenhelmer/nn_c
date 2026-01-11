@@ -1,5 +1,12 @@
 /*
  * gpu_tensor.h -  GPU tensor declarations
+ *
+ * NOTE: GPUTensor struct is currently fully exposed, which breaks encapsulation
+ * and exposes CUDA implementation details. Clients should not directly access
+ * d_data or other fields - use provided functions instead.
+ *
+ * Future versions may make GPUTensor opaque to allow implementation changes
+ * (e.g., switching to different GPU backends) without breaking client code.
  */
 
 #ifndef GPU_TENSOR_H

@@ -49,7 +49,7 @@ Tensor *activation_layer_forward(ActivationLayer *layer, const Tensor *input) {
         tensor_relu(layer->output, input);
         break;
     case ACTIVATION_TANH:
-        tensor_tanh_activation(layer->output, input);
+        tensor_tanh(layer->output, input);
         break;
     case ACTIVATION_LINEAR:
         tensor_linear(layer->output, input);

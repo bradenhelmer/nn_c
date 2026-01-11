@@ -5,57 +5,57 @@
 #include "utils/utils.h"
 #include <assert.h>
 
-void tensor_sigmoid(Tensor *result, const Tensor *input) {
-    assert(input->size == result->size);
+void tensor_sigmoid(Tensor *output, const Tensor *input) {
+    assert(input->size == output->size);
     for (int i = 0; i < input->size; i++) {
-        result->data[i] = sigmoid_scalar(input->data[i]);
+        output->data[i] = sigmoid_scalar(input->data[i]);
     }
 }
 
-void tensor_sigmoid_derivative(Tensor *result, const Tensor *sigmoid_output) {
-    assert(sigmoid_output->size == result->size);
+void tensor_sigmoid_derivative(Tensor *output, const Tensor *sigmoid_output) {
+    assert(sigmoid_output->size == output->size);
     for (int i = 0; i < sigmoid_output->size; i++) {
-        result->data[i] = sigmoid_scalar_derivative(sigmoid_output->data[i]);
+        output->data[i] = sigmoid_scalar_derivative(sigmoid_output->data[i]);
     }
 }
 
-void tensor_relu(Tensor *result, const Tensor *input) {
-    assert(input->size == result->size);
+void tensor_relu(Tensor *output, const Tensor *input) {
+    assert(input->size == output->size);
     for (int i = 0; i < input->size; i++) {
-        result->data[i] = relu_scalar(input->data[i]);
+        output->data[i] = relu_scalar(input->data[i]);
     }
 }
 
-void tensor_relu_derivative(Tensor *result, const Tensor *relu_output) {
-    assert(relu_output->size == result->size);
+void tensor_relu_derivative(Tensor *output, const Tensor *relu_output) {
+    assert(relu_output->size == output->size);
     for (int i = 0; i < relu_output->size; i++) {
-        result->data[i] = relu_scalar_derivative(relu_output->data[i]);
+        output->data[i] = relu_scalar_derivative(relu_output->data[i]);
     }
 }
 
-void tensor_tanh_activation(Tensor *result, const Tensor *input) {
-    assert(result->size == input->size);
+void tensor_tanh(Tensor *output, const Tensor *input) {
+    assert(output->size == input->size);
     for (int i = 0; i < input->size; i++) {
-        result->data[i] = tanh_scalar(input->data[i]);
+        output->data[i] = tanh_scalar(input->data[i]);
     }
 }
 
-void tensor_tanh_derivative(Tensor *result, const Tensor *tanh_output) {
-    assert(result->size == tanh_output->size);
+void tensor_tanh_derivative(Tensor *output, const Tensor *tanh_output) {
+    assert(output->size == tanh_output->size);
     for (int i = 0; i < tanh_output->size; i++) {
-        result->data[i] = tanh_scalar_derivative(tanh_output->data[i]);
+        output->data[i] = tanh_scalar_derivative(tanh_output->data[i]);
     }
 }
 
-void tensor_linear(Tensor *result, const Tensor *input) {
-    assert(result->size == input->size);
+void tensor_linear(Tensor *output, const Tensor *input) {
+    assert(output->size == input->size);
     for (int i = 0; i < input->size; i++) {
-        result->data[i] = input->data[i];
+        output->data[i] = input->data[i];
     }
 }
 
-void tensor_linear_derivative(Tensor *result, UNUSED const Tensor *input) {
-    for (int i = 0; i < result->size; i++) {
-        result->data[i] = 1.0f;
+void tensor_linear_derivative(Tensor *output, UNUSED const Tensor *input) {
+    for (int i = 0; i < output->size; i++) {
+        output->data[i] = 1.0f;
     }
 }

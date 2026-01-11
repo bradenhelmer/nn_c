@@ -5,8 +5,8 @@
  */
 #ifndef PERCEPTRON_H
 #define PERCEPTRON_H
-#include "../activations/activations.h"
-#include "../data/dataset.h"
+#include "activations/activations.h"
+#include "data/dataset.h"
 
 typedef int (*classifier_func)(float);
 

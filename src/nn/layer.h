@@ -2,13 +2,27 @@
  * layer.h
  *
  * Layer struct and function declarations
+ *
+ * IMPORTANT: API ENCAPSULATION NOTICE
+ * ------------------------------------
+ * This header currently exposes all layer implementation structs (LinearLayer,
+ * Conv2DLayer, etc.) which breaks encapsulation and prevents future changes
+ * to internal representations without breaking client code.
+ *
+ * RECOMMENDED FUTURE REFACTOR:
+ * - Move layer-specific structs to layer_internal.h
+ * - Make them opaque in this public header (forward declarations only)
+ * - Provide accessor functions where field access is needed
+ * - Migrate API to use Layer * uniformly instead of LinearLayer *, etc.
+ *
+ * For now: Treat struct fields as PRIVATE - do not access directly in client code.
+ * Use provided functions instead. Direct field access may break in future versions.
  */
 #ifndef LAYER_H
 #define LAYER_H
 
-#include "../activations/activations.h"
-#include "../tensor/tensor.h"
-#include "gpu/gpu_tensor.h"
+#include "activations/activations.h"
+#include "tensor/tensor.h"
 
 // =============================================================================
 // LAYER GENERICS

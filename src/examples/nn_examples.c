@@ -2,10 +2,10 @@
  * mlp_examples.c - Multi-layer perceptron example demonstrations
  */
 
-#include "../activations/activations.h"
-#include "../data/dataset.h"
-#include "../nn/nn.h"
-#include "../training/gradient_descent.h"
+#include "activations/activations.h"
+#include "data/dataset.h"
+#include "nn/nn.h"
+#include "training/gradient_descent.h"
 #include <stdio.h>
 
 static void xor_classifier(Tensor *dest, const Tensor *prediction) {

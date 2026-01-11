@@ -5,7 +5,7 @@
  */
 
 #include "scheduler.h"
-#include "../utils/utils.h"
+#include "utils/utils.h"
 #include <math.h>
 #include <stdlib.h>
 

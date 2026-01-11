@@ -5,9 +5,9 @@
  */
 #ifndef GRADIENT_DESCENT_H
 #define GRADIENT_DESCENT_H
-#include "../data/dataset.h"
-#include "../nn/nn.h"
-#include "../nn/perceptron.h"
+#include "data/dataset.h"
+#include "nn/nn.h"
+#include "nn/perceptron.h"
 #include "optimizer.h"
 #include "scheduler.h"
 

@@ -8,7 +8,7 @@
 
 #ifndef ACTIVATIONS_H
 #define ACTIVATIONS_H
-#include "../tensor/tensor.h"
+#include "tensor/tensor.h"
 
 // =============================================================================
 // SCALAR ACTIVATION FUNCTIONS
@@ -50,19 +50,19 @@ typedef enum {
 } ActivationType;
 
 // Sigmoid
-void tensor_sigmoid(Tensor *result, const Tensor *input);
-void tensor_sigmoid_derivative(Tensor *result, const Tensor *sigmoid_output);
+void tensor_sigmoid(Tensor *output, const Tensor *input);
+void tensor_sigmoid_derivative(Tensor *output, const Tensor *sigmoid_output);
 
 // ReLU
-void tensor_relu(Tensor *result, const Tensor *input);
-void tensor_relu_derivative(Tensor *result, const Tensor *input);
+void tensor_relu(Tensor *output, const Tensor *input);
+void tensor_relu_derivative(Tensor *output, const Tensor *input);
 
 // Tanh
-void tensor_tanh_activation(Tensor *result, const Tensor *input);
-void tensor_tanh_derivative(Tensor *result, const Tensor *tanh_output);
+void tensor_tanh(Tensor *output, const Tensor *input);
+void tensor_tanh_derivative(Tensor *output, const Tensor *tanh_output);
 
 // Linear (identity)
-void tensor_linear(Tensor *result, const Tensor *input);
-void tensor_linear_derivative(Tensor *result, const Tensor *input);
+void tensor_linear(Tensor *output, const Tensor *input);
+void tensor_linear_derivative(Tensor *output, const Tensor *input);
 
 #endif /* ifndef ACTIVATIONS_H */

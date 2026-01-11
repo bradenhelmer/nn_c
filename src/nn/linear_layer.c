@@ -2,7 +2,7 @@
  * linear_layer.c - Linear layer implementations.
  *
  */
-#include "../utils/utils.h"
+#include "utils/utils.h"
 #include "layer.h"
 #include "tensor/tensor.h"
 #include <math.h>

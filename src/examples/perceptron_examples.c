@@ -2,10 +2,10 @@
  * perceptron_examples.c - Perceptron example demonstrations
  */
 
-#include "../activations/activations.h"
-#include "../data/dataset.h"
-#include "../nn/perceptron.h"
-#include "../training/gradient_descent.h"
+#include "activations/activations.h"
+#include "data/dataset.h"
+#include "nn/perceptron.h"
+#include "training/gradient_descent.h"
 #include <stdio.h>
 
 static int logic_gate_classifier(float prediction) {

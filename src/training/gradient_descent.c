@@ -4,8 +4,8 @@
  * Gradient descent function implementations.
  */
 #include "gradient_descent.h"
-#include "../data/batch.h"
-#include "../nn/loss.h"
+#include "data/batch.h"
+#include "nn/loss.h"
 #include "config.h"
 #include "utils/timing.h"
 #include "utils/utils.h"

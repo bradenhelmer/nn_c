@@ -4,7 +4,7 @@
  * Neural network implementations.
  */
 #include "nn.h"
-#include "../data/dataset.h"
+#include "data/dataset.h"
 #include "layer.h"
 #include "loss.h"
 #include <assert.h>

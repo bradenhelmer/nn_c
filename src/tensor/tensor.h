@@ -2,6 +2,10 @@
  * tensor.h
  *
  * Tensor declarations
+ *
+ * NOTE: Tensor struct is currently fully exposed for performance/convenience,
+ * but this breaks encapsulation. Future versions may make Tensor opaque.
+ * Recommendation: Use accessor functions where possible rather than direct field access.
  */
 #ifndef TENSOR_H
 #define TENSOR_H

@@ -4,7 +4,7 @@
  * Tensor implementations.
  */
 #include "tensor.h"
-#include "../utils/utils.h"
+#include "utils/utils.h"
 #include <assert.h>
 #include <immintrin.h>
 #include <pmmintrin.h>
