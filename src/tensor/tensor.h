@@ -33,21 +33,21 @@ void tensor_free(Tensor *t);
 
 // 2D Accessors
 float tensor_get2d(const Tensor *t, int i, int j);
-void tensor_set2d(const Tensor *t, int i, int j, float value);
+void tensor_set2d(Tensor *t, int i, int j, float value);
 static inline int tensor_index2d(const Tensor *t, int i, int j) {
     return i * t->strides[0] + j;
 }
 
 // 3D Accessors
 float tensor_get3d(const Tensor *t, int i, int j, int k);
-void tensor_set3d(const Tensor *t, int i, int j, int k, float value);
+void tensor_set3d(Tensor *t, int i, int j, int k, float value);
 static inline int tensor_index3d(const Tensor *t, int i, int j, int k) {
     return i * t->strides[0] + j * t->strides[1] + k;
 }
 
 // 4D Accessors
 float tensor_get4d(const Tensor *t, int i, int j, int k, int l);
-void tensor_set4d(const Tensor *t, int i, int j, int k, int l, float value);
+void tensor_set4d(Tensor *t, int i, int j, int k, int l, float value);
 static inline int tensor_index4d(const Tensor *t, int i, int j, int k, int l) {
     return i * t->strides[0] + j * t->strides[1] + k * t->strides[2] + l;
 }

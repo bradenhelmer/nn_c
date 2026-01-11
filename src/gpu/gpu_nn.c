@@ -4,7 +4,6 @@
 #include "gpu_nn.h"
 #include "gpu_layer_ops.h"
 #include "gpu_loss.h"
-#include "gpu_optimizer.h"
 #include "gpu_tensor.h"
 #include "nn/layer.h"
 #include <assert.h>
@@ -388,15 +387,6 @@ void gpu_nn_scale_gradients(GPUNeuralNet *gpu_nn, float scale) {
             break;
         }
     }
-}
-
-void gpu_nn_optimizer_step(GPUNeuralNet *gpu_nn, struct GPUOptimizer *opt) {
-    // TODO(human): Implement optimizer step based on opt->type
-    // Available types: OPTIMIZER_SGD, OPTIMIZER_MOMENTUM, OPTIMIZER_ADAM
-    // Parameters accessible: gpu_nn->d_params, gpu_nn->d_grads, gpu_nn->num_params
-    // Optimizer state: opt->d_v (momentum), opt->d_m/opt->d_s (adam)
-    (void)gpu_nn;
-    (void)opt;
 }
 
 float gpu_nn_compute_loss(GPUNeuralNet *gpu_nn, GPUTensor *prediction, GPUTensor *target) {

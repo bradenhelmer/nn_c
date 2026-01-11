@@ -19,7 +19,7 @@ __global__ void relu_kernel(float *output, float *input, const int size) {
     }
 }
 
-void gpu_tensor_relu(GPUTensor *output, GPUTensor *input) {
+void gpu_tensor_relu(GPUTensor *output, const GPUTensor *input) {
     assert(output->size == input->size);
     const int size = output->size;
     relu_kernel<<<BLOCKS(size), THREADS>>>(output->d_data, input->d_data, size);
@@ -36,7 +36,7 @@ __global__ void relu_derivative_kernel(float *output, float *relu_output, const 
     }
 }
 
-void gpu_tensor_relu_derivative(GPUTensor *output, GPUTensor *relu_output) {
+void gpu_tensor_relu_derivative(GPUTensor *output, const GPUTensor *relu_output) {
     assert(output->size == relu_output->size);
     const int size = output->size;
     relu_derivative_kernel<<<BLOCKS(size), THREADS>>>(output->d_data, relu_output->d_data, size);
@@ -53,7 +53,7 @@ __global__ void sigmoid_kernel(float *output, float *input, const int size) {
     }
 }
 
-void gpu_tensor_sigmoid(GPUTensor *output, GPUTensor *input) {
+void gpu_tensor_sigmoid(GPUTensor *output, const GPUTensor *input) {
     assert(output->size == input->size);
     const int size = output->size;
     sigmoid_kernel<<<BLOCKS(size), THREADS>>>(output->d_data, input->d_data, size);
@@ -70,7 +70,7 @@ __global__ void sigmoid_derivative_kernel(float *output, float *sigmoid_output, 
     }
 }
 
-void gpu_tensor_sigmoid_derivative(GPUTensor *output, GPUTensor *sigmoid_output) {
+void gpu_tensor_sigmoid_derivative(GPUTensor *output, const GPUTensor *sigmoid_output) {
     assert(output->size == sigmoid_output->size);
     const int size = output->size;
     sigmoid_derivative_kernel<<<BLOCKS(size), THREADS>>>(output->d_data, sigmoid_output->d_data,
@@ -88,7 +88,7 @@ __global__ void tanh_kernel(float *output, float *input, const int size) {
     }
 }
 
-void gpu_tensor_tanh(GPUTensor *output, GPUTensor *input) {
+void gpu_tensor_tanh(GPUTensor *output, const GPUTensor *input) {
     assert(output->size == input->size);
     const int size = output->size;
     tanh_kernel<<<BLOCKS(size), THREADS>>>(output->d_data, input->d_data, size);
@@ -105,13 +105,13 @@ __global__ void tanh_derivative_kernel(float *output, float *tanh_output, const 
     }
 }
 
-void gpu_tensor_tanh_derivative(GPUTensor *output, GPUTensor *tanh_output) {
+void gpu_tensor_tanh_derivative(GPUTensor *output, const GPUTensor *tanh_output) {
     assert(output->size == tanh_output->size);
     const int size = output->size;
     tanh_derivative_kernel<<<BLOCKS(size), THREADS>>>(output->d_data, tanh_output->d_data, size);
 }
 
-void gpu_tensor_linear(GPUTensor *output, GPUTensor *input) {
+void gpu_tensor_linear(GPUTensor *output, const GPUTensor *input) {
     assert(output->size == input->size);
     cudaMemcpy(output->d_data, input->d_data, sizeof(float) * input->size,
                cudaMemcpyDeviceToDevice);
@@ -123,7 +123,7 @@ __global__ void linear_derivative_kernel(float *output, const int size) {
         output[idx] = 1.0f;
     }
 }
-void gpu_tensor_linear_derivative(GPUTensor *output, GPUTensor *linear_output) {
+void gpu_tensor_linear_derivative(GPUTensor *output, const GPUTensor *linear_output) {
     assert(output->size == linear_output->size);
     const int size = output->size;
     linear_derivative_kernel<<<BLOCKS(size), THREADS>>>(output->d_data, size);

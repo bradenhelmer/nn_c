@@ -3,8 +3,8 @@
  *
  * GPU Optimizer implementations
  */
-#include "gpu_optimizer.h"
 #include "gpu_nn.h"
+#include "gpu_optimizer.h"
 #include "gpu_tensor.h"
 #include <stdlib.h>
 
@@ -43,7 +43,7 @@ GPUOptimizer *gpu_optimizer_create_adam(float learning_rate, float beta1, float 
     return opt;
 }
 
-void gpu_optimizer_init(GPUOptimizer *opt, GPUNeuralNet *gpu_nn) {
+void gpu_optimizer_init(GPUOptimizer *opt, struct GPUNeuralNet *gpu_nn) {
     int num_params = gpu_nn->num_params;
     opt->num_params = num_params;
 
@@ -118,43 +118,34 @@ float gpu_optimizer_get_lr(GPUOptimizer *opt) {
     return opt->learning_rate;
 }
 
-// Internal step implementations (static - not exposed in header)
-static void step_sgd(GPUOptimizer *opt, GPUNeuralNet *gpu_nn) {
-    // TODO: Implement SGD parameter update
-    // For each parameter: param -= learning_rate * grad
-    (void)opt;
-    (void)gpu_nn;
-}
-
-static void step_momentum(GPUOptimizer *opt, GPUNeuralNet *gpu_nn) {
-    // TODO: Implement Momentum parameter update
-    // v = beta * v + grad
-    // param -= learning_rate * v
-    (void)opt;
-    (void)gpu_nn;
-}
-
-static void step_adam(GPUOptimizer *opt, GPUNeuralNet *gpu_nn) {
-    // TODO: Implement Adam parameter update
-    // m = beta1 * m + (1 - beta1) * grad
-    // s = beta2 * s + (1 - beta2) * grad^2
-    // m_hat = m / (1 - beta1^t)
-    // s_hat = s / (1 - beta2^t)
-    // param -= learning_rate * m_hat / (sqrt(s_hat) + epsilon)
-    (void)opt;
-    (void)gpu_nn;
-}
-
-void gpu_optimizer_step(GPUOptimizer *opt, GPUNeuralNet *gpu_nn) {
-    switch (opt->type) {
-    case OPTIMIZER_SGD:
-        step_sgd(opt, gpu_nn);
-        break;
-    case OPTIMIZER_MOMENTUM:
-        step_momentum(opt, gpu_nn);
-        break;
-    case OPTIMIZER_ADAM:
-        step_adam(opt, gpu_nn);
-        break;
+void gpu_step_sgd(GPUOptimizer *opt, struct GPUNeuralNet *gpu_nn) {
+    for (int i = 0; i < gpu_nn->num_layers; i++) {
+        Layer *layer = gpu_nn->cpu_nn->layers[i];
+        switch (layer->type) {
+        case LAYER_LINEAR: {
+            LinearLayer *ll = (LinearLayer *)layer->layer;
+            const int p_idx = gpu_nn->layer_param_offset[i];
+            GPUTensor *weights = gpu_nn->d_params[i];
+            GPUTensor *biases = gpu_nn->d_params[i + 1];
+            GPUTensor *grad_weights = gpu_nn->d_grads[i];
+            GPUTensor *grad_biases = gpu_nn->d_grads[i + 1];
+            break;
+        }
+        case LAYER_CONV_2D: {
+            Conv2DLayer *cl = (Conv2DLayer *)layer->layer;
+            break;
+        }
+        case LAYER_ACTIVATION:
+        case LAYER_MAX_POOL:
+        case LAYER_FLATTEN:
+            // No weights to update
+            break;
+        }
     }
+}
+
+void gpu_step_momentum(GPUOptimizer *opt, struct GPUNeuralNet *gpu_nn) {
+}
+
+void gpu_step_adam(GPUOptimizer *opt, struct GPUNeuralNet *gpu_nn) {
 }

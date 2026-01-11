@@ -8,9 +8,6 @@
 #include "nn/nn.h"
 #include <cublas_v2.h>
 
-// Forward declaration for optimizer
-struct GPUOptimizer;
-
 // Input shape descriptor for dynamic workspace sizing
 typedef struct {
     int height;   // Image height (1 for fully-connected networks)
@@ -64,7 +61,6 @@ void gpu_nn_scale_gradients(GPUNeuralNet *gpu_nn, float scale);
 float gpu_nn_compute_loss(GPUNeuralNet *gpu_nn, GPUTensor *prediction, GPUTensor *target);
 void gpu_nn_compute_loss_gradient(LossType loss_type, GPUTensor *grad, const GPUTensor *prediction,
                                   const GPUTensor *target);
-void gpu_nn_optimizer_step(GPUNeuralNet *gpu_nn, struct GPUOptimizer *opt);
 
 // Evaluation
 void gpu_nn_predict(GPUNeuralNet *gpu_nn, Tensor *host_input, Tensor *host_output, int batch_size);

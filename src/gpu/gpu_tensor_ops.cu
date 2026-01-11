@@ -14,7 +14,7 @@ __global__ void _tensor_scale_kernel(float *dest, float *src, float scale, int s
     }
 }
 
-void gpu_tensor_scale(const GPUTensor *dest, const GPUTensor *src, float scale) {
+void gpu_tensor_scale(GPUTensor *dest, const GPUTensor *src, float scale) {
     assert(dest->size == src->size);
     const int size = dest->size;
     _tensor_scale_kernel<<<BLOCKS(size), THREADS>>>(dest->d_data, src->d_data, scale, size);

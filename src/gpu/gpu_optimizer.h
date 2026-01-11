@@ -42,6 +42,9 @@ void gpu_optimizer_init(GPUOptimizer *opt, struct GPUNeuralNet *gpu_nn);
 // Cleanup
 void gpu_optimizer_free(GPUOptimizer *opt);
 
+// Apply gradients to parameters (call after gpu_nn_backward)
+void gpu_optimizer_step(GPUOptimizer *opt, struct GPUNeuralNet *gpu_nn);
+
 // Learning rate access for scheduler integration
 void gpu_optimizer_set_lr(GPUOptimizer *opt, float lr);
 float gpu_optimizer_get_lr(GPUOptimizer *opt);

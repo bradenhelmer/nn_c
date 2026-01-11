@@ -7,6 +7,7 @@ List of current to-dos for nn_c (priortity decreasing)
     - Eventual python bindings.
     - Heterogenious hardware, rocm, metal, etc...
     - General project cleanup and reorganization, current strucutre is a bit messy in my opinion.
+    - Standardize APIs -> lot of wrapper calls e.g. gpu_nn dispatching optimizers
     - Keeping modularity in mind for future contributors.
     - Unified function signature conventions for activations/layers/loss
 

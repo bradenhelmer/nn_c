@@ -78,7 +78,7 @@ float tensor_get2d(const Tensor *t, int i, int j) {
     return t->data[tensor_index2d(t, i, j)];
 }
 
-void tensor_set2d(const Tensor *t, int i, int j, float value) {
+void tensor_set2d(Tensor *t, int i, int j, float value) {
     t->data[tensor_index2d(t, i, j)] = value;
 }
 
@@ -86,7 +86,7 @@ float tensor_get3d(const Tensor *t, int i, int j, int k) {
     return t->data[tensor_index3d(t, i, j, k)];
 }
 
-void tensor_set3d(const Tensor *t, int i, int j, int k, float value) {
+void tensor_set3d(Tensor *t, int i, int j, int k, float value) {
     t->data[tensor_index3d(t, i, j, k)] = value;
 }
 
@@ -94,7 +94,7 @@ float tensor_get4d(const Tensor *t, int i, int j, int k, int l) {
     return t->data[tensor_index4d(t, i, j, k, l)];
 }
 
-void tensor_set4d(const Tensor *t, int i, int j, int k, int l, float value) {
+void tensor_set4d(Tensor *t, int i, int j, int k, int l, float value) {
     t->data[tensor_index4d(t, i, j, k, l)] = value;
 }
 

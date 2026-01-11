@@ -46,18 +46,26 @@ void layer_add_l2_gradient(Layer *layer, float lambda);
 // =============================================================================
 
 // A single trainable parameter and gradient pair.
+// NOTE: ParameterPair does NOT own the tensors - they belong to the layer
 typedef struct {
-    Tensor *param;
-    Tensor *grad_param;
+    Tensor *param;      // Borrowed reference - do not free
+    Tensor *grad_param; // Borrowed reference - do not free
 } ParameterPair;
 
 // All trainable parameters in a Layer
+// NOTE: LayerParameters OWNS the pairs array but NOT the individual tensors
 typedef struct {
-    ParameterPair *pairs;
+    ParameterPair *pairs; // Owned array - freed by layer_parameters_free()
     int num_pairs;
 } LayerParameters;
 
+// Returns a LayerParameters struct containing borrowed references to layer tensors
+// Caller must call layer_parameters_free() to free the pairs array
+// Do NOT free the individual param/grad_param tensors - the layer owns them
 LayerParameters layer_get_parameters(Layer *layer);
+
+// Frees the pairs array in LayerParameters
+// Does NOT free the individual tensors (param/grad_param) - those belong to the layer
 void layer_parameters_free(LayerParameters *params);
 
 // =============================================================================
