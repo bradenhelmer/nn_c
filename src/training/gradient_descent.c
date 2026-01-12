@@ -4,9 +4,9 @@
  * Gradient descent function implementations.
  */
 #include "gradient_descent.h"
+#include "config.h"
 #include "data/batch.h"
 #include "nn/loss.h"
-#include "config.h"
 #include "utils/timing.h"
 #include "utils/utils.h"
 #include <math.h>
@@ -31,7 +31,7 @@ TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data, UNUSED Data
     float prev_loss = INFINITY;
 
     // Pre-allocate input tensor
-    Tensor *input = tensor_create1d(train_data->X->shape[1]);
+    Tensor *input = tensor_create1d(tensor_get_shape_dim(train_data->X, 1));
 
     // 2. Main training loop
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
@@ -90,9 +90,9 @@ TrainingResult *train_nn(NeuralNet *nn, Dataset *train_data, UNUSED Dataset *val
     float prev_loss = INFINITY;
 
     // Pre-allocate tensors for reuse
-    Tensor *input = tensor_create1d(train_data->X->shape[1]);
-    Tensor *target = tensor_create1d(train_data->Y->shape[1]);
-    Tensor *classification = tensor_create1d(train_data->Y->shape[1]);
+    Tensor *input = tensor_create1d(tensor_get_shape_dim(train_data->X, 1));
+    Tensor *target = tensor_create1d(tensor_get_shape_dim(train_data->Y, 1));
+    Tensor *classification = tensor_create1d(tensor_get_shape_dim(train_data->Y, 1));
 
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
         float epoch_loss = 0.f;
@@ -154,9 +154,9 @@ TrainingResult *train_nn_batch(NeuralNet *nn, Dataset *train_data, UNUSED Datase
     BatchIterator *batch_iter = batch_iterator_create(train_data, config->batch_size);
 
     // Pre-allocate tensors for reuse
-    Tensor *input = tensor_create1d(train_data->X->shape[1]);
-    Tensor *target = tensor_create1d(train_data->Y->shape[1]);
-    Tensor *classification = tensor_create1d(train_data->Y->shape[1]);
+    Tensor *input = tensor_create1d(tensor_get_shape_dim(train_data->X, 1));
+    Tensor *target = tensor_create1d(tensor_get_shape_dim(train_data->Y, 1));
+    Tensor *classification = tensor_create1d(tensor_get_shape_dim(train_data->Y, 1));
 
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
         float epoch_loss = 0.f;
@@ -233,9 +233,9 @@ TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data, UNUSED Da
     Timer epoch_timer;
 
     // Pre-allocate tensor buffers
-    Tensor *input = tensor_create1d(train_data->X->shape[1]);
-    Tensor *target = tensor_create1d(train_data->Y->shape[1]);
-    Tensor *classification = tensor_create1d(train_data->Y->shape[1]);
+    Tensor *input = tensor_create1d(tensor_get_shape_dim(train_data->X, 1));
+    Tensor *target = tensor_create1d(tensor_get_shape_dim(train_data->Y, 1));
+    Tensor *classification = tensor_create1d(tensor_get_shape_dim(train_data->Y, 1));
 
     // 2. Batch iterator
     BatchIterator *batch_iter = batch_iterator_create(train_data, config->batch_size);

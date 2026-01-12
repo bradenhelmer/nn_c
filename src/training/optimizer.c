@@ -5,6 +5,7 @@
  */
 #include "optimizer.h"
 #include "nn/layer.h"
+#include "tensor/tensor_internal.h"
 #include <math.h>
 #include <stdlib.h>
 

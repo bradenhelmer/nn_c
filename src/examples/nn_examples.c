@@ -9,15 +9,17 @@
 #include <stdio.h>
 
 static void xor_classifier(Tensor *dest, const Tensor *prediction) {
-    if (prediction->data[0] <= 0.05) {
-        dest->data[0] = 0.0f;
+    const float *pred_data = (const float *)tensor_get_data((Tensor *)prediction);
+    float *dest_data = tensor_get_data(dest);
+    if (pred_data[0] <= 0.05) {
+        dest_data[0] = 0.0f;
         return;
     }
-    if (prediction->data[0] >= 0.95) {
-        dest->data[0] = 1.0f;
+    if (pred_data[0] >= 0.95) {
+        dest_data[0] = 1.0f;
         return;
     }
-    dest->data[0] = -1.f;
+    dest_data[0] = -1.f;
 }
 
 void nn_learning_xor() {

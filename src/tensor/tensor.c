@@ -3,7 +3,7 @@
  *
  * Tensor implementations.
  */
-#include "tensor.h"
+#include "tensor_internal.h"
 #include "utils/utils.h"
 #include <assert.h>
 #include <immintrin.h>
@@ -74,6 +74,30 @@ void tensor_free(Tensor *t) {
     free(t);
 }
 
+float *tensor_get_data(Tensor *t) {
+    return t->data;
+}
+
+const int *tensor_get_shape(const Tensor *t) {
+    return t->shape;
+}
+
+int tensor_get_shape_dim(const Tensor *t, int dim) {
+    return t->shape[dim];
+}
+
+int tensor_get_ndim(const Tensor *t) {
+    return t->ndim;
+}
+
+int tensor_get_size(const Tensor *t) {
+    return t->size;
+}
+
+static inline int tensor_index2d(const Tensor *t, int i, int j) {
+    return i * t->strides[0] + j;
+}
+
 float tensor_get2d(const Tensor *t, int i, int j) {
     return t->data[tensor_index2d(t, i, j)];
 }
@@ -82,12 +106,20 @@ void tensor_set2d(Tensor *t, int i, int j, float value) {
     t->data[tensor_index2d(t, i, j)] = value;
 }
 
+static inline int tensor_index3d(const Tensor *t, int i, int j, int k) {
+    return i * t->strides[0] + j * t->strides[1] + k;
+}
+
 float tensor_get3d(const Tensor *t, int i, int j, int k) {
     return t->data[tensor_index3d(t, i, j, k)];
 }
 
 void tensor_set3d(Tensor *t, int i, int j, int k, float value) {
     t->data[tensor_index3d(t, i, j, k)] = value;
+}
+
+static inline int tensor_index4d(const Tensor *t, int i, int j, int k, int l) {
+    return i * t->strides[0] + j * t->strides[1] + k * t->strides[2] + l;
 }
 
 float tensor_get4d(const Tensor *t, int i, int j, int k, int l) {
@@ -568,10 +600,6 @@ Tensor *tensor_flatten(const Tensor *t) {
     return view;
 }
 
-Tensor *tensor_unflatten(const Tensor *t, int ndim, int *new_shape) {
-    return tensor_view(t, ndim, new_shape);
-}
-
 static int _check_new_size(UNUSED const Tensor *t, int ndim, int *new_shape) {
     int new_size = 1;
     for (int i = 0; i < ndim; i++) {
@@ -588,6 +616,10 @@ Tensor *tensor_view(const Tensor *t, int ndim, int *new_shape) {
     view->data = t->data;
     view->owner = 0;
     return view;
+}
+
+Tensor *tensor_unflatten(const Tensor *t, int ndim, int *new_shape) {
+    return tensor_view(t, ndim, new_shape);
 }
 
 Tensor *tensor_reshape_inplace(Tensor *t, int ndim, int *new_shape) {

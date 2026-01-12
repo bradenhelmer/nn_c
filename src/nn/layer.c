@@ -4,6 +4,7 @@
  * Generic layer implementations
  */
 #include "layer.h"
+#include "tensor/tensor_internal.h"
 #include <stdlib.h>
 
 Layer *layer_create(LayerType type, void *layer) {

@@ -3,27 +3,28 @@
  *
  */
 #include "activations/activations.h"
-#include "data/dataset.h"
-#include "training/gradient_descent.h"
-#include "utils/timing.h"
 #include "config.h"
+#include "data/dataset.h"
 #include "nn/layer.h"
 #include "nn/loss.h"
 #include "nn/nn.h"
+#include "tensor/tensor.h"
+#include "training/gradient_descent.h"
+#include "utils/timing.h"
 #include <stdio.h>
 
 void mnist_classifier(Tensor *dest, const Tensor *prediction) {
     tensor_fill(dest, 0.0f);
     int max_index = tensor_argmax(prediction);
-    dest->data[max_index] = 1.0f;
+    tensor_get_data(dest)[max_index] = 1.0f;
 }
 
 void test_mnist(NeuralNet *nn, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
     int correct = 0;
-    Tensor *input = tensor_create1d(data->X->shape[1]);
-    Tensor *target = tensor_create1d(data->Y->shape[1]);
-    Tensor *classification = tensor_create1d(data->Y->shape[1]);
+    Tensor *input = tensor_create1d(tensor_get_shape_dim(data->X, 1));
+    Tensor *target = tensor_create1d(tensor_get_shape_dim(data->Y, 1));
+    Tensor *classification = tensor_create1d(tensor_get_shape_dim(data->Y, 1));
 
     for (int i = 0; i < data->num_samples; i++) {
         tensor_get_row(input, data->X, i);
@@ -46,9 +47,9 @@ void test_mnist(NeuralNet *nn, Dataset *data, const char *name) {
 static void test_mnist_conv(NeuralNet *nn, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
     int correct = 0;
-    Tensor *input = tensor_create1d(data->X->shape[1]);
-    Tensor *target = tensor_create1d(data->Y->shape[1]);
-    Tensor *classification = tensor_create1d(data->Y->shape[1]);
+    Tensor *input = tensor_create1d(tensor_get_shape_dim(data->X, 1));
+    Tensor *target = tensor_create1d(tensor_get_shape_dim(data->Y, 1));
+    Tensor *classification = tensor_create1d(tensor_get_shape_dim(data->Y, 1));
 
     for (int i = 0; i < data->num_samples; i++) {
         tensor_get_row(input, data->X, i);

@@ -6,7 +6,7 @@
 
 // Lifecycle
 #include "layer.h"
-#include "tensor/tensor.h"
+#include "tensor/tensor_internal.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -89,8 +89,8 @@ Tensor *maxpool_layer_backward(MaxPoolLayer *layer, const Tensor *upstream_grad)
 
                 int h_idx = i * layer->stride + m;
                 int w_idx = j * layer->stride + n;
-                dX->data[tensor_index3d(dX, c, h_idx, w_idx)] +=
-                    tensor_get3d(upstream_grad, c, i, j);
+                int idx = c * dX->strides[0] + h_idx * dX->strides[1] + w_idx;
+                dX->data[idx] += tensor_get3d(upstream_grad, c, i, j);
             }
         }
     }

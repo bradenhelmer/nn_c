@@ -2,6 +2,7 @@
  * flatten_layer.c - Flattening layer implementations.
  */
 #include "layer.h"
+#include "tensor/tensor_internal.h"
 #include <stdlib.h>
 #include <string.h>
 

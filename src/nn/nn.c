@@ -123,9 +123,9 @@ void test_nn_on_dataset(NeuralNet *nn, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
 
     // Pre-allocate tensors for reuse
-    Tensor *input = tensor_create1d(data->X->shape[1]);
-    Tensor *target = tensor_create1d(data->Y->shape[1]);
-    Tensor *classification = tensor_create1d(data->Y->shape[1]);
+    Tensor *input = tensor_create1d(tensor_get_shape_dim(data->X, 1));
+    Tensor *target = tensor_create1d(tensor_get_shape_dim(data->Y, 1));
+    Tensor *classification = tensor_create1d(tensor_get_shape_dim(data->Y, 1));
 
     for (int i = 0; i < data->num_samples; i++) {
         tensor_get_row(input, data->X, i);

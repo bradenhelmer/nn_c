@@ -8,6 +8,7 @@
 #include "gpu/gpu_nn.h"
 #include "gpu/gpu_optimizer.h"
 #include "gpu/gpu_tensor.h"
+#include "tensor/tensor_internal.h"
 #include "utils/timing.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +26,7 @@ TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, GPUOptimizer *opt, Data
     // Compute sizes from input_shape and dataset
     int input_elements =
         gpu_nn->input_shape.height * gpu_nn->input_shape.width * gpu_nn->input_shape.channels;
-    int output_size = train_data->Y->shape[1]; // Number of output classes/features
+    int output_size = tensor_get_shape_dim(train_data->Y, 1); // Number of output classes/features
 
     // 2. Batch iterator
     BatchIterator *batch_iter = batch_iterator_create(train_data, config->batch_size);

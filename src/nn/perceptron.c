@@ -4,6 +4,7 @@
  * Perceptron function implementations.
  */
 #include "perceptron.h"
+#include "tensor/tensor_internal.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -54,7 +55,7 @@ void perceptron_update_weights(Perceptron *p, const Tensor *input, float error) 
 void test_perceptron_on_dataset(Perceptron *p, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
 
-    Tensor *input = tensor_create1d(data->X->shape[1]);
+    Tensor *input = tensor_create1d(tensor_get_shape_dim(data->X, 1));
 
     for (int i = 0; i < data->num_samples; i++) {
         tensor_get_row(input, data->X, i);

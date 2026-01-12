@@ -6,6 +6,7 @@
 #include "gpu_loss.h"
 #include "gpu_tensor.h"
 #include "nn/layer.h"
+#include "tensor/tensor_internal.h"
 #include <assert.h>
 #include <cuda_runtime.h>
 #include <stdlib.h>

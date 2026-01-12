@@ -10,14 +10,7 @@
 #ifndef TENSOR_H
 #define TENSOR_H
 
-typedef struct {
-    float *data;
-    int *shape;   // e.g {32, 28, 28} for 32 channels of 28x28
-    int *strides; // precomputed to faster indexing
-    int ndim;     // Number of dimensions
-    int size;     // Total elements
-    int owner;    // Does this tensor own the data? For views
-} Tensor;
+typedef struct Tensor Tensor;
 
 // ============================================================================
 // Lifecycle Management
@@ -35,26 +28,23 @@ void tensor_free(Tensor *t);
 // Indexing and Accessors
 // ============================================================================
 
+float *tensor_get_data(Tensor *t);
+const int *tensor_get_shape(const Tensor *t);
+int tensor_get_shape_dim(const Tensor *t, int dim);
+int tensor_get_ndim(const Tensor *t);
+int tensor_get_size(const Tensor *t);
+
 // 2D Accessors
 float tensor_get2d(const Tensor *t, int i, int j);
 void tensor_set2d(Tensor *t, int i, int j, float value);
-static inline int tensor_index2d(const Tensor *t, int i, int j) {
-    return i * t->strides[0] + j;
-}
 
 // 3D Accessors
 float tensor_get3d(const Tensor *t, int i, int j, int k);
 void tensor_set3d(Tensor *t, int i, int j, int k, float value);
-static inline int tensor_index3d(const Tensor *t, int i, int j, int k) {
-    return i * t->strides[0] + j * t->strides[1] + k;
-}
 
 // 4D Accessors
 float tensor_get4d(const Tensor *t, int i, int j, int k, int l);
 void tensor_set4d(Tensor *t, int i, int j, int k, int l, float value);
-static inline int tensor_index4d(const Tensor *t, int i, int j, int k, int l) {
-    return i * t->strides[0] + j * t->strides[1] + k * t->strides[2] + l;
-}
 
 // ============================================================================
 // Shape Manipulation

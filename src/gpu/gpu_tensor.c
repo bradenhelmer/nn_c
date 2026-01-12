@@ -2,6 +2,7 @@
  * gpu_tensor.c -  GPU tensor implementations.
  */
 #include "gpu_tensor.h"
+#include "tensor/tensor_internal.h"
 #include "utils/utils.h"
 #include <assert.h>
 #include <cuda_runtime.h>
