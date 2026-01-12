@@ -3,16 +3,9 @@
  *
  * Generic layer implementations
  */
-#include "layer.h"
+#include "layer_internal.h"
 #include "tensor/tensor_internal.h"
 #include <stdlib.h>
-
-Layer *layer_create(LayerType type, void *layer) {
-    Layer *L = (Layer *)(malloc(sizeof(Layer)));
-    L->type = type;
-    L->layer = layer;
-    return L;
-}
 
 void layer_free(Layer *layer) {
     switch (layer->type) {

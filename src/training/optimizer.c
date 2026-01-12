@@ -4,7 +4,7 @@
  * Optimizer implementations
  */
 #include "optimizer.h"
-#include "nn/layer.h"
+#include "nn/layer_internal.h"
 #include "tensor/tensor_internal.h"
 #include <math.h>
 #include <stdlib.h>

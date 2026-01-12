@@ -3,7 +3,7 @@
  *
  */
 #include "activations/activations.h"
-#include "layer.h"
+#include "layer_internal.h"
 #include <stdlib.h>
 
 Layer *activation_layer_create(ActivationType activation_type) {

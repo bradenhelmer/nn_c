@@ -1,5 +1,52 @@
 # nn_c Major Refactoring Plan
 
+## Status Summary (Updated: 2026-01-12)
+
+**Completed:** Phase 1 ✅, Phase 2 - Tensor Module ✅
+**In Progress:** Phase 2 - Layer & Optimizer Modules 🔄
+**Next Steps:** Create layer_internal.h and optimizer_internal.h
+
+### What's Done
+- ✅ All include paths standardized to `module/file.h` convention
+- ✅ GPU code no longer leaks into CPU headers (layer.h fixed)
+- ✅ Tensor module fully encapsulated with internal header pattern
+- ✅ 5 tensor accessor functions implemented
+- ✅ Partial encapsulation strategy applied (Option B)
+- ✅ Main binary compiles successfully
+
+### What's Next
+- Create `layer_internal.h` and `optimizer_internal.h`
+- Add accessor functions for Layer and Optimizer types
+- Fix optimizer.h → nn.h upward dependency (Phase 3)
+
+### Key Files Modified (Session 1-2)
+
+**Created:**
+- `src/tensor/tensor_internal.h` - Internal Tensor struct definition
+
+**Modified Headers:**
+- `src/tensor/tensor.h` - Changed to opaque typedef, added accessor functions
+- `src/data/dataset.h` - Removed typedef redefinition, now includes tensor.h
+- `src/activations/activations.h` - Removed typedef redefinition, now includes tensor.h
+- `src/nn/layer.h` - Removed gpu/gpu_tensor.h include
+- All headers: Standardized includes to `module/file.h` convention
+
+**Modified Source Files (added tensor_internal.h):**
+- `src/tensor/tensor.c` - Implemented accessor functions
+- `src/nn/*.c` - All layer implementations (linear, conv2d, maxpool, flatten, loss, etc.)
+- `src/data/batch.c`, `src/data/dataset.c`
+- `src/training/optimizer.c`
+- `src/gpu/gpu_nn.c`, `src/gpu/gpu_tensor.c`, `src/gpu/gpu_gradient_descent.c`
+- `src/activations/tensor_activations.c`
+
+**Modified Examples (use accessor functions):**
+- `src/examples/mnist_examples.c` - Uses `tensor_get_shape_dim()` and `tensor_get_data()`
+- `src/examples/nn_examples.c` - Uses `tensor_get_data()`
+- `src/training/gradient_descent.c` - Uses `tensor_get_shape_dim()`
+- `src/nn/nn.c` - Uses `tensor_get_shape_dim()`
+
+---
+
 ## Goals (from TODOs.txt)
 - Better general framework use
 - Future Python bindings
@@ -25,16 +72,21 @@
 
 ## Phased Refactoring Plan
 
-### Phase 1: Fix Critical Dependencies (1-2 hours)
+### Phase 1: Fix Critical Dependencies ✅ COMPLETED
 **Goal: Clean compile-time separation between CPU and GPU**
 
-- [ ] Remove `#include "gpu/gpu_tensor.h"` from `nn/layer.h`
-- [ ] Audit and remove any other GPU includes from CPU headers
-- [ ] Standardize include paths to use `module/file.h` from src root
-- [ ] Verify CPU-only build works
+- [x] Remove `#include "gpu/gpu_tensor.h"` from `nn/layer.h`
+- [x] Audit and remove any other GPU includes from CPU headers
+- [x] Standardize include paths to use `module/file.h` from src root
+- [x] Verify CPU-only build works (main binary compiles successfully)
 
-### Phase 2: Create Internal Headers (2-3 hours)
+### Phase 2: Create Internal Headers 🔄 PARTIALLY COMPLETED
 **Goal: Hide implementation details, enable future changes**
+
+**Encapsulation Strategy: Option B - Partial Encapsulation**
+- Low-level/performance-critical modules include `*_internal.h` for direct field access
+- High-level modules use accessor functions only
+- Gradual migration path toward full encapsulation
 
 Create internal headers that are NOT part of public API:
 
@@ -42,24 +94,31 @@ Create internal headers that are NOT part of public API:
 src/
   nn/
     layer.h              # Public: forward declarations only
-    layer_internal.h     # Internal: struct definitions
+    layer_internal.h     # Internal: struct definitions [TODO]
     layer.c              # Includes layer_internal.h
   tensor/
-    tensor.h             # Public: forward declarations only
-    tensor_internal.h    # Internal: struct definitions
-    tensor.c             # Includes tensor_internal.h
+    tensor.h             # Public: forward declarations only ✅
+    tensor_internal.h    # Internal: struct definitions ✅
+    tensor.c             # Includes tensor_internal.h ✅
   training/
     optimizer.h          # Public: forward declarations only
-    optimizer_internal.h # Internal: struct definitions
+    optimizer_internal.h # Internal: struct definitions [TODO]
 ```
 
-Changes needed:
-- [ ] Create `tensor_internal.h` with Tensor struct definition
+**Tensor Module (COMPLETED):**
+- [x] Create `tensor_internal.h` with Tensor struct definition
+- [x] Update `tensor.h` to use forward declaration (`typedef struct Tensor Tensor`)
+- [x] Add accessor functions (see "Implemented Accessors" section below)
+- [x] Update .c files:
+  - **Include tensor_internal.h:** nn/*.c, data/*.c, training/optimizer.c, gpu/*.c, activations/tensor_activations.c
+  - **Use accessors only:** examples/*.c, gradient_descent.c (high-level usage)
+
+**Layer & Optimizer Modules (TODO):**
 - [ ] Create `layer_internal.h` with all layer struct definitions
 - [ ] Create `optimizer_internal.h` with Optimizer struct
 - [ ] Update public headers to use forward declarations
-- [ ] Add accessor functions where direct field access is needed
-- [ ] Update all .c files to include internal headers
+- [ ] Add accessor functions where needed
+- [ ] Apply same partial encapsulation pattern
 
 ### Phase 3: Fix Dependency Direction (1 hour)
 **Goal: Proper layering - lower modules don't depend on higher**
@@ -180,41 +239,71 @@ src/
 
 ## Implementation Order
 
-### Session 1 (Today): Phases 1-2
-Focus: Critical fixes and encapsulation foundation
-- Fix GPU include leak
-- Create internal headers
-- Make key types opaque
+### Session 1 (Completed): Phase 1 ✅
+**Status: DONE**
+- ✅ Fix GPU include leak from layer.h
+- ✅ Standardize all include paths to `module/file.h` convention
+- ✅ Verify CPU-only compilation works
 
-### Session 2: Phases 3-4
-Focus: Architectural cleanup
-- Fix dependency direction
-- Create backend abstraction
+### Session 2 (Completed): Phase 2 - Tensor Module ✅
+**Status: DONE**
+- ✅ Create tensor_internal.h with struct definition
+- ✅ Implement forward declaration in tensor.h
+- ✅ Add 5 accessor functions
+- ✅ Update all .c files to use partial encapsulation pattern
+- ✅ Verify main binary builds successfully
 
-### Session 3: Phases 5-6
+### Session 3 (Next): Phase 2 - Layer & Optimizer Modules
+**Status: TODO**
+- [ ] Create layer_internal.h
+- [ ] Create optimizer_internal.h
+- [ ] Add accessor functions
+- [ ] Apply partial encapsulation pattern
+
+### Session 4: Phase 3
+Focus: Fix dependency direction
+- [ ] Fix optimizer.h → nn.h upward dependency
+
+### Session 5: Phase 4
+Focus: Backend abstraction
+- [ ] Create backend.h interface
+- [ ] Refactor CUDA code into backend pattern
+
+### Session 6: Phases 5-6
 Focus: Polish and reorganization
-- Standardize naming
-- Optional directory restructure
+- [ ] Standardize naming conventions
+- [ ] Optional directory restructure
 
 ---
 
-## Accessor Functions Needed
+## Accessor Functions
 
-When making types opaque, we need accessor functions:
+### Tensor (IMPLEMENTED) ✅
+**Location:** `src/tensor/tensor.h` and `tensor.c`
 
-### Tensor
 ```c
-// Read-only accessors
-int tensor_ndim(const Tensor *t);
-int tensor_size(const Tensor *t);
-const int *tensor_shape(const Tensor *t);
-const float *tensor_data_const(const Tensor *t);
-
-// Mutable accessor (for operations that need to modify)
-float *tensor_data(Tensor *t);
+// Implemented accessors
+float *tensor_get_data(Tensor *t);
+const int *tensor_get_shape(const Tensor *t);
+int tensor_get_shape_dim(const Tensor *t, int dim);
+int tensor_get_ndim(const Tensor *t);
+int tensor_get_size(const Tensor *t);
 ```
 
-### Layer
+**Usage Pattern:**
+```c
+// High-level code (examples, application code)
+#include "tensor/tensor.h"
+Tensor *t = tensor_create1d(10);
+float *data = tensor_get_data(t);  // Use accessor
+int size = tensor_get_size(t);     // Use accessor
+
+// Low-level code (nn/, data/, training/, gpu/)
+#include "tensor/tensor_internal.h"
+// Can use t->data, t->size, etc. directly for performance
+```
+
+### Layer (TODO)
 ```c
 // Type inspection
 LayerType layer_get_type(const Layer *l);
@@ -224,34 +313,57 @@ int layer_num_parameters(const Layer *l);
 void layer_get_parameter(const Layer *l, int idx, Tensor **param, Tensor **grad);
 ```
 
-### LinearLayer (if exposed)
+### LinearLayer (TODO)
 ```c
 int linear_layer_input_size(const LinearLayer *l);
 int linear_layer_output_size(const LinearLayer *l);
+```
+
+### Optimizer (TODO)
+```c
+OptimizerType optimizer_get_type(const Optimizer *opt);
+float optimizer_get_learning_rate(const Optimizer *opt);
+void optimizer_set_learning_rate(Optimizer *opt, float lr);
 ```
 
 ---
 
 ## Breaking Changes
 
-This refactor will break:
-1. Any code directly accessing struct fields (e.g., `tensor->data[i]`)
-2. Any code including internal headers
-3. Code assuming specific include paths
+### Already Applied (Tensor Module)
+1. ~~Any code directly accessing `Tensor` struct fields~~ → Fixed with partial encapsulation
+   - Low-level modules use `tensor_internal.h`
+   - High-level modules use accessor functions
+2. ~~Include path changes~~ → All paths updated to `module/file.h`
 
-Migration path:
-1. Replace direct field access with accessor functions
-2. Update includes to use public headers only
-3. Recompile
+### Future Breaking Changes (Layer, Optimizer)
+When applying partial encapsulation to Layer and Optimizer:
+1. Code accessing layer/optimizer fields will need:
+   - Include `*_internal.h` (if performance-critical), OR
+   - Use accessor functions (if high-level code)
+2. Update any remaining non-standard include paths
+
+### Migration Path
+1. Performance-critical code: Add `#include "module/module_internal.h"`
+2. Application code: Use accessor functions instead of direct field access
+3. Recompile and verify
 
 ---
 
 ## Success Criteria
 
-After refactoring:
-- [ ] CPU-only build works without CUDA headers
-- [ ] No public header exposes struct internals
+### Completed ✅
+- [x] CPU-only build works without CUDA headers (main binary builds)
+- [x] Include paths standardized to `module/file.h` convention
+- [x] Tensor module uses opaque type with internal header
+- [x] No GPU includes in CPU headers
+
+### In Progress 🔄
+- [x] Tensor public header uses forward declaration only
+- [ ] Layer and Optimizer modules use opaque types
+- [ ] Clear separation: public API vs internal implementation (partially done)
+
+### Remaining 📋
 - [ ] All dependencies flow downward (lower-level → higher-level)
 - [ ] Backend abstraction allows adding new hardware with minimal changes
 - [ ] Consistent function naming throughout
-- [ ] Clear separation: public API vs internal implementation

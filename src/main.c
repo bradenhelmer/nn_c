@@ -2,11 +2,6 @@
  * main.c - Neural network application entry point
  */
 
-#include "gpu/gpu_tensor.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-
 // External example functions
 
 // Perceptron

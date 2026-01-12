@@ -6,6 +6,7 @@
 #include "gpu_nn.h"
 #include "gpu_optimizer.h"
 #include "gpu_tensor.h"
+#include "nn/layer_internal.h"
 #include <stdlib.h>
 
 static GPUOptimizer *gpu_optimizer_create_base(float learning_rate) {

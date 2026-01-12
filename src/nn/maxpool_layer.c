@@ -5,10 +5,26 @@
  */
 
 // Lifecycle
-#include "layer.h"
+#include "layer_internal.h"
 #include "tensor/tensor_internal.h"
 #include <math.h>
 #include <stdlib.h>
+
+// 3D -> 1D index for output/max_indices
+static inline int out_idx(int c, int i, int j, int H_out, int W_out) {
+    return c * (H_out * W_out) + i * W_out + j;
+}
+
+// Encode (m, n) -> flat window index
+static inline int encode_window_idx(int m, int n, int pool_size) {
+    return m * pool_size + n;
+}
+
+// Decode flat window index -> (m, n)
+static inline void decode_window_index(int flat_idx, int pool_size, int *m, int *n) {
+    *m = flat_idx / pool_size;
+    *n = flat_idx % pool_size;
+}
 
 Layer *maxpool_layer_create(int pool_size, int stride) {
     MaxPoolLayer *layer = (MaxPoolLayer *)malloc(sizeof(MaxPoolLayer));
