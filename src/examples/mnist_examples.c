@@ -4,7 +4,7 @@
  */
 #include "activations/activations.h"
 #include "config.h"
-#include "data/dataset_internal.h"
+#include "data/dataset.h"
 #include "nn/layer.h"
 #include "nn/loss.h"
 #include "nn/nn.h"
@@ -22,14 +22,16 @@ void mnist_classifier(Tensor *dest, const Tensor *prediction) {
 void test_mnist(NeuralNet *nn, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
     int correct = 0;
-    Tensor *input = tensor_create1d(tensor_get_shape_dim(data->X, 1));
-    Tensor *target = tensor_create1d(tensor_get_shape_dim(data->Y, 1));
-    Tensor *classification = tensor_create1d(tensor_get_shape_dim(data->Y, 1));
+    Tensor *X = dataset_get_X(data);
+    Tensor *Y = dataset_get_Y(data);
+    Tensor *input = tensor_create1d(tensor_get_shape_dim(X, 1));
+    Tensor *target = tensor_create1d(tensor_get_shape_dim(Y, 1));
+    Tensor *classification = tensor_create1d(tensor_get_shape_dim(Y, 1));
     Classifier classifier = nn_get_classifier(nn);
 
-    for (int i = 0; i < data->num_samples; i++) {
-        tensor_get_row(input, data->X, i);
-        tensor_get_row(target, data->Y, i);
+    for (int i = 0; i < dataset_get_num_samples(data); i++) {
+        tensor_get_row(input, X, i);
+        tensor_get_row(target, Y, i);
         Tensor *prediction = nn_forward(nn, input);
         classifier(classification, prediction);
 
@@ -48,14 +50,16 @@ void test_mnist(NeuralNet *nn, Dataset *data, const char *name) {
 static void test_mnist_conv(NeuralNet *nn, Dataset *data, const char *name) {
     printf("\nTesting %s:\n\n", name);
     int correct = 0;
-    Tensor *input = tensor_create1d(tensor_get_shape_dim(data->X, 1));
-    Tensor *target = tensor_create1d(tensor_get_shape_dim(data->Y, 1));
-    Tensor *classification = tensor_create1d(tensor_get_shape_dim(data->Y, 1));
+    Tensor *X = dataset_get_X(data);
+    Tensor *Y = dataset_get_Y(data);
+    Tensor *input = tensor_create1d(tensor_get_shape_dim(X, 1));
+    Tensor *target = tensor_create1d(tensor_get_shape_dim(Y, 1));
+    Tensor *classification = tensor_create1d(tensor_get_shape_dim(Y, 1));
     Classifier classifier = nn_get_classifier(nn);
 
-    for (int i = 0; i < data->num_samples; i++) {
-        tensor_get_row(input, data->X, i);
-        tensor_get_row(target, data->Y, i);
+    for (int i = 0; i < dataset_get_num_samples(data); i++) {
+        tensor_get_row(input, X, i);
+        tensor_get_row(target, Y, i);
         Tensor *spatial_input = tensor_unflatten(input, 3, (int[]){1, 28, 28});
         Tensor *prediction = nn_forward(nn, spatial_input);
         classifier(classification, prediction);

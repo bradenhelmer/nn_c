@@ -14,6 +14,12 @@ typedef struct Dataset Dataset;
 Dataset *dataset_create(int num_samples, int num_features);
 void dataset_free(Dataset *d);
 
+// Accessors
+int dataset_get_num_samples(const Dataset *d);
+int dataset_get_num_features(const Dataset *d);
+Tensor *dataset_get_X(const Dataset *d);
+Tensor *dataset_get_Y(const Dataset *d);
+
 // Logic Gate datasets
 Dataset *create_and_gate_dataset();
 Dataset *create_or_gate_dataset();

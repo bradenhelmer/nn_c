@@ -22,6 +22,23 @@ void dataset_free(Dataset *d) {
     free(d);
 }
 
+// Accessor functions
+int dataset_get_num_samples(const Dataset *d) {
+    return d->num_samples;
+}
+
+int dataset_get_num_features(const Dataset *d) {
+    return d->num_features;
+}
+
+Tensor *dataset_get_X(const Dataset *d) {
+    return d->X;
+}
+
+Tensor *dataset_get_Y(const Dataset *d) {
+    return d->Y;
+}
+
 static Tensor *_create_2bit_input_tensor() {
     Tensor *t = tensor_create2d(4, 2);
     tensor_set2d(t, 1, 1, 1);
