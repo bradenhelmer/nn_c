@@ -27,7 +27,7 @@ void mnist_gpu_basic() {
                              .verbose = 1,
                              .optimizer = optimizer_create_sgd(0.1f)};
 
-    NeuralNet *nn_mnist = nn_create(4, 0.5f, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
+    NeuralNet *nn_mnist = nn_create(4, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
     nn_add_layer(nn_mnist, 0, linear_layer_create(784, 128));
     nn_add_layer(nn_mnist, 1, activation_layer_create(ACTIVATION_RELU));
     nn_add_layer(nn_mnist, 2, linear_layer_create(128, 10));

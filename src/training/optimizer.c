@@ -4,6 +4,7 @@
  * Optimizer implementations
  */
 #include "nn/layer_internal.h"
+#include "nn/nn.h"
 #include "optimizer_internal.h"
 #include "tensor/tensor_internal.h"
 #include <math.h>
@@ -38,8 +39,8 @@ Optimizer *optimizer_create_adam(float learning_rate, float beta1, float beta2, 
 void optimizer_init(Optimizer *opt, NeuralNet *nn) {
     // Count total parameters across all layers
     int total_params = 0;
-    for (int i = 0; i < nn->num_layers; i++) {
-        LayerParameters params = layer_get_parameters(nn->layers[i]);
+    for (int i = 0; i < nn_get_num_layers(nn); i++) {
+        LayerParameters params = layer_get_parameters(nn_get_layer(nn, i));
         total_params += params.num_pairs;
         layer_parameters_free(&params);
     }
@@ -54,8 +55,8 @@ void optimizer_init(Optimizer *opt, NeuralNet *nn) {
         m_opt->v = (Tensor **)malloc(sizeof(Tensor *) * total_params);
 
         int param_idx = 0;
-        for (int i = 0; i < nn->num_layers; i++) {
-            LayerParameters params = layer_get_parameters(nn->layers[i]);
+        for (int i = 0; i < nn_get_num_layers(nn); i++) {
+            LayerParameters params = layer_get_parameters(nn_get_layer(nn, i));
             for (int j = 0; j < params.num_pairs; j++) {
                 m_opt->v[param_idx] = tensor_clone(params.pairs[j].param);
                 tensor_fill(m_opt->v[param_idx], 0.0f);
@@ -71,8 +72,8 @@ void optimizer_init(Optimizer *opt, NeuralNet *nn) {
         adam_opt->s = (Tensor **)malloc(sizeof(Tensor *) * total_params);
 
         int param_idx = 0;
-        for (int i = 0; i < nn->num_layers; i++) {
-            LayerParameters params = layer_get_parameters(nn->layers[i]);
+        for (int i = 0; i < nn_get_num_layers(nn); i++) {
+            LayerParameters params = layer_get_parameters(nn_get_layer(nn, i));
             for (int j = 0; j < params.num_pairs; j++) {
                 adam_opt->m[param_idx] = tensor_clone(params.pairs[j].param);
                 tensor_fill(adam_opt->m[param_idx], 0.0f);
@@ -150,16 +151,16 @@ float optimizer_get_lr(Optimizer *opt) {
 }
 
 static void step_sgd(SGDOptimizer *sgd_opt, NeuralNet *nn) {
-    for (int i = 0; i < nn->num_layers; i++) {
-        layer_update_weights(nn->layers[i], sgd_opt->learning_rate);
+    for (int i = 0; i < nn_get_num_layers(nn); i++) {
+        layer_update_weights(nn_get_layer(nn, i), sgd_opt->learning_rate);
     }
 }
 
 static void step_momentum(MomentumOptimizer *opt, NeuralNet *nn) {
     int param_idx = 0;
 
-    for (int i = 0; i < nn->num_layers; i++) {
-        LayerParameters params = layer_get_parameters(nn->layers[i]);
+    for (int i = 0; i < nn_get_num_layers(nn); i++) {
+        LayerParameters params = layer_get_parameters(nn_get_layer(nn, i));
 
         for (int j = 0; j < params.num_pairs; j++) {
             Tensor *param = params.pairs[j].param;
@@ -188,8 +189,8 @@ static void step_adam(AdamOptimizer *opt, NeuralNet *nn) {
 
     int param_idx = 0;
 
-    for (int i = 0; i < nn->num_layers; i++) {
-        LayerParameters params = layer_get_parameters(nn->layers[i]);
+    for (int i = 0; i < nn_get_num_layers(nn); i++) {
+        LayerParameters params = layer_get_parameters(nn_get_layer(nn, i));
 
         for (int j = 0; j < params.num_pairs; j++) {
             Tensor *param = params.pairs[j].param;

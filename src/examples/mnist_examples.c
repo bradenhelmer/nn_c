@@ -25,12 +25,13 @@ void test_mnist(NeuralNet *nn, Dataset *data, const char *name) {
     Tensor *input = tensor_create1d(tensor_get_shape_dim(data->X, 1));
     Tensor *target = tensor_create1d(tensor_get_shape_dim(data->Y, 1));
     Tensor *classification = tensor_create1d(tensor_get_shape_dim(data->Y, 1));
+    Classifier classifier = nn_get_classifier(nn);
 
     for (int i = 0; i < data->num_samples; i++) {
         tensor_get_row(input, data->X, i);
         tensor_get_row(target, data->Y, i);
         Tensor *prediction = nn_forward(nn, input);
-        nn->classifier(classification, prediction);
+        classifier(classification, prediction);
 
         if (tensor_equals(classification, target)) {
             correct++;
@@ -50,13 +51,14 @@ static void test_mnist_conv(NeuralNet *nn, Dataset *data, const char *name) {
     Tensor *input = tensor_create1d(tensor_get_shape_dim(data->X, 1));
     Tensor *target = tensor_create1d(tensor_get_shape_dim(data->Y, 1));
     Tensor *classification = tensor_create1d(tensor_get_shape_dim(data->Y, 1));
+    Classifier classifier = nn_get_classifier(nn);
 
     for (int i = 0; i < data->num_samples; i++) {
         tensor_get_row(input, data->X, i);
         tensor_get_row(target, data->Y, i);
         Tensor *spatial_input = tensor_unflatten(input, 3, (int[]){1, 28, 28});
         Tensor *prediction = nn_forward(nn, spatial_input);
-        nn->classifier(classification, prediction);
+        classifier(classification, prediction);
 
         if (tensor_equals(classification, target)) {
             correct++;
@@ -83,7 +85,7 @@ void mnist_sgd() {
                              .verbose = 1,
                              .optimizer = optimizer_create_sgd(0.1f)};
 
-    NeuralNet *nn_mnist = nn_create(4, 0.5f, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
+    NeuralNet *nn_mnist = nn_create(4, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
     nn_add_layer(nn_mnist, 0, linear_layer_create(784, 128));
     nn_add_layer(nn_mnist, 1, activation_layer_create(ACTIVATION_RELU));
     nn_add_layer(nn_mnist, 2, linear_layer_create(128, 10));
@@ -119,7 +121,7 @@ void mnist_momentum() {
                              .verbose = 1,
                              .optimizer = optimizer_create_momentum(0.01f, 0.9f)};
 
-    NeuralNet *nn_mnist = nn_create(4, 0.5f, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
+    NeuralNet *nn_mnist = nn_create(4, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
     nn_add_layer(nn_mnist, 0, linear_layer_create(784, 128));
     nn_add_layer(nn_mnist, 1, activation_layer_create(ACTIVATION_RELU));
     nn_add_layer(nn_mnist, 2, linear_layer_create(128, 10));
@@ -154,7 +156,7 @@ void mnist_adam() {
                              .verbose = 1,
                              .optimizer = optimizer_create_adam(0.001f, 0.9f, 0.999f, 1e-8)};
 
-    NeuralNet *nn_mnist = nn_create(4, 0.5f, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
+    NeuralNet *nn_mnist = nn_create(4, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
     nn_add_layer(nn_mnist, 0, linear_layer_create(784, 128));
     nn_add_layer(nn_mnist, 1, activation_layer_create(ACTIVATION_RELU));
     nn_add_layer(nn_mnist, 2, linear_layer_create(128, 10));
@@ -192,7 +194,7 @@ void mnist_aggressive() {
                              .scheduler = scheduler_create_cosine(0.001f, 1e-5f, 20),
                              .l2_lambda = 1e-4f};
 
-    NeuralNet *nn_mnist = nn_create(4, 0.5f, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
+    NeuralNet *nn_mnist = nn_create(4, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
     nn_add_layer(nn_mnist, 0, linear_layer_create(784, 128));
     nn_add_layer(nn_mnist, 1, activation_layer_create(ACTIVATION_RELU));
     nn_add_layer(nn_mnist, 2, linear_layer_create(128, 10));
@@ -244,7 +246,7 @@ void mnist_conv() {
                              .optimizer = optimizer_create_adam(0.001f, 0.9f, 0.999f, 1e-8),
                              .scheduler = scheduler_create_cosine(0.001f, 1e-5f, 20),
                              .l2_lambda = 1e-4f};
-    NeuralNet *mnist_conv = nn_create(8, 0.5f, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
+    NeuralNet *mnist_conv = nn_create(8, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
     nn_add_layer(mnist_conv, 0, reshape_layer_create(3, (int[]){1, 28, 28}));
     nn_add_layer(mnist_conv, 1, conv2d_layer_create(1, 32, 5, 1, 2));
     nn_add_layer(mnist_conv, 2, activation_layer_create(ACTIVATION_RELU));

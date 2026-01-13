@@ -128,10 +128,10 @@ src/
 - [x] ReshapeLayer implemented and integrated (Session 3)
 
 **Optimizer Module (TODO):**
-- [ ] Create `optimizer_internal.h` with Optimizer struct definitions
-- [ ] Update public headers to use forward declarations
-- [ ] Add accessor functions where needed
-- [ ] Apply same partial encapsulation pattern
+- [x] Create `optimizer_internal.h` with Optimizer struct definitions
+- [x] Update public headers to use forward declarations
+- [x] Add accessor functions where needed
+- [x] Apply same partial encapsulation pattern
 
 ### Phase 3: Fix Dependency Direction (1 hour)
 **Goal: Proper layering - lower modules don't depend on higher**

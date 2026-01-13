@@ -93,6 +93,7 @@ TrainingResult *train_nn(NeuralNet *nn, Dataset *train_data, UNUSED Dataset *val
     Tensor *input = tensor_create1d(tensor_get_shape_dim(train_data->X, 1));
     Tensor *target = tensor_create1d(tensor_get_shape_dim(train_data->Y, 1));
     Tensor *classification = tensor_create1d(tensor_get_shape_dim(train_data->Y, 1));
+    Classifier classifier = nn_get_classifier(nn);
 
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
         float epoch_loss = 0.f;
@@ -104,7 +105,7 @@ TrainingResult *train_nn(NeuralNet *nn, Dataset *train_data, UNUSED Dataset *val
             tensor_get_row(input, train_data->X, i);
             tensor_get_row(target, train_data->Y, i);
             Tensor *prediction = nn_forward(nn, input);
-            nn->classifier(classification, prediction);
+            classifier(classification, prediction);
 
             epoch_loss += nn_loss(nn, prediction, target);
             if (tensor_equals(classification, target)) {
@@ -157,6 +158,7 @@ TrainingResult *train_nn_batch(NeuralNet *nn, Dataset *train_data, UNUSED Datase
     Tensor *input = tensor_create1d(tensor_get_shape_dim(train_data->X, 1));
     Tensor *target = tensor_create1d(tensor_get_shape_dim(train_data->Y, 1));
     Tensor *classification = tensor_create1d(tensor_get_shape_dim(train_data->Y, 1));
+    Classifier classifier = nn_get_classifier(nn);
 
     for (int epoch = 0; epoch < config->max_epochs; epoch++) {
         float epoch_loss = 0.f;
@@ -175,7 +177,7 @@ TrainingResult *train_nn_batch(NeuralNet *nn, Dataset *train_data, UNUSED Datase
                 tensor_get_row(input, batch->X, i);
                 tensor_get_row(target, batch->Y, i);
                 Tensor *prediction = nn_forward(nn, input);
-                nn->classifier(classification, prediction);
+                classifier(classification, prediction);
 
                 epoch_loss += nn_loss(nn, prediction, target);
                 if (tensor_equals(classification, target)) {
@@ -236,6 +238,7 @@ TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data, UNUSED Da
     Tensor *input = tensor_create1d(tensor_get_shape_dim(train_data->X, 1));
     Tensor *target = tensor_create1d(tensor_get_shape_dim(train_data->Y, 1));
     Tensor *classification = tensor_create1d(tensor_get_shape_dim(train_data->Y, 1));
+    Classifier classifier = nn_get_classifier(nn);
 
     // 2. Batch iterator
     BatchIterator *batch_iter = batch_iterator_create(train_data, config->batch_size);
@@ -259,7 +262,7 @@ TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data, UNUSED Da
                 tensor_get_row(target, batch->Y, i);
 
                 Tensor *prediction = nn_forward(nn, input);
-                nn->classifier(classification, prediction);
+                classifier(classification, prediction);
 
                 epoch_loss += nn_loss(nn, prediction, target);
                 if (tensor_equals(classification, target)) {

@@ -11,20 +11,18 @@
 #include "loss.h"
 
 typedef void (*Classifier)(Tensor *, const Tensor *);
-
-typedef struct {
-    Layer **layers;
-    int num_layers;
-    float learning_rate;
-    LossType loss_type;
-    Classifier classifier;
-} NeuralNet;
+typedef struct NeuralNet NeuralNet;
 
 // Lifecycle
-NeuralNet *nn_create(int num_layers, float learning_rate, LossType loss_type,
-                     Classifier classifier);
+NeuralNet *nn_create(int num_layers, LossType loss_type, Classifier classifier);
 void nn_add_layer(NeuralNet *nn, int index, Layer *layer);
 void nn_free(NeuralNet *nn);
+
+// Accessors
+Layer *nn_get_layer(const NeuralNet *nn, int index);
+int nn_get_num_layers(const NeuralNet *nn);
+LossType nn_get_loss_type(const NeuralNet *nn);
+Classifier nn_get_classifier(const NeuralNet *nn);
 
 // Forward/Backward
 Tensor *nn_forward(NeuralNet *nn, const Tensor *input);

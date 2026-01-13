@@ -29,7 +29,7 @@ void nn_learning_xor() {
     TrainingConfig config = {.max_epochs = 10000, .tolerance = 1e-7, .batch_size = 1, .verbose = 0};
     Dataset *xor_data = create_xor_gate_dataset();
 
-    NeuralNet *nn_xor = nn_create(4, 0.5f, LOSS_MSE, xor_classifier);
+    NeuralNet *nn_xor = nn_create(4, LOSS_MSE, xor_classifier);
     nn_add_layer(nn_xor, 0, linear_layer_create(2, 2));
     nn_add_layer(nn_xor, 1, activation_layer_create(ACTIVATION_SIGMOID));
     nn_add_layer(nn_xor, 2, linear_layer_create(2, 1));
@@ -56,7 +56,7 @@ void nn_learning_xor_batched() {
     TrainingConfig config = {.max_epochs = 50000, .tolerance = 1e-7, .batch_size = 1, .verbose = 0};
     Dataset *xor_data = create_xor_gate_dataset();
 
-    NeuralNet *nn_xor = nn_create(4, 0.3f, LOSS_MSE, xor_classifier);
+    NeuralNet *nn_xor = nn_create(4, LOSS_MSE, xor_classifier);
     nn_add_layer(nn_xor, 0, linear_layer_create(2, 2));
     nn_add_layer(nn_xor, 1, activation_layer_create(ACTIVATION_SIGMOID));
     nn_add_layer(nn_xor, 2, linear_layer_create(2, 1));

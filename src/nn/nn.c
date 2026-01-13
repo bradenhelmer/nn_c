@@ -3,22 +3,20 @@
  *
  * Neural network implementations.
  */
-#include "nn.h"
 #include "data/dataset.h"
 #include "layer.h"
 #include "loss.h"
+#include "nn_internal.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 // Lifecycle
-NeuralNet *nn_create(int num_layers, float learning_rate, LossType loss_type,
-                     Classifier classifier) {
+NeuralNet *nn_create(int num_layers, LossType loss_type, Classifier classifier) {
     assert(num_layers > 1);
     NeuralNet *nn = (NeuralNet *)malloc(sizeof(NeuralNet));
     nn->num_layers = num_layers;
     nn->layers = (Layer **)malloc(sizeof(Layer *) * num_layers);
-    nn->learning_rate = learning_rate;
     nn->loss_type = loss_type;
     nn->classifier = classifier;
     return nn;
@@ -34,6 +32,23 @@ void nn_free(NeuralNet *nn) {
     }
     free(nn->layers);
     free(nn);
+}
+
+inline int nn_get_num_layers(const NeuralNet *nn) {
+    return nn->num_layers;
+}
+
+inline Layer *nn_get_layer(const NeuralNet *nn, int index) {
+    assert(index < nn->num_layers);
+    return nn->layers[index];
+}
+
+inline LossType nn_get_loss_type(const NeuralNet *nn) {
+    return nn->loss_type;
+}
+
+inline Classifier nn_get_classifier(const NeuralNet *nn) {
+    return nn->classifier;
 }
 
 Tensor *nn_forward(NeuralNet *nn, const Tensor *input) {
