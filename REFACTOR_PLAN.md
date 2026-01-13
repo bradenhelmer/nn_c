@@ -2,9 +2,9 @@
 
 ## Status Summary (Updated: 2026-01-12)
 
-**Completed:** Phase 1 ✅, Phase 2 - Tensor Module ✅
+**Completed:** Phase 1 ✅, Phase 2 - Tensor Module ✅, ReshapeLayer Implementation ✅
 **In Progress:** Phase 2 - Layer & Optimizer Modules 🔄
-**Next Steps:** Create layer_internal.h and optimizer_internal.h
+**Next Steps:** Create optimizer_internal.h, fix optimizer.h → nn.h dependency
 
 ### What's Done
 - ✅ All include paths standardized to `module/file.h` convention
@@ -12,37 +12,44 @@
 - ✅ Tensor module fully encapsulated with internal header pattern
 - ✅ 5 tensor accessor functions implemented
 - ✅ Partial encapsulation strategy applied (Option B)
+- ✅ layer_internal.h created with LayerType enum and all layer structs
+- ✅ ReshapeLayer implemented - enables composable architecture transformations
+- ✅ Training loop now fully generic (no architecture-specific hardcoding)
 - ✅ Main binary compiles successfully
 
 ### What's Next
-- Create `layer_internal.h` and `optimizer_internal.h`
-- Add accessor functions for Layer and Optimizer types
+- Create `optimizer_internal.h` (layer_internal.h already exists ✅)
+- Add accessor functions for Optimizer types
 - Fix optimizer.h → nn.h upward dependency (Phase 3)
 
-### Key Files Modified (Session 1-2)
+### Key Files Modified (Session 1-3)
 
 **Created:**
-- `src/tensor/tensor_internal.h` - Internal Tensor struct definition
+- `src/tensor/tensor_internal.h` - Internal Tensor struct definition (Session 2)
+- `src/nn/layer_internal.h` - Internal Layer struct definitions (Session 2)
+- `src/nn/reshape_layer.c` - ReshapeLayer implementation (Session 3)
 
 **Modified Headers:**
 - `src/tensor/tensor.h` - Changed to opaque typedef, added accessor functions
 - `src/data/dataset.h` - Removed typedef redefinition, now includes tensor.h
 - `src/activations/activations.h` - Removed typedef redefinition, now includes tensor.h
-- `src/nn/layer.h` - Removed gpu/gpu_tensor.h include
+- `src/nn/layer.h` - Removed gpu/gpu_tensor.h include, added ReshapeLayer API
+- `src/nn/layer_internal.h` - Added LAYER_RESHAPE enum and ReshapeLayer struct
 - All headers: Standardized includes to `module/file.h` convention
 
-**Modified Source Files (added tensor_internal.h):**
+**Modified Source Files:**
 - `src/tensor/tensor.c` - Implemented accessor functions
-- `src/nn/*.c` - All layer implementations (linear, conv2d, maxpool, flatten, loss, etc.)
+- `src/nn/*.c` - All layer implementations (linear, conv2d, maxpool, flatten, reshape, loss, etc.)
+- `src/nn/layer.c` - Added LAYER_RESHAPE dispatch cases
 - `src/data/batch.c`, `src/data/dataset.c`
 - `src/training/optimizer.c`
+- `src/training/gradient_descent.c` - Removed architecture-specific reshape logic (Session 3)
 - `src/gpu/gpu_nn.c`, `src/gpu/gpu_tensor.c`, `src/gpu/gpu_gradient_descent.c`
 - `src/activations/tensor_activations.c`
 
-**Modified Examples (use accessor functions):**
-- `src/examples/mnist_examples.c` - Uses `tensor_get_shape_dim()` and `tensor_get_data()`
+**Modified Examples:**
+- `src/examples/mnist_examples.c` - Added ReshapeLayer to mnist_conv architecture (Session 3)
 - `src/examples/nn_examples.c` - Uses `tensor_get_data()`
-- `src/training/gradient_descent.c` - Uses `tensor_get_shape_dim()`
 - `src/nn/nn.c` - Uses `tensor_get_shape_dim()`
 
 ---
@@ -93,9 +100,10 @@ Create internal headers that are NOT part of public API:
 ```
 src/
   nn/
-    layer.h              # Public: forward declarations only
-    layer_internal.h     # Internal: struct definitions [TODO]
-    layer.c              # Includes layer_internal.h
+    layer.h              # Public: API declarations ✅
+    layer_internal.h     # Internal: struct definitions ✅
+    layer.c              # Includes layer_internal.h ✅
+    reshape_layer.c      # ReshapeLayer implementation ✅
   tensor/
     tensor.h             # Public: forward declarations only ✅
     tensor_internal.h    # Internal: struct definitions ✅
@@ -113,9 +121,14 @@ src/
   - **Include tensor_internal.h:** nn/*.c, data/*.c, training/optimizer.c, gpu/*.c, activations/tensor_activations.c
   - **Use accessors only:** examples/*.c, gradient_descent.c (high-level usage)
 
-**Layer & Optimizer Modules (TODO):**
-- [x] Create `layer_internal.h` with all layer struct definitions
-- [x] Create `optimizer_internal.h` with Optimizer struct
+**Layer Module (COMPLETED):**
+- [x] Create `layer_internal.h` with all layer struct definitions (Session 2)
+- [x] LayerType enum with all layer types (LINEAR, ACTIVATION, CONV_2D, MAX_POOL, FLATTEN, RESHAPE)
+- [x] All layer structs defined in internal header
+- [x] ReshapeLayer implemented and integrated (Session 3)
+
+**Optimizer Module (TODO):**
+- [ ] Create `optimizer_internal.h` with Optimizer struct definitions
 - [ ] Update public headers to use forward declarations
 - [ ] Add accessor functions where needed
 - [ ] Apply same partial encapsulation pattern
@@ -253,23 +266,34 @@ src/
 - ✅ Update all .c files to use partial encapsulation pattern
 - ✅ Verify main binary builds successfully
 
-### Session 3 (Next): Phase 2 - Layer & Optimizer Modules
+### Session 3 (Completed): ReshapeLayer & Architecture Cleanup ✅
+**Status: DONE**
+- ✅ Created ReshapeLayer implementation (reshape_layer.c)
+- ✅ Added LAYER_RESHAPE to LayerType enum in layer_internal.h
+- ✅ Updated layer.c with all LAYER_RESHAPE dispatch cases
+- ✅ Removed architecture-specific hardcoding from train_nn_batch_opt
+- ✅ Updated mnist_conv to use ReshapeLayer
+- ✅ Training loop now fully generic (no layer type checking)
+- ✅ Verify builds successfully
+
+**Key Achievement:** Training code is now architecture-agnostic. Preprocessing transformations (like reshaping) are composable layers, not hardcoded training logic.
+
+### Session 4 (Next): Phase 2 - Optimizer Module
 **Status: TODO**
-- [ ] Create layer_internal.h
 - [ ] Create optimizer_internal.h
-- [ ] Add accessor functions
+- [ ] Add accessor functions for optimizers
 - [ ] Apply partial encapsulation pattern
 
-### Session 4: Phase 3
+### Session 5: Phase 3
 Focus: Fix dependency direction
 - [ ] Fix optimizer.h → nn.h upward dependency
 
-### Session 5: Phase 4
+### Session 6: Phase 4
 Focus: Backend abstraction
 - [ ] Create backend.h interface
 - [ ] Refactor CUDA code into backend pattern
 
-### Session 6: Phases 5-6
+### Session 7: Phases 5-6
 Focus: Polish and reorganization
 - [ ] Standardize naming conventions
 - [ ] Optional directory restructure
@@ -325,6 +349,60 @@ OptimizerType optimizer_get_type(const Optimizer *opt);
 float optimizer_get_learning_rate(const Optimizer *opt);
 void optimizer_set_learning_rate(Optimizer *opt, float lr);
 ```
+
+---
+
+## Architectural Improvements (Session 3)
+
+### ReshapeLayer: Composable Architecture Transformations
+
+**Problem Identified:**
+The `train_nn_batch_opt` function had hardcoded logic to reshape inputs for CNNs:
+```c
+// BAD: Training loop knows about CNN architecture
+bool needs_spatial_input = (nn->layers[0]->type == LAYER_CONV_2D);
+if (needs_spatial_input) {
+    spatial_input = tensor_unflatten(input, 3, (int[]){1, 28, 28});
+}
+```
+
+**Issues:**
+- Training loop coupled to architecture details (violates separation of concerns)
+- Hardcoded MNIST dimensions (28×28)
+- Can't handle mixed architectures or other image sizes
+- Breaks encapsulation - training shouldn't inspect layer types
+
+**Solution: ReshapeLayer**
+Implemented a proper `ReshapeLayer` that makes reshaping a composable layer operation:
+
+```c
+// GOOD: Reshape is part of the architecture
+NeuralNet *mnist_conv = nn_create(8, 0.5f, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
+nn_add_layer(mnist_conv, 0, reshape_layer_create(3, (int[]){1, 28, 28}));
+nn_add_layer(mnist_conv, 1, conv2d_layer_create(1, 32, 5, 1, 2));
+// ... rest of layers
+
+// Training loop stays completely generic
+Tensor *prediction = nn_forward(nn, input);
+```
+
+**Benefits:**
+1. **Generic Training Loop** - No architecture-specific logic needed
+2. **Self-Documenting** - Architecture explicitly shows all transformations
+3. **Flexible** - Works with any shape, any architecture
+4. **Composable** - Can chain multiple reshapes or use in any position
+5. **Maintainable** - Changes to preprocessing don't affect training code
+
+**Files:**
+- Created: `src/nn/reshape_layer.c`
+- Modified: `src/nn/layer_internal.h`, `src/nn/layer.h`, `src/nn/layer.c`
+- Cleaned: `src/training/gradient_descent.c` (removed hardcoded logic)
+- Updated: `src/examples/mnist_examples.c` (added ReshapeLayer to mnist_conv)
+
+**Aligns with Goals:**
+- ✅ Standardized APIs (all layers work the same way)
+- ✅ Modularity (preprocessing is a composable layer)
+- ✅ Better framework design (separation of concerns)
 
 ---
 
