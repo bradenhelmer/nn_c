@@ -4,7 +4,8 @@
  * GPU Gradient descent implementations.
  */
 #include "gpu_gradient_descent.h"
-#include "data/batch.h"
+#include "data/batch_internal.h"
+#include "data/dataset_internal.h"
 #include "gpu/gpu_nn.h"
 #include "gpu/gpu_optimizer.h"
 #include "gpu/gpu_tensor.h"

@@ -4,7 +4,7 @@
  */
 #include "activations/activations.h"
 #include "config.h"
-#include "data/dataset.h"
+#include "data/dataset_internal.h"
 #include "nn/layer.h"
 #include "nn/loss.h"
 #include "nn/nn.h"

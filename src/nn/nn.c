@@ -3,7 +3,7 @@
  *
  * Neural network implementations.
  */
-#include "data/dataset.h"
+#include "data/dataset_internal.h"
 #include "layer.h"
 #include "loss.h"
 #include "nn_internal.h"

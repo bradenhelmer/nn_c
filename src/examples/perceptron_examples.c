@@ -3,7 +3,7 @@
  */
 
 #include "activations/activations.h"
-#include "data/dataset.h"
+#include "data/dataset_internal.h"
 #include "nn/perceptron.h"
 #include "training/gradient_descent.h"
 #include <stdio.h>

@@ -5,7 +5,8 @@
  */
 #include "gradient_descent.h"
 #include "config.h"
-#include "data/batch.h"
+#include "data/batch_internal.h"
+#include "data/dataset_internal.h"
 #include "nn/loss.h"
 #include "utils/timing.h"
 #include "utils/utils.h"

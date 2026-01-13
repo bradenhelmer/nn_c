@@ -8,12 +8,8 @@
 
 #include "tensor/tensor.h"
 
-typedef struct {
-    Tensor *X; // 2D: (num_samples, num_features)
-    Tensor *Y; // 2D: (num_samples, num_outputs)
-    int num_samples;
-    int num_features;
-} Dataset;
+// Opaque type - see dataset_internal.h for struct definition
+typedef struct Dataset Dataset;
 
 Dataset *dataset_create(int num_samples, int num_features);
 void dataset_free(Dataset *d);
