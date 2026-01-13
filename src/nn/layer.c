@@ -24,6 +24,9 @@ void layer_free(Layer *layer) {
     case LAYER_FLATTEN:
         flatten_layer_free((FlattenLayer *)layer->layer);
         break;
+    case LAYER_RESHAPE:
+        reshape_layer_free((ReshapeLayer *)layer->layer);
+        break;
     }
     free(layer);
 }
@@ -40,7 +43,10 @@ Tensor *layer_forward(Layer *layer, const Tensor *input) {
         return maxpool_layer_forward((MaxPoolLayer *)layer->layer, input);
     case LAYER_FLATTEN:
         return flatten_layer_forward((FlattenLayer *)layer->layer, input);
+    case LAYER_RESHAPE:
+        return reshape_layer_forward((ReshapeLayer *)layer->layer, input);
     }
+    return NULL;
 }
 
 Tensor *layer_backward(Layer *layer, const Tensor *upstream_grad) {
@@ -55,6 +61,8 @@ Tensor *layer_backward(Layer *layer, const Tensor *upstream_grad) {
         return maxpool_layer_backward((MaxPoolLayer *)layer->layer, upstream_grad);
     case LAYER_FLATTEN:
         return flatten_layer_backward((FlattenLayer *)layer->layer, upstream_grad);
+    case LAYER_RESHAPE:
+        return reshape_layer_backward((ReshapeLayer *)layer->layer, upstream_grad);
     }
     return NULL;
 }
@@ -71,6 +79,8 @@ Tensor *layer_get_output(Layer *layer) {
         return ((MaxPoolLayer *)layer->layer)->output;
     case LAYER_FLATTEN:
         return ((FlattenLayer *)layer->layer)->output;
+    case LAYER_RESHAPE:
+        return ((ReshapeLayer *)layer->layer)->output;
     }
     return NULL;
 }
@@ -92,6 +102,7 @@ void layer_zero_gradients(Layer *layer) {
     case LAYER_ACTIVATION:
     case LAYER_MAX_POOL:
     case LAYER_FLATTEN:
+    case LAYER_RESHAPE:
         // No gradients to zero
         break;
     }
@@ -122,6 +133,7 @@ void layer_update_weights(Layer *layer, float learning_rate) {
     case LAYER_ACTIVATION:
     case LAYER_MAX_POOL:
     case LAYER_FLATTEN:
+    case LAYER_RESHAPE:
         // No weights to update
         break;
     }
@@ -144,6 +156,7 @@ void layer_scale_gradients(Layer *layer, float scale) {
     case LAYER_ACTIVATION:
     case LAYER_MAX_POOL:
     case LAYER_FLATTEN:
+    case LAYER_RESHAPE:
         // No gradients to scale
         break;
     }
@@ -168,6 +181,7 @@ void layer_add_l2_gradient(Layer *layer, float lambda) {
     case LAYER_ACTIVATION:
     case LAYER_MAX_POOL:
     case LAYER_FLATTEN:
+    case LAYER_RESHAPE:
         // No weights for L2 regularization
         break;
     }
@@ -199,6 +213,7 @@ LayerParameters layer_get_parameters(Layer *layer) {
     case LAYER_ACTIVATION:
     case LAYER_MAX_POOL:
     case LAYER_FLATTEN:
+    case LAYER_RESHAPE:
         params.num_pairs = 0;
         params.pairs = NULL;
         break;

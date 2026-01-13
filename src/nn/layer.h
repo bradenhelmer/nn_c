@@ -142,4 +142,16 @@ void flatten_layer_free(FlattenLayer *layer);
 Tensor *flatten_layer_forward(FlattenLayer *layer, const Tensor *input);
 Tensor *flatten_layer_backward(FlattenLayer *layer, const Tensor *upstream_grad);
 
+// =============================================================================
+// RESHAPE LAYER
+// =============================================================================
+
+typedef struct ReshapeLayer ReshapeLayer;
+
+Layer *reshape_layer_create(int target_ndim, const int *target_shape);
+void reshape_layer_free(ReshapeLayer *layer);
+
+Tensor *reshape_layer_forward(ReshapeLayer *layer, const Tensor *input);
+Tensor *reshape_layer_backward(ReshapeLayer *layer, const Tensor *upstream_grad);
+
 #endif /* ifndef LAYER_H */

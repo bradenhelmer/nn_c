@@ -19,7 +19,8 @@ typedef enum {
     LAYER_ACTIVATION,
     LAYER_CONV_2D,
     LAYER_MAX_POOL,
-    LAYER_FLATTEN
+    LAYER_FLATTEN,
+    LAYER_RESHAPE
 } LayerType;
 
 // Core layer struct.
@@ -145,6 +146,20 @@ struct FlattenLayer {
     int input_ndims;
     int *input_shape;
     Tensor *output;
+};
+
+// =============================================================================
+// RESHAPE LAYER
+// =============================================================================
+
+struct ReshapeLayer {
+    int target_ndim;   // Number of dimensions in target shape
+    int *target_shape; // Target shape array (owned by layer)
+
+    // Cached for backward pass
+    int input_ndim;   // Original input dimensions
+    int *input_shape; // Original input shape (owned by layer)
+    Tensor *output;   // Output tensor
 };
 
 #endif /* ifndef LAYER_INTERNAL_H */

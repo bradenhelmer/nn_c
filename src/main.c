@@ -31,6 +31,6 @@ int main() {
     // mnist_adam();
     // mnist_aggressive();
     // mnist_conv();
-    mnist_gpu_basic();
+    // mnist_gpu_basic();
     return 0;
 }

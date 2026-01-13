@@ -6,7 +6,7 @@
 #ifndef GPU_OPTIMIZER_H
 #define GPU_OPTIMIZER_H
 #include "gpu/gpu_tensor.h"
-#include "training/optimizer.h"
+#include "training/optimizer_internal.h"
 
 // Forward declaration to avoid circular dependency
 struct GPUNeuralNet;

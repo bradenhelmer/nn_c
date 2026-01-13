@@ -220,6 +220,7 @@ void mnist_aggressive() {
 }
 
 static void _print_conv_arch() {
+    printf("\tReshape(1, 28, 28)     → 1×28×28\n");
     printf("\tConv(1, 32, 5, 1, 2)   → 28×28×32\n");
     printf("\tReLU                   → 28×28×32\n");
     printf("\tMaxPool(2, 2)          → 14×14×32\n");
@@ -243,14 +244,15 @@ void mnist_conv() {
                              .optimizer = optimizer_create_adam(0.001f, 0.9f, 0.999f, 1e-8),
                              .scheduler = scheduler_create_cosine(0.001f, 1e-5f, 20),
                              .l2_lambda = 1e-4f};
-    NeuralNet *mnist_conv = nn_create(7, 0.5f, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
-    nn_add_layer(mnist_conv, 0, conv2d_layer_create(1, 32, 5, 1, 2));
-    nn_add_layer(mnist_conv, 1, activation_layer_create(ACTIVATION_RELU));
-    nn_add_layer(mnist_conv, 2, maxpool_layer_create(2, 2));
-    nn_add_layer(mnist_conv, 3, flatten_layer_create());
-    nn_add_layer(mnist_conv, 4, linear_layer_create(6272, 128));
-    nn_add_layer(mnist_conv, 5, activation_layer_create(ACTIVATION_RELU));
-    nn_add_layer(mnist_conv, 6, linear_layer_create(128, 10));
+    NeuralNet *mnist_conv = nn_create(8, 0.5f, LOSS_SOFTMAX_CROSS_ENTROPY, mnist_classifier);
+    nn_add_layer(mnist_conv, 0, reshape_layer_create(3, (int[]){1, 28, 28}));
+    nn_add_layer(mnist_conv, 1, conv2d_layer_create(1, 32, 5, 1, 2));
+    nn_add_layer(mnist_conv, 2, activation_layer_create(ACTIVATION_RELU));
+    nn_add_layer(mnist_conv, 3, maxpool_layer_create(2, 2));
+    nn_add_layer(mnist_conv, 4, flatten_layer_create());
+    nn_add_layer(mnist_conv, 5, linear_layer_create(6272, 128));
+    nn_add_layer(mnist_conv, 6, activation_layer_create(ACTIVATION_RELU));
+    nn_add_layer(mnist_conv, 7, linear_layer_create(128, 10));
     optimizer_init(config.optimizer, mnist_conv);
 
     Timer training_timer = {0};
