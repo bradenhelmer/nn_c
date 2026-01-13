@@ -6,6 +6,7 @@
 #include "data/dataset.h"
 #include "nn/nn.h"
 #include "training/gradient_descent.h"
+#include "training/optimizer.h"
 #include <stdio.h>
 
 static void xor_classifier(Tensor *dest, const Tensor *prediction) {
@@ -26,7 +27,11 @@ void nn_learning_xor() {
 
     printf("\nTraining XOR Gate with 2-layer NN...\n");
 
-    TrainingConfig config = {.max_epochs = 10000, .tolerance = 1e-7, .batch_size = 1, .verbose = 0};
+    TrainingConfig config = {.max_epochs = 10000,
+                             .tolerance = 1e-7,
+                             .batch_size = 1,
+                             .verbose = 0,
+                             .optimizer = optimizer_create_sgd(0.5f)};
     Dataset *xor_data = create_xor_gate_dataset();
 
     NeuralNet *nn_xor = nn_create(4, LOSS_MSE, xor_classifier);
@@ -34,8 +39,9 @@ void nn_learning_xor() {
     nn_add_layer(nn_xor, 1, activation_layer_create(ACTIVATION_SIGMOID));
     nn_add_layer(nn_xor, 2, linear_layer_create(2, 1));
     nn_add_layer(nn_xor, 3, activation_layer_create(ACTIVATION_SIGMOID));
+    optimizer_init(config.optimizer, nn_xor);
 
-    TrainingResult *result_xor = train_nn(nn_xor, xor_data, NULL, &config);
+    TrainingResult *result_xor = train_nn_batch_opt(nn_xor, xor_data, NULL, &config);
 
     printf("\nXOR Gate Training stopped at %d epochs\n", result_xor->epochs_completed);
     printf("Final loss: %.6f\n", result_xor->final_loss);
@@ -45,6 +51,7 @@ void nn_learning_xor() {
     test_nn_on_dataset(nn_xor, xor_data, "XOR Gate");
 
     nn_free(nn_xor);
+    optimizer_free(config.optimizer);
     dataset_free(xor_data);
     training_result_free(result_xor);
 }
@@ -53,7 +60,11 @@ void nn_learning_xor_batched() {
 
     printf("\n\nTraining XOR Gate with Batched 2-layer NN...\n");
 
-    TrainingConfig config = {.max_epochs = 50000, .tolerance = 1e-7, .batch_size = 1, .verbose = 0};
+    TrainingConfig config = {.max_epochs = 50000,
+                             .tolerance = 1e-7,
+                             .batch_size = 1,
+                             .verbose = 0,
+                             .optimizer = optimizer_create_sgd(0.5f)};
     Dataset *xor_data = create_xor_gate_dataset();
 
     NeuralNet *nn_xor = nn_create(4, LOSS_MSE, xor_classifier);
@@ -61,8 +72,9 @@ void nn_learning_xor_batched() {
     nn_add_layer(nn_xor, 1, activation_layer_create(ACTIVATION_SIGMOID));
     nn_add_layer(nn_xor, 2, linear_layer_create(2, 1));
     nn_add_layer(nn_xor, 3, activation_layer_create(ACTIVATION_SIGMOID));
+    optimizer_init(config.optimizer, nn_xor);
 
-    TrainingResult *result_xor = train_nn_batch(nn_xor, xor_data, NULL, &config);
+    TrainingResult *result_xor = train_nn_batch_opt(nn_xor, xor_data, NULL, &config);
 
     printf("\nBatched XOR Gate Training stopped at %d epochs\n", result_xor->epochs_completed);
     printf("Final loss: %.6f\n", result_xor->final_loss);
@@ -72,6 +84,7 @@ void nn_learning_xor_batched() {
     test_nn_on_dataset(nn_xor, xor_data, "XOR Gate");
 
     nn_free(nn_xor);
+    optimizer_free(config.optimizer);
     dataset_free(xor_data);
     training_result_free(result_xor);
 }

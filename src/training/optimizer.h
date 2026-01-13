@@ -5,14 +5,13 @@
  */
 #ifndef OPTIMIZER_H
 #define OPTIMIZER_H
+#include "nn/nn.h"
 #include "tensor/tensor.h"
 
 typedef struct Optimizer Optimizer;
 typedef struct SGDOptimizer SGDOptimizer;
 typedef struct MomentumOptimizer MomentumOptimizer;
 typedef struct AdamOptimizer AdamOptimizer;
-
-typedef struct NeuralNet NeuralNet;
 
 // Creation
 Optimizer *optimizer_create_sgd(float learning_rate);

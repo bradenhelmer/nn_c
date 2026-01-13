@@ -33,12 +33,6 @@ void training_result_free(TrainingResult *result);
 TrainingResult *train_perceptron(Perceptron *p, Dataset *train_data, Dataset *val_data,
                                  TrainingConfig *config);
 
-TrainingResult *train_nn(NeuralNet *nn, Dataset *train_data, Dataset *val_data,
-                         TrainingConfig *config);
-
-TrainingResult *train_nn_batch(NeuralNet *nn, Dataset *train_data, Dataset *val_data,
-                               TrainingConfig *config);
-
 TrainingResult *train_nn_batch_opt(NeuralNet *nn, Dataset *train_data, Dataset *val_data,
                                    TrainingConfig *config);
 

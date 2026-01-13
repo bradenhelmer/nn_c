@@ -5,7 +5,7 @@
 #define GPU_NN_H
 #include "data/dataset.h"
 #include "gpu/gpu_tensor.h"
-#include "nn/nn.h"
+#include "nn/nn_internal.h"
 #include <cublas_v2.h>
 
 // Input shape descriptor for dynamic workspace sizing
@@ -19,7 +19,6 @@ typedef struct GPUNeuralNet {
     NeuralNet *cpu_nn; // Borrowed for configuration (read only)
     int num_layers;
     int batch_size; // Fixed at creation
-    float learning_rate;
     InputShape input_shape;
 
     // Parameter storage (indexed by layer)

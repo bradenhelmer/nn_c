@@ -33,7 +33,6 @@ void nn_loss_derivative(NeuralNet *nn, Tensor *gradient, const Tensor *output,
 
 // Training
 void nn_zero_gradients(NeuralNet *nn);
-void nn_update_weights(NeuralNet *nn);
 void nn_scale_gradients(NeuralNet *nn, float scale);
 void nn_add_l2_gradient(NeuralNet *nn, float lambda);
 

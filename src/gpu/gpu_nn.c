@@ -94,7 +94,6 @@ GPUNeuralNet *gpu_nn_create_from_cpu_nn(NeuralNet *cpu_nn, int batch_size, Input
     gpu_nn->cpu_nn = cpu_nn;
     gpu_nn->num_layers = cpu_nn->num_layers;
     gpu_nn->batch_size = batch_size;
-    gpu_nn->learning_rate = cpu_nn->learning_rate;
     gpu_nn->input_shape = input_shape;
 
     // 1. Count parameters
@@ -359,6 +358,10 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
             // current = flatten_backward_gpu(...)
             break;
         }
+        case LAYER_RESHAPE: {
+
+            break;
+        }
         }
     }
 }
@@ -385,6 +388,7 @@ void gpu_nn_scale_gradients(GPUNeuralNet *gpu_nn, float scale) {
         case LAYER_ACTIVATION:
         case LAYER_MAX_POOL:
         case LAYER_FLATTEN:
+        case LAYER_RESHAPE:
             break;
         }
     }

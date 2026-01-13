@@ -116,12 +116,6 @@ void nn_zero_gradients(NeuralNet *nn) {
     }
 }
 
-void nn_update_weights(NeuralNet *nn) {
-    for (int i = 0; i < nn->num_layers; i++) {
-        layer_update_weights(nn->layers[i], nn->learning_rate);
-    }
-}
-
 void nn_scale_gradients(NeuralNet *nn, float scale) {
     for (int l = 0; l < nn->num_layers; l++) {
         layer_scale_gradients(nn->layers[l], scale);
