@@ -114,8 +114,8 @@ src/
   - **Use accessors only:** examples/*.c, gradient_descent.c (high-level usage)
 
 **Layer & Optimizer Modules (TODO):**
-- [ ] Create `layer_internal.h` with all layer struct definitions
-- [ ] Create `optimizer_internal.h` with Optimizer struct
+- [x] Create `layer_internal.h` with all layer struct definitions
+- [x] Create `optimizer_internal.h` with Optimizer struct
 - [ ] Update public headers to use forward declarations
 - [ ] Add accessor functions where needed
 - [ ] Apply same partial encapsulation pattern

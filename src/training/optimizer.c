@@ -3,49 +3,36 @@
  *
  * Optimizer implementations
  */
-#include "optimizer.h"
 #include "nn/layer_internal.h"
+#include "optimizer_internal.h"
 #include "tensor/tensor_internal.h"
 #include <math.h>
 #include <stdlib.h>
 
-static Optimizer *optimizer_create_base(float learning_rate) {
-    Optimizer *opt = (Optimizer *)malloc(sizeof(Optimizer));
-    opt->learning_rate = learning_rate;
-    opt->num_params = 0;
-    opt->beta = 0.0f;
-    opt->v = NULL;
-    opt->beta1 = 0.0f;
-    opt->beta2 = 0.0f;
-    opt->epsilon = 0.0f;
-    opt->m = NULL;
-    opt->s = NULL;
-    opt->timestep = 0;
-
-    return opt;
-}
-
 Optimizer *optimizer_create_sgd(float learning_rate) {
-    Optimizer *opt = optimizer_create_base(learning_rate);
-    opt->type = OPTIMIZER_SGD;
-    return opt;
+    SGDOptimizer *sgd_opt = (SGDOptimizer *)malloc(sizeof(SGDOptimizer));
+    sgd_opt->learning_rate = learning_rate;
+    return optimizer_create(OPTIMIZER_SGD, (void *)sgd_opt);
 }
 
 Optimizer *optimizer_create_momentum(float learning_rate, float beta) {
-    Optimizer *opt = optimizer_create_base(learning_rate);
-    opt->type = OPTIMIZER_MOMENTUM;
-    opt->beta = beta;
-    return opt;
+    MomentumOptimizer *m_opt = (MomentumOptimizer *)malloc(sizeof(MomentumOptimizer));
+    m_opt->learning_rate = learning_rate;
+    m_opt->beta = beta;
+    m_opt->v = NULL;
+    return optimizer_create(OPTIMIZER_MOMENTUM, (void *)m_opt);
 }
 
 Optimizer *optimizer_create_adam(float learning_rate, float beta1, float beta2, float epsilon) {
-    Optimizer *opt = optimizer_create_base(learning_rate);
-    opt->type = OPTIMIZER_ADAM;
-    opt->beta1 = beta1;
-    opt->beta2 = beta2;
-    opt->epsilon = epsilon;
-    opt->timestep = 0;
-    return opt;
+    AdamOptimizer *adam_opt = (AdamOptimizer *)malloc(sizeof(AdamOptimizer));
+    adam_opt->learning_rate = learning_rate;
+    adam_opt->beta1 = beta1;
+    adam_opt->beta2 = beta2;
+    adam_opt->epsilon = epsilon;
+    adam_opt->timestep = 0;
+    adam_opt->m = NULL;
+    adam_opt->s = NULL;
+    return optimizer_create(OPTIMIZER_ADAM, (void *)adam_opt);
 }
 
 void optimizer_init(Optimizer *opt, NeuralNet *nn) {
@@ -59,81 +46,116 @@ void optimizer_init(Optimizer *opt, NeuralNet *nn) {
 
     opt->num_params = total_params;
 
-    // Allocate momentum arrays if needed
-    if (opt->type == OPTIMIZER_MOMENTUM) {
-        opt->v = (Tensor **)malloc(sizeof(Tensor *) * total_params);
+    switch (opt->type) {
+    case OPTIMIZER_SGD:
+        break;
+    case OPTIMIZER_MOMENTUM: {
+        MomentumOptimizer *m_opt = (MomentumOptimizer *)opt->optimizer;
+        m_opt->v = (Tensor **)malloc(sizeof(Tensor *) * total_params);
 
         int param_idx = 0;
         for (int i = 0; i < nn->num_layers; i++) {
             LayerParameters params = layer_get_parameters(nn->layers[i]);
             for (int j = 0; j < params.num_pairs; j++) {
-                opt->v[param_idx] = tensor_clone(params.pairs[j].param);
-                tensor_fill(opt->v[param_idx], 0.0f);
+                m_opt->v[param_idx] = tensor_clone(params.pairs[j].param);
+                tensor_fill(m_opt->v[param_idx], 0.0f);
                 param_idx++;
             }
             layer_parameters_free(&params);
         }
+        break;
     }
-
-    // Allocate Adam arrays if needed
-    if (opt->type == OPTIMIZER_ADAM) {
-        opt->m = (Tensor **)malloc(sizeof(Tensor *) * total_params);
-        opt->s = (Tensor **)malloc(sizeof(Tensor *) * total_params);
+    case OPTIMIZER_ADAM: {
+        AdamOptimizer *adam_opt = (AdamOptimizer *)opt->optimizer;
+        adam_opt->m = (Tensor **)malloc(sizeof(Tensor *) * total_params);
+        adam_opt->s = (Tensor **)malloc(sizeof(Tensor *) * total_params);
 
         int param_idx = 0;
         for (int i = 0; i < nn->num_layers; i++) {
             LayerParameters params = layer_get_parameters(nn->layers[i]);
             for (int j = 0; j < params.num_pairs; j++) {
-                opt->m[param_idx] = tensor_clone(params.pairs[j].param);
-                tensor_fill(opt->m[param_idx], 0.0f);
-                opt->s[param_idx] = tensor_clone(params.pairs[j].param);
-                tensor_fill(opt->s[param_idx], 0.0f);
+                adam_opt->m[param_idx] = tensor_clone(params.pairs[j].param);
+                tensor_fill(adam_opt->m[param_idx], 0.0f);
+                adam_opt->s[param_idx] = tensor_clone(params.pairs[j].param);
+                tensor_fill(adam_opt->s[param_idx], 0.0f);
                 param_idx++;
             }
             layer_parameters_free(&params);
         }
+        break;
+    }
     }
 }
 
 void optimizer_free(Optimizer *opt) {
     switch (opt->type) {
-    case OPTIMIZER_SGD:
-        // No state to free
+    case OPTIMIZER_SGD: {
+        free(opt->optimizer);
         break;
-    case OPTIMIZER_MOMENTUM:
+    }
+    case OPTIMIZER_MOMENTUM: {
+        MomentumOptimizer *m_opt = (MomentumOptimizer *)opt->optimizer;
         for (int i = 0; i < opt->num_params; ++i) {
-            tensor_free(opt->v[i]);
+            tensor_free(m_opt->v[i]);
         }
-        free(opt->v);
+        free(m_opt->v);
+        free(m_opt);
         break;
-    case OPTIMIZER_ADAM:
+    }
+    case OPTIMIZER_ADAM: {
+        AdamOptimizer *adam_opt = (AdamOptimizer *)opt->optimizer;
         for (int i = 0; i < opt->num_params; ++i) {
-            tensor_free(opt->m[i]);
-            tensor_free(opt->s[i]);
+            tensor_free(adam_opt->m[i]);
+            tensor_free(adam_opt->s[i]);
         }
-        free(opt->m);
-        free(opt->s);
+        free(adam_opt->m);
+        free(adam_opt->s);
+        free(adam_opt);
         break;
+    }
     }
 
     free(opt);
 }
 
 void optimizer_set_lr(Optimizer *opt, float lr) {
-    opt->learning_rate = lr;
-}
-
-float optimizer_get_lr(Optimizer *opt) {
-    return opt->learning_rate;
-}
-
-static void step_sgd(Optimizer *opt, NeuralNet *nn) {
-    for (int i = 0; i < nn->num_layers; i++) {
-        layer_update_weights(nn->layers[i], opt->learning_rate);
+    switch (opt->type) {
+    case OPTIMIZER_SGD: {
+        ((SGDOptimizer *)opt->optimizer)->learning_rate = lr;
+        break;
+    }
+    case OPTIMIZER_MOMENTUM: {
+        ((MomentumOptimizer *)opt->optimizer)->learning_rate = lr;
+        break;
+    }
+    case OPTIMIZER_ADAM: {
+        ((AdamOptimizer *)opt->optimizer)->learning_rate = lr;
+        break;
+    }
     }
 }
 
-static void step_momentum(Optimizer *opt, NeuralNet *nn) {
+float optimizer_get_lr(Optimizer *opt) {
+    switch (opt->type) {
+    case OPTIMIZER_SGD: {
+        return ((SGDOptimizer *)opt->optimizer)->learning_rate;
+    }
+    case OPTIMIZER_MOMENTUM: {
+        return ((MomentumOptimizer *)opt->optimizer)->learning_rate;
+    }
+    case OPTIMIZER_ADAM: {
+        return ((AdamOptimizer *)opt->optimizer)->learning_rate;
+    }
+    }
+}
+
+static void step_sgd(SGDOptimizer *sgd_opt, NeuralNet *nn) {
+    for (int i = 0; i < nn->num_layers; i++) {
+        layer_update_weights(nn->layers[i], sgd_opt->learning_rate);
+    }
+}
+
+static void step_momentum(MomentumOptimizer *opt, NeuralNet *nn) {
     int param_idx = 0;
 
     for (int i = 0; i < nn->num_layers; i++) {
@@ -157,7 +179,7 @@ static void step_momentum(Optimizer *opt, NeuralNet *nn) {
     }
 }
 
-static void step_adam(Optimizer *opt, NeuralNet *nn) {
+static void step_adam(AdamOptimizer *opt, NeuralNet *nn) {
     opt->timestep += 1;
 
     // Precompute bias corrections: (1 - β^t)
@@ -203,13 +225,13 @@ static void step_adam(Optimizer *opt, NeuralNet *nn) {
 void optimizer_step(Optimizer *opt, NeuralNet *nn) {
     switch (opt->type) {
     case OPTIMIZER_SGD:
-        step_sgd(opt, nn);
+        step_sgd((SGDOptimizer *)opt->optimizer, nn);
         break;
     case OPTIMIZER_MOMENTUM:
-        step_momentum(opt, nn);
+        step_momentum((MomentumOptimizer *)opt->optimizer, nn);
         break;
     case OPTIMIZER_ADAM:
-        step_adam(opt, nn);
+        step_adam((AdamOptimizer *)opt->optimizer, nn);
         break;
     }
 }
