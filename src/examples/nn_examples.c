@@ -32,7 +32,7 @@ void nn_learning_xor() {
                              .batch_size = 1,
                              .verbose = 0,
                              .optimizer = optimizer_create_sgd(0.5f)};
-    Dataset *xor_data = create_xor_gate_dataset();
+    Dataset *xor_data = dataset_create_xor_gate();
 
     NeuralNet *nn_xor = nn_create(4, LOSS_MSE, xor_classifier);
     nn_add_layer(nn_xor, 0, linear_layer_create(2, 2));
@@ -65,7 +65,7 @@ void nn_learning_xor_batched() {
                              .batch_size = 1,
                              .verbose = 0,
                              .optimizer = optimizer_create_sgd(0.5f)};
-    Dataset *xor_data = create_xor_gate_dataset();
+    Dataset *xor_data = dataset_create_xor_gate();
 
     NeuralNet *nn_xor = nn_create(4, LOSS_MSE, xor_classifier);
     nn_add_layer(nn_xor, 0, linear_layer_create(2, 2));

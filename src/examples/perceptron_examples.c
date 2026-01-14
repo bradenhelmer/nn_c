@@ -23,7 +23,7 @@ void perceptron_learning_logic_gates() {
 
     // AND GATE
     printf("Training AND Gate...\n");
-    Dataset *and_data = create_and_gate_dataset();
+    Dataset *and_data = dataset_create_and_gate();
 
     Perceptron *p_and =
         perceptron_create(2, -1.f, 1.f, 1.0f, SIGMOID_ACTIVATION, logic_gate_classifier);
@@ -39,7 +39,7 @@ void perceptron_learning_logic_gates() {
 
     // OR GATE
     printf("\n\nTraining OR Gate...\n");
-    Dataset *or_data = create_or_gate_dataset();
+    Dataset *or_data = dataset_create_or_gate();
 
     Perceptron *p_or =
         perceptron_create(2, -1.f, 1.f, 1.0f, SIGMOID_ACTIVATION, logic_gate_classifier);
@@ -53,7 +53,7 @@ void perceptron_learning_logic_gates() {
 
     // XOR GATE
     printf("\n\nTraining XOR Gate (should fail to converge)...\n");
-    Dataset *xor_data = create_xor_gate_dataset();
+    Dataset *xor_data = dataset_create_xor_gate();
 
     Perceptron *p_xor =
         perceptron_create(2, -1.f, 1.f, 1.0f, SIGMOID_ACTIVATION, logic_gate_classifier);

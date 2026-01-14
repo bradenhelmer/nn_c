@@ -4,7 +4,7 @@
  * Loss function implementations.
  */
 #include "loss.h"
-#include "tensor/tensor_internal.h"
+#include "core/tensor_internal.h"
 #include <assert.h>
 #include <math.h>
 

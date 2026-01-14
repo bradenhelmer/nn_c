@@ -6,7 +6,7 @@
 #define BATCH_INTERNAL_H
 #include "batch.h"
 #include "dataset.h"
-#include "tensor/tensor.h"
+#include "core/tensor.h"
 
 // Represents a single mini-batch extracted from a dataset
 // NOTE: Batch OWNS its X and Y tensors - batch_free() will free them

@@ -10,7 +10,7 @@
 #define LAYER_H
 
 #include "activations/activations.h"
-#include "tensor/tensor.h"
+#include "core/tensor.h"
 
 // =============================================================================
 // LAYER GENERICS
@@ -100,10 +100,10 @@ Tensor *conv2d_layer_backward(Conv2DLayer *layer, const Tensor *upstream_grad);
 Tensor *conv2d_layer_backward_stride_optimized(Conv2DLayer *layer, const Tensor *upstream_grad);
 
 // Im2Col Optimization
-Tensor *conv2d_im2col(Conv2DLayer *layer, Tensor *X_pad);
-Tensor *conv2d_col2im(Tensor *dX_col, const Conv2DParams *p);
-Tensor *conv_layer_forward_im2col(Conv2DLayer *layer, const Tensor *input);
-Tensor *conv_layer_backward_im2col(Conv2DLayer *layer, const Tensor *upstream_grad);
+Tensor *conv2d_layer_im2col(Conv2DLayer *layer, Tensor *X_pad);
+Tensor *conv2d_layer_col2im(Tensor *dX_col, const Conv2DParams *p);
+Tensor *conv2d_layer_forward_im2col(Conv2DLayer *layer, const Tensor *input);
+Tensor *conv2d_layer_backward_im2col(Conv2DLayer *layer, const Tensor *upstream_grad);
 
 // =============================================================================
 // MAX POOLING LAYER

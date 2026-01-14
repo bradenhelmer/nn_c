@@ -5,7 +5,7 @@
 #ifndef TENSOR_INTERNAL_H
 #define TENSOR_INTERNAL_H
 
-#include "tensor/tensor.h"
+#include "core/tensor.h"
 
 struct Tensor {
     float *data;

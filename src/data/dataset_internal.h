@@ -5,7 +5,7 @@
 #ifndef DATASET_INTERNAL_H
 #define DATASET_INTERNAL_H
 #include "dataset.h"
-#include "tensor/tensor.h"
+#include "core/tensor.h"
 
 struct Dataset {
     Tensor *X; // 2D: (num_samples, num_features)

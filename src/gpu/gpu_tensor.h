@@ -12,7 +12,7 @@
 #ifndef GPU_TENSOR_H
 #define GPU_TENSOR_H
 
-#include "tensor/tensor.h"
+#include "core/tensor.h"
 #include <cuda_runtime.h>
 #include <stddef.h>
 

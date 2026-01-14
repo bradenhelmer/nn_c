@@ -6,7 +6,7 @@
 
 // Lifecycle
 #include "layer_internal.h"
-#include "tensor/tensor_internal.h"
+#include "core/tensor_internal.h"
 #include <math.h>
 #include <stdlib.h>
 

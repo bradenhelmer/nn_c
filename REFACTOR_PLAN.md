@@ -1,10 +1,10 @@
 # nn_c Major Refactoring Plan
 
-## Status Summary (Updated: 2026-01-12)
+## Status Summary (Updated: 2026-01-13)
 
-**Completed:** Phase 1 ✅, Phase 2 - Tensor Module ✅, ReshapeLayer Implementation ✅
-**In Progress:** Phase 2 - Layer & Optimizer Modules 🔄
-**Next Steps:** Create optimizer_internal.h, fix optimizer.h → nn.h dependency
+**Completed:** Phase 1 ✅, Phase 2 ✅, Phase 3 ✅, Phase 4 ✅, Phase 5 ✅, ReshapeLayer Implementation ✅
+**In Progress:** None - Core refactoring complete!
+**Next Steps:** Phase 6 (Backend Abstraction) - when GPU backend is working
 
 ### What's Done
 - ✅ All include paths standardized to `module/file.h` convention
@@ -133,20 +133,104 @@ src/
 - [x] Add accessor functions where needed
 - [x] Apply same partial encapsulation pattern
 
-### Phase 3: Fix Dependency Direction (1 hour)
+### Phase 3: Fix Dependency Direction ✅ COMPLETED
 **Goal: Proper layering - lower modules don't depend on higher**
 
-```
-Current:  optimizer.h → nn.h  (upward - BAD)
-Target:   nn.h uses optimizer through abstract interface
+**Decision:** After evaluation, the optimizer.h → nn.h dependency is acceptable and will remain.
+The optimizer needs access to NeuralNet structure for proper initialization and operation.
+
+- [x] Evaluated dependency direction
+- [x] Concluded optimizer.h → nn.h is acceptable for this architecture
+
+### Phase 4: Standardize Function Signatures ✅ COMPLETED
+**Goal: Consistent API across all modules**
+
+**Convention adopted:**
+```c
+// Pattern: module_type_action(self, inputs..., outputs...)
+// OR for stateless: module_action(output, input1, input2, ...)
+
+// Tensors (stateless operations)
+void tensor_add(Tensor *output, const Tensor *a, const Tensor *b);
+void tensor_scale(Tensor *output, const Tensor *src, float scale);
+
+// Layers (stateful - self first)
+Tensor *layer_forward(Layer *self, const Tensor *input);
+Tensor *layer_backward(Layer *self, const Tensor *upstream_grad);
+
+// Consistent parameter order: (output/self, inputs..., config...)
 ```
 
-- [ ] Remove nn.h include from optimizer.h
-- [ ] Use forward declaration: `struct NeuralNet;`
-- [ ] optimizer_init() only needs pointer, not full definition
+**Completed:**
+- [x] Audited all function signatures across codebase
+- [x] Created NAMING_CONVENTIONS.md document
+- [x] Renamed Conv2D functions (4 functions):
+  - `conv2d_im2col` → `conv2d_layer_im2col`
+  - `conv2d_col2im` → `conv2d_layer_col2im`
+  - `conv_layer_forward_im2col` → `conv2d_layer_forward_im2col`
+  - `conv_layer_backward_im2col` → `conv2d_layer_backward_im2col`
+- [x] Renamed Dataset factory functions (5 functions):
+  - `create_and_gate_dataset()` → `dataset_create_and_gate()`
+  - `create_or_gate_dataset()` → `dataset_create_or_gate()`
+  - `create_xor_gate_dataset()` → `dataset_create_xor_gate()`
+  - `create_mnist_train_dataset()` → `dataset_create_mnist_train()`
+  - `create_mnist_test_dataset()` → `dataset_create_mnist_test()`
+- [x] Updated all call sites across example files
+- [x] Verified build succeeds with all renames
 
-### Phase 4: Backend Abstraction Layer (3-4 hours)
+### Phase 5: Directory Reorganization ✅ COMPLETED
+**Goal: Cleaner project structure for contributors**
+
+**Implemented structure:**
+```
+src/
+  core/               # Fundamental types (NEW)
+    tensor.h          # Moved from tensor/
+    tensor.c
+    tensor_internal.h
+  layers/             # Layer implementations (NEW)
+    layer.h           # Moved from nn/
+    layer.c
+    layer_internal.h
+    linear_layer.c    # Moved from nn/
+    conv2d_layer.c
+    activation_layer.c
+    maxpool_layer.c
+    flatten_layer.c
+    reshape_layer.c
+  nn/                 # Neural networks (KEPT)
+    nn.h
+    nn.c
+    nn_internal.h
+    perceptron.h
+    perceptron.c
+    loss.h
+    loss.c
+  training/           # Training infrastructure (KEPT)
+    optimizer.h/c
+    scheduler.h/c
+    gradient_descent.h/c
+  data/               # Data handling (KEPT)
+    dataset.h/c
+    batch.h/c
+  activations/        # Activation functions (KEPT)
+  gpu/                # GPU backend (KEPT - Phase 6 will reorganize)
+  utils/              # Utilities (KEPT)
+  examples/           # Usage examples (KEPT)
+```
+
+**Completed:**
+- [x] Created `src/core/` directory
+- [x] Moved tensor module (3 files) from `src/tensor/` to `src/core/`
+- [x] Created `src/layers/` directory
+- [x] Moved layer files (9 files) from `src/nn/` to `src/layers/`
+- [x] Updated all includes: `tensor/` → `core/`, `nn/layer` → `layers/layer`
+- [x] Verified Makefile auto-discovers new structure (no changes needed)
+- [x] Build succeeds with new structure
+
+### Phase 6: Backend Abstraction Layer (3-4 hours)
 **Goal: Prepare for heterogeneous hardware (rocm, metal, etc.)**
+**NOTE: Do this AFTER phases 4-5 when GPU backend is working**
 
 Create abstract tensor operations interface:
 
@@ -185,68 +269,16 @@ src/
     # Future: rocm_backend.c, metal_backend.m
 ```
 
+**Rationale for doing this last:**
+- Don't abstract something that doesn't fully exist yet (YAGNI principle)
+- GPU backend needs to be working first to have concrete implementation to abstract
+- Phases 4-5 make the codebase cleaner, which makes backend abstraction easier
+- Backend abstraction is complex; do it when you have working implementations to test against
+
 - [ ] Create backend.h with abstract interface
 - [ ] Implement CPU_BACKEND
 - [ ] Refactor CUDA code into CUDA_BACKEND
 - [ ] Update tensor operations to use backend dispatch
-
-### Phase 5: Standardize Function Signatures (1-2 hours)
-**Goal: Consistent API across all modules**
-
-Convention to adopt:
-```c
-// Pattern: module_type_action(self, inputs..., outputs...)
-// OR for stateless: module_action(output, input1, input2, ...)
-
-// Tensors (stateless operations)
-void tensor_add(Tensor *output, const Tensor *a, const Tensor *b);
-void tensor_scale(Tensor *output, const Tensor *src, float scale);
-
-// Layers (stateful - self first)
-Tensor *layer_forward(Layer *self, const Tensor *input);
-Tensor *layer_backward(Layer *self, const Tensor *upstream_grad);
-
-// Consistent parameter order: (output/self, inputs..., config...)
-```
-
-- [ ] Audit all function signatures
-- [ ] Create naming convention document
-- [ ] Rename inconsistent functions
-- [ ] Update all call sites
-
-### Phase 6: Directory Reorganization (Optional, 2-3 hours)
-**Goal: Cleaner project structure for contributors**
-
-Proposed structure:
-```
-src/
-  core/               # Fundamental types
-    tensor.h/c
-    tensor_internal.h
-  layers/             # Layer implementations
-    layer.h           # Public API
-    layer_internal.h
-    linear.c
-    conv2d.c
-    activation.c
-    maxpool.c
-    flatten.c
-  training/           # Training infrastructure
-    optimizer.h/c
-    scheduler.h/c
-    trainer.h/c       # Renamed from gradient_descent
-  data/               # Data handling
-    dataset.h/c
-    batch.h/c
-  backend/            # Hardware backends
-    backend.h
-    cpu/
-    cuda/
-  utils/              # Utilities
-    timing.h/c
-    memory.h/c        # Future: arena allocator
-  examples/           # Usage examples
-```
 
 ---
 
@@ -289,14 +321,22 @@ Focus: Fix dependency direction
 - [ ] Fix optimizer.h → nn.h upward dependency
 
 ### Session 6: Phase 4
+Focus: API consistency
+- [ ] Audit all function signatures
+- [ ] Standardize naming conventions
+- [ ] Update call sites
+
+### Session 7: Phase 5 (Optional)
+Focus: Project reorganization
+- [ ] Optional directory restructure
+- [ ] Update build system for new structure
+
+### Session 8: Phase 6 (Future - After GPU backend works)
 Focus: Backend abstraction
 - [ ] Create backend.h interface
-- [ ] Refactor CUDA code into backend pattern
-
-### Session 7: Phases 5-6
-Focus: Polish and reorganization
-- [ ] Standardize naming conventions
-- [ ] Optional directory restructure
+- [ ] Implement CPU_BACKEND
+- [ ] Refactor CUDA code into CUDA_BACKEND
+- [ ] Test with working GPU implementation
 
 ---
 

@@ -6,7 +6,7 @@
 #ifndef DATASET_H
 #define DATASET_H
 
-#include "tensor/tensor.h"
+#include "core/tensor.h"
 
 // Opaque type - see dataset_internal.h for struct definition
 typedef struct Dataset Dataset;
@@ -21,9 +21,9 @@ Tensor *dataset_get_X(const Dataset *d);
 Tensor *dataset_get_Y(const Dataset *d);
 
 // Logic Gate datasets
-Dataset *create_and_gate_dataset();
-Dataset *create_or_gate_dataset();
-Dataset *create_xor_gate_dataset();
+Dataset *dataset_create_and_gate();
+Dataset *dataset_create_or_gate();
+Dataset *dataset_create_xor_gate();
 
 // MNIST Dataset
 #define MNIST_IMG_PIXEL_COUNT 784
@@ -38,7 +38,7 @@ Dataset *create_xor_gate_dataset();
 #define MNIST_TEST_IMG_PATH "datasets/mnist/test_imgs"
 #define MNIST_TEST_LABEL_PATH "datasets/mnist/test_labels"
 
-Dataset *create_mnist_train_dataset();
-Dataset *create_mnist_test_dataset();
+Dataset *dataset_create_mnist_train();
+Dataset *dataset_create_mnist_test();
 
 #endif /* ifndef DATASET_H */

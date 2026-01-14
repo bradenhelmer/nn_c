@@ -5,10 +5,10 @@
 #include "activations/activations.h"
 #include "config.h"
 #include "data/dataset.h"
-#include "nn/layer.h"
+#include "layers/layer.h"
 #include "nn/loss.h"
 #include "nn/nn.h"
-#include "tensor/tensor.h"
+#include "core/tensor.h"
 #include "training/gradient_descent.h"
 #include "utils/timing.h"
 #include <stdio.h>
@@ -80,8 +80,8 @@ static void test_mnist_conv(NeuralNet *nn, Dataset *data, const char *name) {
 void mnist_sgd() {
     printf("\n\nTraining MNIST with SGD optimizer...\n");
 
-    Dataset *mnist_train = create_mnist_train_dataset();
-    Dataset *mnist_test = create_mnist_test_dataset();
+    Dataset *mnist_train = dataset_create_mnist_train();
+    Dataset *mnist_test = dataset_create_mnist_test();
 
     TrainingConfig config = {.max_epochs = 10,
                              .tolerance = 1e-7,
@@ -116,8 +116,8 @@ void mnist_sgd() {
 void mnist_momentum() {
     printf("\n\nTraining MNIST with momentum optimizer...\n");
 
-    Dataset *mnist_train = create_mnist_train_dataset();
-    Dataset *mnist_test = create_mnist_test_dataset();
+    Dataset *mnist_train = dataset_create_mnist_train();
+    Dataset *mnist_test = dataset_create_mnist_test();
 
     TrainingConfig config = {.max_epochs = 10,
                              .tolerance = 1e-7,
@@ -152,8 +152,8 @@ void mnist_momentum() {
 void mnist_adam() {
     printf("\n\nTraining MNIST with ADAM optimizer...\n");
 
-    Dataset *mnist_train = create_mnist_train_dataset();
-    Dataset *mnist_test = create_mnist_test_dataset();
+    Dataset *mnist_train = dataset_create_mnist_train();
+    Dataset *mnist_test = dataset_create_mnist_test();
 
     TrainingConfig config = {.max_epochs = 10,
                              .batch_size = 64,
@@ -188,8 +188,8 @@ void mnist_aggressive() {
     printf(
         "\n\nTraining MNIST with ADAM optimizer/cosine annealing scheduler/L2 regularization...\n");
 
-    Dataset *mnist_train = create_mnist_train_dataset();
-    Dataset *mnist_test = create_mnist_test_dataset();
+    Dataset *mnist_train = dataset_create_mnist_train();
+    Dataset *mnist_test = dataset_create_mnist_test();
 
     TrainingConfig config = {.max_epochs = 10,
                              .batch_size = 64,
@@ -241,8 +241,8 @@ void mnist_conv() {
     printf("\n\nTraining MNIST with 2D convolutional Neural network...\n");
     _print_conv_arch();
 
-    Dataset *mnist_train = create_mnist_train_dataset();
-    Dataset *mnist_test = create_mnist_test_dataset();
+    Dataset *mnist_train = dataset_create_mnist_train();
+    Dataset *mnist_test = dataset_create_mnist_test();
 
     TrainingConfig config = {.max_epochs = PROFILING ? 1 : 10,
                              .batch_size = 64,

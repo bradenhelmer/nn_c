@@ -6,7 +6,7 @@
 #define LAYER_INTERNAL_H
 #include "activations/activations.h"
 #include "layer.h"
-#include "tensor/tensor.h"
+#include "core/tensor.h"
 #include <stdlib.h>
 
 // =============================================================================

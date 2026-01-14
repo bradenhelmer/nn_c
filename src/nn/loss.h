@@ -6,7 +6,7 @@
 
 #ifndef LOSS_H
 #define LOSS_H
-#include "tensor/tensor.h"
+#include "core/tensor.h"
 
 // Singular predictions
 float mse_loss(float predicted, float target);

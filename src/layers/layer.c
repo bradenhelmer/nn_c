@@ -4,7 +4,7 @@
  * Generic layer implementations
  */
 #include "layer_internal.h"
-#include "tensor/tensor_internal.h"
+#include "core/tensor_internal.h"
 #include <stdlib.h>
 
 void layer_free(Layer *layer) {
@@ -38,7 +38,7 @@ Tensor *layer_forward(Layer *layer, const Tensor *input) {
     case LAYER_ACTIVATION:
         return activation_layer_forward((ActivationLayer *)layer->layer, input);
     case LAYER_CONV_2D:
-        return conv_layer_forward_im2col((Conv2DLayer *)layer->layer, input);
+        return conv2d_layer_forward_im2col((Conv2DLayer *)layer->layer, input);
     case LAYER_MAX_POOL:
         return maxpool_layer_forward((MaxPoolLayer *)layer->layer, input);
     case LAYER_FLATTEN:
@@ -56,7 +56,7 @@ Tensor *layer_backward(Layer *layer, const Tensor *upstream_grad) {
     case LAYER_ACTIVATION:
         return activation_layer_backward((ActivationLayer *)layer->layer, upstream_grad);
     case LAYER_CONV_2D:
-        return conv_layer_backward_im2col((Conv2DLayer *)layer->layer, upstream_grad);
+        return conv2d_layer_backward_im2col((Conv2DLayer *)layer->layer, upstream_grad);
     case LAYER_MAX_POOL:
         return maxpool_layer_backward((MaxPoolLayer *)layer->layer, upstream_grad);
     case LAYER_FLATTEN:

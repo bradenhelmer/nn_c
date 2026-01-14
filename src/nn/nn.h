@@ -7,7 +7,7 @@
 #ifndef NN_H
 #define NN_H
 #include "data/dataset.h"
-#include "layer.h"
+#include "layers/layer.h"
 #include "loss.h"
 
 typedef void (*Classifier)(Tensor *, const Tensor *);

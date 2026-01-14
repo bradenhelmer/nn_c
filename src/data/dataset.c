@@ -4,8 +4,8 @@
  * Dataset function implementations.
  */
 #include "dataset_internal.h"
-#include "tensor/tensor.h"
-#include "tensor/tensor_internal.h"
+#include "core/tensor.h"
+#include "core/tensor_internal.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -49,7 +49,7 @@ static Tensor *_create_2bit_input_tensor() {
 }
 
 // Test datasets
-Dataset *create_and_gate_dataset() {
+Dataset *dataset_create_and_gate() {
     Dataset *d = dataset_create(4, 2);
     d->X = _create_2bit_input_tensor();
     d->Y = tensor_create2d(4, 1);
@@ -57,7 +57,7 @@ Dataset *create_and_gate_dataset() {
     return d;
 }
 
-Dataset *create_or_gate_dataset() {
+Dataset *dataset_create_or_gate() {
     Dataset *d = dataset_create(4, 2);
     d->X = _create_2bit_input_tensor();
     d->Y = tensor_create2d(4, 1);
@@ -66,7 +66,7 @@ Dataset *create_or_gate_dataset() {
     return d;
 }
 
-Dataset *create_xor_gate_dataset() {
+Dataset *dataset_create_xor_gate() {
     Dataset *d = dataset_create(4, 2);
     d->X = _create_2bit_input_tensor();
     d->Y = tensor_create2d(4, 1);
@@ -155,10 +155,10 @@ static Dataset *load_mnist_file(const char *image_path, const char *label_path,
     return d;
 }
 
-Dataset *create_mnist_train_dataset() {
+Dataset *dataset_create_mnist_train() {
     return load_mnist_file(MNIST_TRAIN_IMG_PATH, MNIST_TRAIN_LABEL_PATH, MNIST_TRAIN_IMG_COUNT);
 }
 
-Dataset *create_mnist_test_dataset() {
+Dataset *dataset_create_mnist_test() {
     return load_mnist_file(MNIST_TEST_IMG_PATH, MNIST_TEST_LABEL_PATH, MNIST_TEST_IMG_COUNT);
 }

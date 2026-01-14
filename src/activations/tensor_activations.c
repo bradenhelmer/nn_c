@@ -2,7 +2,7 @@
  * tensor_activations.c - Tensor activation implementations.
  */
 #include "activations.h"
-#include "tensor/tensor_internal.h"
+#include "core/tensor_internal.h"
 #include "utils/utils.h"
 #include <assert.h>
 

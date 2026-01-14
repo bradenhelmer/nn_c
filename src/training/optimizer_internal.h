@@ -5,7 +5,7 @@
 #ifndef OPTIMIZER_INTERNAL_H
 #define OPTIMIZER_INTERNAL_H
 #include "optimizer.h"
-#include "tensor/tensor.h"
+#include "core/tensor.h"
 #include <stdlib.h>
 
 // ==============================================================================

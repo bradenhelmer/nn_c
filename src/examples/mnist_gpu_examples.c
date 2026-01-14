@@ -7,7 +7,7 @@
 #include "gpu/gpu_gradient_descent.h"
 #include "gpu/gpu_nn.h"
 #include "gpu/gpu_optimizer.h"
-#include "nn/layer.h"
+#include "layers/layer.h"
 #include "nn/nn.h"
 #include "utils/timing.h"
 #include <stdio.h>
@@ -18,8 +18,8 @@ extern void mnist_classifier(Tensor *dest, const Tensor *prediction);
 void mnist_gpu_basic() {
     printf("\n\nTraining MNIST with linear layer GPU execution...\n");
 
-    Dataset *mnist_train = create_mnist_train_dataset();
-    Dataset *mnist_test = create_mnist_test_dataset();
+    Dataset *mnist_train = dataset_create_mnist_train();
+    Dataset *mnist_test = dataset_create_mnist_test();
 
     TrainingConfig config = {.max_epochs = 1,
                              .tolerance = 1e-7,
@@ -70,8 +70,8 @@ void mnist_gpu_basic() {
 //     printf("\n\nTraining MNIST with 2D convolutional Neural network on GPU...\n");
 //     _print_conv_arch();
 //
-//     Dataset *mnist_train = create_mnist_train_dataset();
-//     Dataset *mnist_test = create_mnist_test_dataset();
+//     Dataset *mnist_train = dataset_create_mnist_train();
+//     Dataset *mnist_test = dataset_create_mnist_test();
 //
 //     TrainingConfig config = {.max_epochs = PROFILING ? 1 : 10,
 //                              .batch_size = 64,

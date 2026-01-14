@@ -9,7 +9,7 @@
 #include "gpu/gpu_nn.h"
 #include "gpu/gpu_optimizer.h"
 #include "gpu/gpu_tensor.h"
-#include "tensor/tensor_internal.h"
+#include "core/tensor_internal.h"
 #include "utils/timing.h"
 #include <stdio.h>
 #include <stdlib.h>

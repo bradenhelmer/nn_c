@@ -4,7 +4,7 @@
  * Convolutional Layer Implementations.
  */
 #include "layer_internal.h"
-#include "tensor/tensor_internal.h"
+#include "core/tensor_internal.h"
 #include "utils/utils.h"
 #include <math.h>
 #include <stdlib.h>
@@ -393,7 +393,7 @@ Tensor *conv2d_layer_backward_stride_optimized(Conv2DLayer *layer, const Tensor 
 // Unfolds padded input tensor X_pad into matrix X_col.
 //
 // X_col = (C_in * K * K) x (H_out * W_out) matrix
-Tensor *conv2d_im2col(Conv2DLayer *layer, Tensor *X_pad) {
+Tensor *conv2d_layer_im2col(Conv2DLayer *layer, Tensor *X_pad) {
     Conv2DParams p = conv2d_params_from_padded(layer, X_pad);
     const int C_in = p.C_in;
     const int H_out = p.H_out;
@@ -433,7 +433,7 @@ Tensor *conv2d_im2col(Conv2DLayer *layer, Tensor *X_pad) {
     return X_col;
 }
 
-Tensor *conv_layer_forward_im2col(Conv2DLayer *layer, const Tensor *input) {
+Tensor *conv2d_layer_forward_im2col(Conv2DLayer *layer, const Tensor *input) {
     Conv2DParams p = conv2d_params_create(layer, input);
     const int C_in = p.C_in;
     const int C_out = p.C_out;
@@ -445,7 +445,7 @@ Tensor *conv_layer_forward_im2col(Conv2DLayer *layer, const Tensor *input) {
 
     // 1. Pad and transform input
     Tensor *X_pad = tensor_pad2d(input, p.padding);
-    Tensor *X_col = conv2d_im2col(layer, X_pad);
+    Tensor *X_col = conv2d_layer_im2col(layer, X_pad);
 
     // 2. Get view of weights in (C_out, C_in * K * K)
     Tensor *W_row = tensor_view(layer->weights, 2, (int[]){C_out, C_in * K * K});
@@ -483,7 +483,7 @@ Tensor *conv_layer_forward_im2col(Conv2DLayer *layer, const Tensor *input) {
     return Y;
 }
 
-Tensor *conv2d_col2im(Tensor *dX_col, const Conv2DParams *p) {
+Tensor *conv2d_layer_col2im(Tensor *dX_col, const Conv2DParams *p) {
     const int C_in = p->C_in;
     const int H_out = p->H_out;
     const int W_out = p->W_out;
@@ -522,7 +522,7 @@ Tensor *conv2d_col2im(Tensor *dX_col, const Conv2DParams *p) {
     return dX_pad;
 }
 
-Tensor *conv_layer_backward_im2col(Conv2DLayer *layer, const Tensor *upstream_grad) {
+Tensor *conv2d_layer_backward_im2col(Conv2DLayer *layer, const Tensor *upstream_grad) {
     Conv2DParams p = conv2d_params_from_upstream(layer, upstream_grad);
 
     const int C_in = p.C_in;
@@ -553,7 +553,7 @@ Tensor *conv_layer_backward_im2col(Conv2DLayer *layer, const Tensor *upstream_gr
     Tensor *W_row = tensor_view(layer->weights, 2, (int[]){C_out, C_in * K * K});
     Tensor *W_row_transpose = tensor_transpose2d(W_row);
     tensor_matmul(dX_col, W_row_transpose, UG_flat);
-    Tensor *dX_pad = conv2d_col2im(dX_col, &p);
+    Tensor *dX_pad = conv2d_layer_col2im(dX_col, &p);
     Tensor *dX = tensor_unpad2d(dX_pad, p.padding);
 
     tensor_free(UG_flat);

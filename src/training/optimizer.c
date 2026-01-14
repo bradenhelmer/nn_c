@@ -3,10 +3,10 @@
  *
  * Optimizer implementations
  */
-#include "nn/layer_internal.h"
+#include "layers/layer_internal.h"
 #include "nn/nn.h"
 #include "optimizer_internal.h"
-#include "tensor/tensor_internal.h"
+#include "core/tensor_internal.h"
 #include <math.h>
 #include <stdlib.h>
 
