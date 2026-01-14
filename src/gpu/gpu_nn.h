@@ -62,7 +62,6 @@ void gpu_nn_compute_loss_gradient(LossType loss_type, GPUTensor *grad, const GPU
                                   const GPUTensor *target);
 
 // Evaluation
-void gpu_nn_predict(GPUNeuralNet *gpu_nn, Tensor *host_input, Tensor *host_output, int batch_size);
 float gpu_nn_evaluate_accuracy(GPUNeuralNet *gpu_nn, Dataset *val_data, GPUTensor *d_input,
                                float *h_input_pinned);
 

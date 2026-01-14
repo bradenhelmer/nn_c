@@ -77,7 +77,7 @@ GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const
 
     const float alpha = 1.0f;
     const float beta_accum = 1.0f; // For accumulating into dW, db
-    const float beta_zero = 1.0f;
+    const float beta_zero = 0.0f;
 
     // 1. Compute outer product of upstream gradient and input.
     //

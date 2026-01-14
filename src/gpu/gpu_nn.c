@@ -3,6 +3,8 @@
  */
 #include "gpu_nn.h"
 #include "core/tensor_internal.h"
+#include "data/batch_internal.h"
+#include "data/dataset_internal.h"
 #include "gpu_layer_ops.h"
 #include "gpu_loss.h"
 #include "gpu_tensor.h"
@@ -426,10 +428,77 @@ void gpu_nn_compute_loss_gradient(LossType loss_type, GPUTensor *grad, const GPU
 }
 
 // Evaluation
-void gpu_nn_predict(GPUNeuralNet *gpu_nn, Tensor *host_input, Tensor *host_output, int batch_size) {
-}
 float gpu_nn_evaluate_accuracy(GPUNeuralNet *gpu_nn, Dataset *val_data, GPUTensor *d_input,
                                float *h_input_pinned) {
+    if (val_data == NULL) {
+        return 0.0f;
+    }
+
+    int correct = 0;
+    int total = 0;
+
+    // Compute sizes from input_shape and dataset
+    int input_elements =
+        gpu_nn->input_shape.height * gpu_nn->input_shape.width * gpu_nn->input_shape.channels;
+    int output_size = tensor_get_shape_dim(val_data->Y, 1);
+
+    // Create batch iterator for validation data (reuse batch_size from gpu_nn)
+    BatchIterator *batch_iter = batch_iterator_create(val_data, gpu_nn->batch_size);
+
+    // Allocate target batch on GPU for potential future use
+    GPUTensor *d_target_batch = gpu_tensor_create(2, (int[]){gpu_nn->batch_size, output_size});
+
+    // Allocate host memory for predictions (one batch at a time)
+    float *h_predictions = (float *)malloc(gpu_nn->batch_size * output_size * sizeof(float));
+    Tensor *prediction_row = tensor_create1d(output_size);
+    Tensor *target_row = tensor_create1d(output_size);
+
+    Batch *batch;
+    while ((batch = batch_iterator_next(batch_iter)) != NULL) {
+        int actual_batch_size = batch->size;
+
+        // Copy input batch to GPU
+        memcpy(h_input_pinned, batch->X->data, actual_batch_size * input_elements * sizeof(float));
+        gpu_tensor_copy_from_host(d_input, h_input_pinned, actual_batch_size * input_elements);
+
+        // Update shape for partial batches
+        d_input->shape[0] = actual_batch_size;
+
+        // Forward pass
+        GPUTensor *prediction = gpu_nn_forward(gpu_nn, d_input);
+
+        // Copy predictions back to host
+        gpu_tensor_copy_to_host(h_predictions, prediction, actual_batch_size * output_size);
+
+        // Compare predictions with targets (on CPU)
+        for (int i = 0; i < actual_batch_size; i++) {
+            // Extract prediction row
+            for (int j = 0; j < output_size; j++) {
+                tensor_get_data(prediction_row)[j] = h_predictions[i * output_size + j];
+            }
+
+            // Extract target row from batch
+            tensor_get_row(target_row, batch->Y, i);
+
+            // Get predicted class (argmax)
+            int predicted_class = tensor_argmax(prediction_row);
+            int target_class = tensor_argmax(target_row);
+
+            if (predicted_class == target_class) {
+                correct++;
+            }
+            total++;
+        }
+    }
+
+    // Cleanup
+    batch_iterator_free(batch_iter);
+    gpu_tensor_free(d_target_batch);
+    free(h_predictions);
+    tensor_free(prediction_row);
+    tensor_free(target_row);
+
+    return (float)correct / (float)total;
 }
 
 // Workspace functions

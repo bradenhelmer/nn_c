@@ -32,7 +32,7 @@ static __device__ float _relu_scalar_derivative(float relu_output) {
 __global__ void relu_derivative_kernel(float *output, float *relu_output, const int size) {
     const int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < size) {
-        output[idx] = _relu_scalar_derivative(relu_output[idx]);
+        output[idx] *= _relu_scalar_derivative(relu_output[idx]);
     }
 }
 
@@ -66,7 +66,7 @@ static __device__ float _sigmoid_scalar_derivative(float sigmoid_output) {
 __global__ void sigmoid_derivative_kernel(float *output, float *sigmoid_output, const int size) {
     const int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < size) {
-        output[idx] = _sigmoid_scalar_derivative(sigmoid_output[idx]);
+        output[idx] *= _sigmoid_scalar_derivative(sigmoid_output[idx]);
     }
 }
 
@@ -101,7 +101,7 @@ static __device__ float _tanh_scalar_derivative(float tanh_output) {
 __global__ void tanh_derivative_kernel(float *output, float *tanh_output, const int size) {
     const int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < size) {
-        output[idx] = _tanh_scalar_derivative(tanh_output[idx]);
+        output[idx] *= _tanh_scalar_derivative(tanh_output[idx]);
     }
 }
 

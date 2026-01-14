@@ -21,7 +21,7 @@ void mnist_gpu_basic() {
     Dataset *mnist_train = dataset_create_mnist_train();
     Dataset *mnist_test = dataset_create_mnist_test();
 
-    TrainingConfig config = {.max_epochs = 1,
+    TrainingConfig config = {.max_epochs = 10,
                              .tolerance = 1e-7,
                              .batch_size = 64,
                              .verbose = 1,
@@ -46,7 +46,7 @@ void mnist_gpu_basic() {
     Timer training_timer = {0};
     timer_start(&training_timer);
     TrainingResult *mnist_gpu_basic_result =
-        train_nn_gpu_batch(mnist_gpu_nn, gpu_opt, mnist_train, NULL, &config);
+        train_nn_gpu_batch(mnist_gpu_nn, gpu_opt, mnist_train, mnist_test, &config);
     timer_stop(&training_timer);
     printf("GPU Training took: %.3f seconds\n", training_timer.elapsed);
 

@@ -12,6 +12,9 @@
 
 static GPUOptimizer *_gpu_optimizer_create(OptimizerType type, void *optimizer) {
     GPUOptimizer *opt = (GPUOptimizer *)malloc(sizeof(GPUOptimizer));
+    opt->type = type;
+    opt->optimizer = optimizer;
+    opt->num_params = 0; // Will be set by gpu_optimizer_init
     return opt;
 }
 
