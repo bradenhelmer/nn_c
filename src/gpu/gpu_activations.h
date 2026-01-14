@@ -17,6 +17,5 @@ void gpu_tensor_tanh(GPUTensor *output, const GPUTensor *input);
 void gpu_tensor_tanh_derivative(GPUTensor *output, const GPUTensor *tanh_output);
 
 void gpu_tensor_linear(GPUTensor *output, const GPUTensor *input);
-void gpu_tensor_linear_derivative(GPUTensor *output, const GPUTensor *linear_output);
 
 #endif /* ifndef GPU_ACTIVATIONS_H */

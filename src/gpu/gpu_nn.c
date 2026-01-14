@@ -76,6 +76,9 @@ static size_t _compute_workspace_size(NeuralNet *cpu_nn, int batch_size, InputSh
             activation_size = batch_size * c * h * w * sizeof(float);
             break;
         }
+        case LAYER_RESHAPE: {
+            break;
+        }
         }
 
         // Align each allocation
@@ -266,8 +269,11 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
             int p_idx = gpu_nn->layer_param_offset[i];
             GPUTensor *weights = gpu_nn->d_params[p_idx];
             GPUTensor *biases = gpu_nn->d_params[p_idx + 1];
+            // Use actual batch size from input tensor, not fixed gpu_nn->batch_size
+            // This handles partial batches at end of epoch correctly
+            int actual_batch_size = current->shape[0];
             GPUTensor *output = workspace_alloc_tensor(
-                gpu_nn, 4, (int[]){gpu_nn->batch_size, ll->output_size, 1, 1});
+                gpu_nn, 4, (int[]){actual_batch_size, ll->output_size, 1, 1});
 
             current = gpu_linear_layer_forward(gpu_nn->cublas, output, current, weights, biases);
             break;
@@ -292,6 +298,9 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
         }
         case LAYER_FLATTEN: {
             // current = flatten_forward_gpu(...)
+            break;
+        }
+        case LAYER_RESHAPE: {
             break;
         }
         }
@@ -337,9 +346,11 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
             GPUTensor *weights = gpu_nn->d_params[p_idx];
             GPUTensor *grad_weights = gpu_nn->d_grads[p_idx];
             GPUTensor *grad_biases = gpu_nn->d_grads[p_idx + 1];
+            // Use actual batch size from gradient tensor for partial batch support
+            int actual_batch_size = grad->shape[0];
             GPUTensor *dX =
                 workspace_alloc_tensor(gpu_nn, 4,
-                                       (int[]){gpu_nn->batch_size, ll->input_size, 1,
+                                       (int[]){actual_batch_size, ll->input_size, 1,
                                                1}); // Temp dX for use inside backward pass.
 
             grad = gpu_linear_layer_backward(gpu_nn->cublas, grad, layer_input, dX, weights,

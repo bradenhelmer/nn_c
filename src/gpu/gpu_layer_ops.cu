@@ -133,7 +133,6 @@ GPUTensor *gpu_activation_layer_backward(GPUTensor *output, GPUTensor *upstream_
         gpu_tensor_tanh_derivative(output, upstream_grad);
         break;
     case ACTIVATION_LINEAR:
-        gpu_tensor_linear_derivative(output, upstream_grad);
         break;
     }
     return output;

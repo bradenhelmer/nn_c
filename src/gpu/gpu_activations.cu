@@ -116,15 +116,3 @@ void gpu_tensor_linear(GPUTensor *output, const GPUTensor *input) {
     cudaMemcpy(output->d_data, input->d_data, sizeof(float) * input->size,
                cudaMemcpyDeviceToDevice);
 }
-
-__global__ void linear_derivative_kernel(float *output, const int size) {
-    const int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < size) {
-        output[idx] = 1.0f;
-    }
-}
-void gpu_tensor_linear_derivative(GPUTensor *output, const GPUTensor *linear_output) {
-    assert(output->size == linear_output->size);
-    const int size = output->size;
-    linear_derivative_kernel<<<BLOCKS(size), THREADS>>>(output->d_data, size);
-}
