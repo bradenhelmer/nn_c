@@ -4,8 +4,8 @@
 
 #ifndef OPTIMIZER_INTERNAL_H
 #define OPTIMIZER_INTERNAL_H
-#include "optimizer.h"
 #include "core/tensor.h"
+#include "optimizer.h"
 #include <stdlib.h>
 
 // ==============================================================================
@@ -23,7 +23,6 @@ typedef enum {
 struct Optimizer {
     OptimizerType type;
     void *optimizer;
-
     int num_params;
 };
 

@@ -3,8 +3,8 @@
  *
  * Generic layer implementations
  */
-#include "layer_internal.h"
 #include "core/tensor_internal.h"
+#include "layer_internal.h"
 #include <stdlib.h>
 
 void layer_free(Layer *layer) {

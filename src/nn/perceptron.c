@@ -4,8 +4,8 @@
  * Perceptron function implementations.
  */
 #include "perceptron.h"
-#include "data/dataset_internal.h"
 #include "core/tensor_internal.h"
+#include "data/dataset_internal.h"
 #include <stdio.h>
 #include <stdlib.h>
 

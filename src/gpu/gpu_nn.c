@@ -2,11 +2,11 @@
  * gpu_nn.c - GPUNeuralNet executor implementations.
  */
 #include "gpu_nn.h"
+#include "core/tensor_internal.h"
 #include "gpu_layer_ops.h"
 #include "gpu_loss.h"
 #include "gpu_tensor.h"
 #include "layers/layer_internal.h"
-#include "core/tensor_internal.h"
 #include <assert.h>
 #include <cuda_runtime.h>
 #include <stdlib.h>

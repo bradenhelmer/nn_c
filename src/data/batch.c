@@ -4,8 +4,8 @@
  * Batch training implementations.
  */
 #include "batch_internal.h"
-#include "dataset_internal.h"
 #include "core/tensor_internal.h"
+#include "dataset_internal.h"
 #include "utils/utils.h"
 #include <math.h>
 #include <stdlib.h>

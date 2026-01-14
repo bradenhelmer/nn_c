@@ -3,9 +3,9 @@
  *
  * Dataset function implementations.
  */
-#include "dataset_internal.h"
 #include "core/tensor.h"
 #include "core/tensor_internal.h"
+#include "dataset_internal.h"
 #include <stdio.h>
 #include <stdlib.h>
 

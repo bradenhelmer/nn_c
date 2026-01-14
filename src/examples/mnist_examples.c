@@ -4,11 +4,11 @@
  */
 #include "activations/activations.h"
 #include "config.h"
+#include "core/tensor.h"
 #include "data/dataset.h"
 #include "layers/layer.h"
 #include "nn/loss.h"
 #include "nn/nn.h"
-#include "core/tensor.h"
 #include "training/gradient_descent.h"
 #include "utils/timing.h"
 #include <stdio.h>

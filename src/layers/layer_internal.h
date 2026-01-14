@@ -5,8 +5,8 @@
 #ifndef LAYER_INTERNAL_H
 #define LAYER_INTERNAL_H
 #include "activations/activations.h"
-#include "layer.h"
 #include "core/tensor.h"
+#include "layer.h"
 #include <stdlib.h>
 
 // =============================================================================

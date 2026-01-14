@@ -2,8 +2,8 @@
  * linear_layer.c - Linear layer implementations.
  *
  */
-#include "layer_internal.h"
 #include "core/tensor_internal.h"
+#include "layer_internal.h"
 #include "utils/utils.h"
 #include <math.h>
 #include <stdlib.h>

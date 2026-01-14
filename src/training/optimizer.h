@@ -5,8 +5,8 @@
  */
 #ifndef OPTIMIZER_H
 #define OPTIMIZER_H
-#include "nn/nn.h"
 #include "core/tensor.h"
+#include "nn/nn.h"
 
 typedef struct Optimizer Optimizer;
 typedef struct SGDOptimizer SGDOptimizer;
