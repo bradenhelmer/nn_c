@@ -130,7 +130,7 @@ GPUTensor *gpu_tensor_reshape(GPUTensor *gpu_t, int ndim, int new_shape[GPU_MAX_
     return gpu_t;
 }
 
-GPUTensor *gpu_tensor_view(GPUTensor *gpu_t, int ndim, int new_shape[GPU_MAX_RANK]) {
+GPUTensor *gpu_tensor_view(const GPUTensor *gpu_t, int ndim, int new_shape[GPU_MAX_RANK]) {
     _check_gpu_new_size(gpu_t, ndim, new_shape);
     GPUTensor *view = (GPUTensor *)malloc(sizeof(GPUTensor));
     _gpu_tensor_set_size_metadata(view, ndim, new_shape);

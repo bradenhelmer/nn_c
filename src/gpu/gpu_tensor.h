@@ -96,12 +96,18 @@ GPUTensor *gpu_tensor_reshape(GPUTensor *gpu_t, int ndim, int new_shape[GPU_MAX_
 // Returns a NEW GPUTensor viewing same data with different shape
 // Returned tensor does NOT own memory (owns_data=0) - caller must not free it independently
 // Original tensor retains ownership
-GPUTensor *gpu_tensor_view(GPUTensor *gpu_t, int ndim, int new_shape[GPU_MAX_RANK]);
+GPUTensor *gpu_tensor_view(const GPUTensor *gpu_t, int ndim, int new_shape[GPU_MAX_RANK]);
 
 // Returns a NEW GPUTensor with 1D shape viewing same data
 // Returned tensor does NOT own memory (owns_data=0) - caller must not free it independently
 // Original tensor retains ownership
 GPUTensor *gpu_tensor_flatten(GPUTensor *gpu_t);
+
+// ============================================================================
+// Convolution Utilities
+// ============================================================================
+GPUTensor *gpu_tensor_pad2d(const GPUTensor *gpu_t, int padding);
+GPUTensor *gpu_tensor_unpad2d(const GPUTensor *gpu_t, int padding);
 
 int gpu_tensor_is_contiguous(GPUTensor *gpu_t);
 

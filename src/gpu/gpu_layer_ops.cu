@@ -5,6 +5,8 @@
 #include "gpu/gpu_activations.h"
 #include "gpu/gpu_tensor.h"
 #include "gpu_layer_ops.h"
+#include "layers/layer.h"
+#include "layers/layer_internal.h"
 #include <float.h>
 #include <math.h>
 
@@ -12,21 +14,14 @@
 #define BLOCKS(size) ((size) + (THREADS) - 1) / (THREADS)
 
 // Linear Layer
-__global__ void linear_add_bias_kernel(float *Y, const float *b, const int batch_size,
-                                       const int out_features) {
+__global__ void _linear_add_bias_kernel(float *Y, const float *b, const int batch_size,
+                                        const int out_features) {
     const int idx = blockIdx.x * blockDim.x + threadIdx.x;
     const int total = batch_size * out_features;
     if (idx < total) {
         const int feature_idx = idx % out_features;
         Y[idx] += b[feature_idx];
     }
-}
-
-static void _gpu_linear_add_bias(const GPUTensor *Y, const GPUTensor *b, const int batch_size,
-                                 const int out_features) {
-    const int total = batch_size * out_features;
-    const int blocks = BLOCKS(total);
-    linear_add_bias_kernel<<<blocks, THREADS>>>(Y->d_data, b->d_data, batch_size, out_features);
 }
 
 GPUTensor *gpu_linear_layer_forward(cublasHandle_t cublas, GPUTensor *Y, const GPUTensor *X,
@@ -41,12 +36,13 @@ GPUTensor *gpu_linear_layer_forward(cublasHandle_t cublas, GPUTensor *Y, const G
     cublasSgemm_v2(cublas, CUBLAS_OP_T, CUBLAS_OP_N, out_features, batch_size, in_features, &alpha,
                    W->d_data, in_features, X->d_data, in_features, &beta, Y->d_data, out_features);
 
-    _gpu_linear_add_bias(Y, b, batch_size, out_features);
+    _linear_add_bias_kernel<<<BLOCKS(batch_size * out_features), THREADS>>>(
+        Y->d_data, b->d_data, batch_size, out_features);
     return Y;
 }
 
-__global__ void sum_columns_kernel(float *db, const float *dY, int batch_size, int out_features,
-                                   float beta) {
+__global__ void _sum_columns_kernel(float *db, const float *dY, int batch_size, int out_features,
+                                    float beta) {
     int j = blockIdx.x * blockDim.x + threadIdx.x;
     if (j < out_features) {
         float sum = 0.0f;
@@ -60,12 +56,6 @@ __global__ void sum_columns_kernel(float *db, const float *dY, int batch_size, i
             db[j] += sum;
         }
     }
-}
-
-static void _gpu_sum_columns(float *db, const float *dY, int batch_size, int out_features,
-                             float beta) {
-    const int blocks = BLOCKS(out_features);
-    sum_columns_kernel<<<blocks, THREADS>>>(db, dY, batch_size, out_features, beta);
 }
 
 GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const GPUTensor *X,
@@ -90,7 +80,8 @@ GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const
                    in_features);
 
     // 2. Bias gradient: db + sum(dY, axis=0)
-    _gpu_sum_columns(db->d_data, dY->d_data, batch_size, out_features, beta_accum);
+    _sum_columns_kernel<<<BLOCKS(out_features), THREADS>>>(db->d_data, dY->d_data, batch_size,
+                                                           out_features, beta_accum);
 
     // 3. Input gradient: dX = dY @ W
     cublasSgemm_v2(cublas, CUBLAS_OP_N, CUBLAS_OP_N, in_features, batch_size, out_features, &alpha,
@@ -136,4 +127,245 @@ GPUTensor *gpu_activation_layer_backward(GPUTensor *output, GPUTensor *upstream_
         break;
     }
     return output;
+}
+
+// Conv Layer Params
+Conv2DParams gpu_conv2d_params_create(const Conv2DLayer *layer, const GPUTensor *input) {
+    Conv2DParams p;
+    p.C_in = layer->in_channels;
+    p.C_out = layer->out_channels;
+    p.K = layer->kernel_size;
+    p.stride = layer->stride;
+    p.padding = layer->padding;
+
+    p.batch_size = input->shape[0];
+    p.H_in = input->shape[2];
+    p.W_in = input->shape[3];
+    p.H_padded = p.H_in + 2 * p.padding;
+    p.W_padded = p.W_in + 2 * p.padding;
+    p.H_out = (p.H_padded - p.K) / p.stride + 1;
+    p.W_out = (p.W_padded - p.K) / p.stride + 1;
+
+    return p;
+}
+
+Conv2DParams gpu_conv2d_params_from_padded(const Conv2DLayer *layer,
+                                           const GPUTensor *padded_input) {
+    Conv2DParams p;
+    p.C_in = layer->in_channels;
+    p.C_out = layer->out_channels;
+    p.K = layer->kernel_size;
+    p.stride = layer->stride;
+    p.padding = layer->padding;
+
+    p.batch_size = padded_input->shape[0];
+    p.H_padded = padded_input->shape[2];
+    p.W_padded = padded_input->shape[3];
+    p.H_in = p.H_padded - 2 * p.padding;
+    p.W_in = p.W_padded - 2 * p.padding;
+    p.H_out = (p.H_padded - p.K) / p.stride + 1;
+    p.W_out = (p.W_padded - p.K) / p.stride + 1;
+
+    return p;
+}
+
+// Create ConvParams directly from raw parameters - most flexible
+Conv2DParams gpu_conv2d_params_make(const Conv2DLayer *layer, int batch_size, int H_in, int W_in) {
+    Conv2DParams p;
+    p.batch_size = batch_size;
+    p.C_in = layer->in_channels;
+    p.C_out = layer->out_channels;
+    p.K = layer->kernel_size;
+    p.stride = layer->stride;
+    p.padding = layer->padding;
+    p.H_in = H_in;
+    p.W_in = W_in;
+    p.H_padded = H_in + 2 * p.padding;
+    p.W_padded = W_in + 2 * p.padding;
+    p.H_out = (p.H_padded - p.K) / p.stride + 1;
+    p.W_out = (p.W_padded - p.K) / p.stride + 1;
+    return p;
+}
+
+// Create ConvParams from layer and upstream gradient shape (for backward pass)
+Conv2DParams gpu_conv2d_params_from_upstream(const Conv2DLayer *layer,
+                                             const GPUTensor *upstream_grad) {
+    // upstream_grad shape: (C_out, H_out, W_out)
+    const int batch_size = upstream_grad->shape[0];
+    const int H_out = upstream_grad->shape[2];
+    const int W_out = upstream_grad->shape[3];
+
+    // Reverse the output dimension formula: H_out = (H_padded - K) / stride + 1
+    const int H_padded = (H_out - 1) * layer->stride + layer->kernel_size;
+    const int W_padded = (W_out - 1) * layer->stride + layer->kernel_size;
+    const int H_in = H_padded - 2 * layer->padding;
+    const int W_in = W_padded - 2 * layer->padding;
+
+    return gpu_conv2d_params_make(layer, batch_size, H_in, W_in);
+}
+
+__global__ void _conv2d_layer_im2col_kernel(float *X_col, float *X_pad, int batch_size, int C_in,
+                                            int H_out, int W_out, int K, int stride,
+                                            int X_pad_stride_batch, int X_pad_stride_channel,
+                                            int X_pad_stride_h) {
+
+    // Calculate global index and do bounds check on output dimensions.
+    const int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    const int size = (C_in * K * K) * (H_out * W_out * batch_size);
+    if (idx >= size) {
+        return;
+    }
+
+    // Convert linear idx to 2D output (row, col)
+    const int row = idx / (H_out * W_out * batch_size);
+    const int col = idx % (H_out * W_out * batch_size);
+
+    // Decode row -> (channel, kernel_row, kernel_col)
+    const int c = row / (K * K);
+    const int kh = (row % (K * K)) / K;
+    const int kw = row % K;
+
+    // Decode col -> (batch_idx, out_h, out_w)
+    const int batch_idx = col / (H_out * W_out);
+    const int spatial_col = col % (H_out * W_out);
+    const int out_h = spatial_col / W_out;
+    const int out_w = spatial_col % W_out;
+
+    const int h_pad = out_h * stride + kh;
+    const int w_pad = out_w * stride + kw;
+
+    // Output: write to linearized position in X_col
+    // Input: read from 4D X_pad (batch, channel, height, width)
+    X_col[idx] = X_pad[batch_idx * X_pad_stride_batch + c * X_pad_stride_channel +
+                       h_pad * X_pad_stride_h + w_pad];
+}
+
+static GPUTensor *_gpu_conv2d_layer_im2col(Conv2DLayer *layer, GPUTensor *X_pad) {
+    Conv2DParams p = gpu_conv2d_params_from_padded(layer, X_pad);
+    const int batch_size = p.batch_size;
+    const int C_in = p.C_in;
+    const int H_out = p.H_out;
+    const int W_out = p.W_out;
+    const int K = p.K;
+    const int stride = p.stride;
+    // X_pad shape: (batch, C, H_pad, W_pad)
+    const int X_pad_stride_batch = X_pad->strides[0];
+    const int X_pad_stride_channel = X_pad->strides[1];
+    const int X_pad_stride_h = X_pad->strides[2];
+    const int X_col_rows = C_in * K * K;
+    const int X_col_cols = H_out * W_out * batch_size;
+
+    int X_col_shape[GPU_MAX_RANK] = {X_col_rows, X_col_cols};
+    GPUTensor *X_col = gpu_tensor_create(2, X_col_shape);
+
+    _conv2d_layer_im2col_kernel<<<BLOCKS(X_col->size), THREADS>>>(
+        X_col->d_data, X_pad->d_data, batch_size, C_in, H_out, W_out, K, stride, X_pad_stride_batch,
+        X_pad_stride_channel, X_pad_stride_h);
+    return X_col;
+}
+
+__global__ void _gpu_conv2d_layer_add_bias_kernel(float *Y_flat, float *bias, int C_out,
+                                                  int Y_flat_cols) {
+    const int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx >= C_out * Y_flat_cols) {
+        return;
+    }
+    const int c = idx / Y_flat_cols;
+    Y_flat[idx] += bias[c];
+}
+
+// Transpose kernel: Converts Y_flat (C_out, H_out*W_out*batch) to Y (batch, C_out, H_out, W_out)
+//
+// Memory layout transformation:
+//   Y_flat[c, col] where col encodes (batch_idx * H_out*W_out + h*W_out + w)
+//   → Y[batch_idx, c, h, w]
+//
+// Strategy: Each thread handles one OUTPUT element in Y
+// 1. Calculate which output element: decode idx to (batch_idx, c, h, w)
+// 2. Calculate where to READ from Y_flat:
+//    - row = c
+//    - col = batch_idx * (H_out*W_out) + h*W_out + w
+//    - Y_flat_index = c * Y_flat_stride + col
+// 3. Write: Y[idx] = Y_flat[Y_flat_index]
+__global__ void _conv2d_transpose_output_kernel(float *Y, const float *Y_flat, int batch_size,
+                                                int C_out, int H_out, int W_out) {
+    // TODO(human): Implement the transpose kernel
+    const int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx >= batch_size * C_out * H_out * W_out) {
+        return;
+    }
+    const int batch_idx = idx / (C_out * H_out * W_out);
+    const int remainder = idx % (C_out * H_out * W_out);
+    const int c = remainder / (H_out * W_out);
+    const int h_out = (remainder % (H_out * W_out)) / W_out;
+    const int w_out = remainder % W_out;
+
+    const int col = batch_idx * (H_out * W_out) + h_out * W_out + w_out;
+    const int Y_flat_index = c * (H_out * W_out * batch_size) + col;
+
+    Y[idx] = Y_flat[Y_flat_index];
+}
+
+GPUTensor *gpu_conv2d_layer_forward(cublasHandle_t cublas, Conv2DLayer *layer,
+                                    GPUTensor *input_cache_ptr, GPUTensor *Y, const GPUTensor *X,
+                                    const GPUTensor *W, const GPUTensor *b) {
+    Conv2DParams p = gpu_conv2d_params_create(layer, X);
+    const int batch_size = p.batch_size;
+    const int C_in = p.C_in;
+    const int C_out = p.C_out;
+    const int H_out = p.H_out;
+    const int W_out = p.W_out;
+    const int K = p.K;
+
+    const int Y_flat_cols = H_out * W_out * batch_size;
+
+    GPUTensor *X_pad = gpu_tensor_pad2d(X, p.padding);
+    GPUTensor *X_col = _gpu_conv2d_layer_im2col(layer, X_pad);
+
+    int W_row_shape[GPU_MAX_RANK] = {C_out, C_in * K * K, 0, 0};
+    GPUTensor *W_row = gpu_tensor_view(W, 2, W_row_shape);
+
+    int Y_flat_shape[GPU_MAX_RANK] = {C_out, Y_flat_cols, 0, 0};
+    GPUTensor *Y_flat = gpu_tensor_create(2, Y_flat_shape);
+
+    // 1. CuBLAS GEMM: Y_flat = W_row × X_col
+    // In cuBLAS (column-major), this becomes: Y_flat^T = X_col^T × W_row^T
+    const float alpha = 1.0f;
+    const float beta = 0.0f;
+    cublasSgemm_v2(cublas, CUBLAS_OP_N, CUBLAS_OP_N, Y_flat_cols, C_out, C_in * K * K, &alpha,
+                   X_col->d_data, Y_flat_cols, W_row->d_data, C_in * K * K, &beta, Y_flat->d_data,
+                   Y_flat_cols);
+
+    // 2. ADD BIASES
+    _gpu_conv2d_layer_add_bias_kernel<<<BLOCKS(Y_flat->size), THREADS>>>(Y_flat->d_data, b->d_data,
+                                                                         C_out, Y_flat_cols);
+
+    // 3. Transpose Y_flat to Y's 4D shape
+    // Y_flat: (C_out, H_out*W_out*batch) → Y: (batch, C_out, H_out, W_out)
+    _conv2d_transpose_output_kernel<<<BLOCKS(Y->size), THREADS>>>(Y->d_data, Y_flat->d_data,
+                                                                  batch_size, C_out, H_out, W_out);
+
+    gpu_tensor_free(W_row);
+    gpu_tensor_free(X_pad);
+    gpu_tensor_free(Y_flat);
+
+    // Store X_col in the provided cache location (for backward pass)
+    if (input_cache_ptr != NULL) {
+        gpu_tensor_copy(input_cache_ptr, X_col);
+        gpu_tensor_free(X_col);
+    }
+
+    return Y;
+}
+
+GPUTensor *gpu_conv2d_layer_backward(cublasHandle_t cublas, Conv2DLayer *layer, GPUTensor *dY,
+                                     const GPUTensor *X, const GPUTensor *dX, const GPUTensor *W,
+                                     const GPUTensor *dW, const GPUTensor *db) {
+    Conv2DParams p = gpu_conv2d_params_from_upstream(layer, dY);
+    const int batch_size = p.batch_size;
+    const int C_in = p.C_in;
+    const int C_out = p.C_out;
+    const int H_out = p.H_out;
+    const int W_out = p.W_out;
+    const int K = p.K;
 }

@@ -110,17 +110,18 @@ struct Conv2DLayer {
 
 // Convolution dimension parameters (computed from ConvLayer + input)
 struct Conv2DParams {
-    int C_in;     // Input channels
-    int C_out;    // Output channels
-    int H_in;     // Input height (unpadded)
-    int W_in;     // Input width (unpadded)
-    int H_padded; // Padded input height
-    int W_padded; // Padded input width
-    int H_out;    // Output height
-    int W_out;    // Output width
-    int K;        // Kernel size
-    int stride;   // Stride
-    int padding;  // Padding
+    int C_in;       // Input channels
+    int C_out;      // Output channels
+    int H_in;       // Input height (unpadded)
+    int W_in;       // Input width (unpadded)
+    int H_padded;   // Padded input height
+    int W_padded;   // Padded input width
+    int H_out;      // Output height
+    int W_out;      // Output width
+    int K;          // Kernel size
+    int stride;     // Stride
+    int padding;    // Padding
+    int batch_size; // Batch Size for GPU ops.
 };
 
 // =============================================================================

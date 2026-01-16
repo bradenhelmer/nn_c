@@ -8,6 +8,7 @@
 #include "gpu_layer_ops.h"
 #include "gpu_loss.h"
 #include "gpu_tensor.h"
+#include "layers/layer.h"
 #include "layers/layer_internal.h"
 #include <assert.h>
 #include <cuda_runtime.h>
@@ -255,13 +256,21 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
         *input_cache_ptr = gpu_tensor_create_like(current);
         gpu_tensor_copy(*input_cache_ptr, current);
 
+        // Use actual batch size from input tensor, not fixed gpu_nn->batch_size
+        // This handles partial batches at end of epoch correctly
+        int actual_batch_size = current->shape[0];
+
         switch (layer->type) {
         case LAYER_CONV_2D: {
-            // ConvLayer *conv_layer = (ConvLayer *)layer->layer;
-            // int p_idx = gpu_nn->layer_param_offset[i];
-            // GPUTensor *weights = gpu_nn->d_params[p_idx];
-            // GPUTensor *biases = gpu_nn->d_params[p_idx + 1];
-            // current = conv_layer_forward_gpu(...);
+            Conv2DLayer *conv_layer = (Conv2DLayer *)layer->layer;
+            Conv2DParams p = gpu_conv2d_params_create(conv_layer, current);
+            int p_idx = gpu_nn->layer_param_offset[i];
+            GPUTensor *weights = gpu_nn->d_params[p_idx];
+            GPUTensor *biases = gpu_nn->d_params[p_idx + 1];
+            GPUTensor *output = workspace_alloc_tensor(
+                gpu_nn, 4, (int[]){actual_batch_size, p.C_out, p.H_out, p.W_out});
+            current = gpu_conv2d_layer_forward(gpu_nn->cublas, conv_layer, *input_cache_ptr, output,
+                                               current, weights, biases);
             break;
         }
         case LAYER_LINEAR: {
@@ -269,9 +278,6 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
             int p_idx = gpu_nn->layer_param_offset[i];
             GPUTensor *weights = gpu_nn->d_params[p_idx];
             GPUTensor *biases = gpu_nn->d_params[p_idx + 1];
-            // Use actual batch size from input tensor, not fixed gpu_nn->batch_size
-            // This handles partial batches at end of epoch correctly
-            int actual_batch_size = current->shape[0];
             GPUTensor *output = workspace_alloc_tensor(
                 gpu_nn, 4, (int[]){actual_batch_size, ll->output_size, 1, 1});
 
@@ -330,14 +336,19 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
         Layer *layer = gpu_nn->cpu_nn->layers[i];
         GPUTensor *layer_input = gpu_nn->d_inputs[i];
         GPUTensor *layer_output = gpu_nn->d_outputs[i];
+        int actual_batch_size = grad->shape[0];
+
         switch (layer->type) {
         case LAYER_CONV_2D: {
-            // ConvLayer *conv_layer = (ConvLayer *)layer->layer;
-            // int p_idx = gpu_nn->layer_param_offset[i];
-            // GPUTensor *weights = gpu_nn->d_params[p_idx];
-            // GPUTensor *grad_weights = gpu_nn->d_grads[p_idx];
-            // GPUTensor *grad_biases = gpu_nn->d_grads[p_idx + 1];
-            // current = conv_layer_backward_gpu(...);
+            Conv2DLayer *conv_layer = (Conv2DLayer *)layer->layer;
+            int p_idx = gpu_nn->layer_param_offset[i];
+            GPUTensor *weights = gpu_nn->d_params[p_idx];
+            GPUTensor *grad_weights = gpu_nn->d_grads[p_idx];
+            GPUTensor *grad_biases = gpu_nn->d_grads[p_idx + 1];
+
+            GPUTensor *dX;
+            grad = gpu_conv2d_layer_backward(gpu_nn->cublas, conv_layer, grad, layer_input, dX,
+                                             weights, grad_weights, grad_biases);
             break;
         }
         case LAYER_LINEAR: {
@@ -347,7 +358,6 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
             GPUTensor *grad_weights = gpu_nn->d_grads[p_idx];
             GPUTensor *grad_biases = gpu_nn->d_grads[p_idx + 1];
             // Use actual batch size from gradient tensor for partial batch support
-            int actual_batch_size = grad->shape[0];
             GPUTensor *dX =
                 workspace_alloc_tensor(gpu_nn, 4,
                                        (int[]){actual_batch_size, ll->input_size, 1,
