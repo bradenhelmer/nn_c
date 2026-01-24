@@ -531,7 +531,7 @@ Tensor *conv2d_layer_backward_im2col(Conv2DLayer *layer, const Tensor *upstream_
     const int W_out = p.W_out;
     const int K = p.K;
 
-    // 1. Reshape upstream grad to (C_out, H_out, W_out)
+    // 1. Reshape upstream grad to (C_out, H_out * W_out)
     Tensor *UG_flat = tensor_view(upstream_grad, 2, (int[]){C_out, H_out * W_out});
 
     // 2. Sum bias gradient over spatial dimensions.

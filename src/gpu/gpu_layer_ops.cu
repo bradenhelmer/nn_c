@@ -289,7 +289,6 @@ __global__ void _gpu_conv2d_layer_add_bias_kernel(float *Y_flat, float *bias, in
 // 3. Write: Y[idx] = Y_flat[Y_flat_index]
 __global__ void _conv2d_transpose_output_kernel(float *Y, const float *Y_flat, int batch_size,
                                                 int C_out, int H_out, int W_out) {
-    // TODO(human): Implement the transpose kernel
     const int idx = blockDim.x * blockIdx.x + threadIdx.x;
     if (idx >= batch_size * C_out * H_out * W_out) {
         return;
@@ -358,9 +357,127 @@ GPUTensor *gpu_conv2d_layer_forward(cublasHandle_t cublas, Conv2DLayer *layer,
     return Y;
 }
 
+// Reshapes upstream gradient dY in to flattened form:
+// (batch_size, C_out, H_out, W_out) -> (C_out, H_out * W_out * batch_size)
+__global__ void _reshape_upstream_kernel(float *dY_flat, float *dY, int batch_size, int C_out,
+                                         int H_out, int W_out) {
+    const int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx >= C_out * H_out * W_out * batch_size) {
+        return;
+    }
+
+    // Retrieve output indices
+    const int row = idx / (H_out * W_out * batch_size);
+    const int col = idx % (H_out * W_out * batch_size);
+
+    // Retrieve input indices
+    const int batch_idx = col / (H_out * W_out);
+    const int spatial_idx = col % (H_out * W_out);
+    const int h = spatial_idx / W_out;
+    const int w = spatial_idx % W_out;
+
+    int src_idx = batch_idx * (C_out * H_out * W_out) + row * (H_out * W_out) + h * W_out + w;
+    dY_flat[idx] = dY[src_idx];
+}
+
+__global__ void _gpu_conv2d_layer_sum_bias_gradient_kernel(float *db, float *dY_flat, int C_out,
+                                                           int dY_flat_cols) {
+    // Get src index.
+    const int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (idx >= C_out * dY_flat_cols) {
+        return;
+    }
+
+    // Gest destination idx
+    const int c = idx / dY_flat_cols;
+    atomicAdd(&db[c], dY_flat[idx]);
+}
+
+// col2im: Scatter dX_col back to dX_pad, accumulating overlapping contributions
+//
+// dX_col layout: (C_in * K * K, H_out * W_out * batch_size)
+// - Each column is one output spatial position from one batch
+// - Each row is one (channel, kernel_row, kernel_col) combination
+//
+// dX_pad layout: (batch_size, C_in, H_padded, W_padded)
+//
+// Strategy: Each thread handles one element of dX_col and adds it to the
+// corresponding position in dX_pad. Multiple threads may write to the same
+// dX_pad location (overlapping patches), so we use atomicAdd.
+//
+// Note: We WILL write gradients to padded regions here! That's expected -
+// the padding participated in the forward pass, so it gets gradients.
+// After col2im, we unpad to extract only the real input gradients.
+__global__ void _conv2d_layer_col2im_kernel(float *dX_pad, float *dX_col, int batch_size, int C_in,
+                                            int H_out, int W_out, int K, int stride,
+                                            int dX_pad_stride_batch, int dX_pad_stride_in,
+                                            int dX_pad_stride_h, int dX_col_row_stride,
+                                            int dX_col_size) {
+    const int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    const int total = (C_in * K * K) * (H_out * W_out * batch_size);
+    if (idx >= total) {
+        return;
+    }
+
+    // Decode linear index to (row, col) in dX_col
+    const int row = idx / (H_out * W_out * batch_size);
+    const int col = idx % (H_out * W_out * batch_size);
+
+    // Decode row -> (channel, kernel_row, kernel_col)
+    const int c = row / (K * K);
+    const int kh = (row % (K * K)) / K;
+    const int kw = row % K;
+
+    // Decode col -> (batch_idx, out_h, out_w)
+    const int batch_idx = col / (H_out * W_out);
+    const int spatial_col = col % (H_out * W_out);
+    const int out_h = spatial_col / W_out;
+    const int out_w = spatial_col % W_out;
+
+    // Calculate position in padded input where this gradient contributes
+    const int h_pad = out_h * stride + kh;
+    const int w_pad = out_w * stride + kw;
+
+    // Calculate linear index in dX_pad and accumulate gradient
+    // (overlapping patches mean multiple threads may write to same location)
+    const int dX_pad_idx = batch_idx * dX_pad_stride_batch +
+                           c * dX_pad_stride_in +
+                           h_pad * dX_pad_stride_h +
+                           w_pad;
+
+    atomicAdd(&dX_pad[dX_pad_idx], dX_col[idx]);
+}
+
+static GPUTensor *_gpu_conv2d_layer_col2im(GPUTensor *dX_col, Conv2DParams *p) {
+    const int C_in = p->C_in;
+    const int H_out = p->H_out;
+    const int W_out = p->W_out;
+    const int H_padded = p->H_padded;
+    const int W_padded = p->W_padded;
+    const int K = p->K;
+    const int stride = p->stride;
+    const int batch_size = p->batch_size;
+    const int dX_col_row_stride = dX_col->strides[0];
+
+    int dX_pad_shape[GPU_MAX_RANK] = {batch_size, C_in, H_padded, W_padded};
+    GPUTensor *dX_pad = gpu_tensor_create(4, dX_pad_shape);
+
+    const int dX_col_size = dX_col->size;
+    const int dX_pad_stride_batch = dX_pad->strides[0];
+    const int dX_pad_stride_in = dX_pad->strides[1];
+    const int dX_pad_stride_h = dX_pad->strides[2];
+
+    _conv2d_layer_col2im_kernel<<<BLOCKS(dX_col_size), THREADS>>>(
+        dX_pad->d_data, dX_col->d_data, batch_size, C_in, H_out, W_out, K, stride,
+        dX_pad_stride_batch, dX_pad_stride_in, dX_pad_stride_h, dX_col_row_stride, dX_col_size);
+
+    return dX_pad;
+}
+
 GPUTensor *gpu_conv2d_layer_backward(cublasHandle_t cublas, Conv2DLayer *layer, GPUTensor *dY,
-                                     const GPUTensor *X, const GPUTensor *dX, const GPUTensor *W,
-                                     const GPUTensor *dW, const GPUTensor *db) {
+                                     const GPUTensor *X_col, const GPUTensor *dX,
+                                     const GPUTensor *W, const GPUTensor *dW, const GPUTensor *db) {
     Conv2DParams p = gpu_conv2d_params_from_upstream(layer, dY);
     const int batch_size = p.batch_size;
     const int C_in = p.C_in;
@@ -368,4 +485,103 @@ GPUTensor *gpu_conv2d_layer_backward(cublasHandle_t cublas, Conv2DLayer *layer, 
     const int H_out = p.H_out;
     const int W_out = p.W_out;
     const int K = p.K;
+
+    // 1. Reshape upstream grad to (C_out, H_out * W_out * batch_size)
+    int dY_flat_shape[GPU_MAX_RANK] = {C_out, H_out * W_out * batch_size, 0, 0};
+    GPUTensor *dY_flat = gpu_tensor_create(2, dY_flat_shape);
+    _reshape_upstream_kernel<<<BLOCKS(dY_flat->size), THREADS>>>(dY_flat->d_data, dY->d_data,
+                                                                 batch_size, C_out, H_out, W_out);
+
+    // 2. Sum bias gradient over spatial dimensions
+    _gpu_conv2d_layer_sum_bias_gradient_kernel<<<BLOCKS(dY_flat->size), THREADS>>>(
+        db->d_data, dY_flat->d_data, C_out, dY_flat_shape[1]);
+
+    // 3. Weight gradient: dY_flat x X_col ^ T
+    //
+    // dY_flat: (C_out, H_out * W_out * batch_size)
+    // X_col : (C_in * K * K, H_out * W_out * batch_size)
+    // grad_W_flat: (C_out, C_in * K * K)
+    //
+    // grad_W_flat = dY_flat @ (X_col)^T
+    //
+    // CUBLAS:
+    // (grad_W_flat)^T = (dY_flat @ (X_col)^T)^T
+    // = X_col @ (dY_flat)^T
+    //
+    // CUBLAS sees X_col^T transpose to get X_col
+    // CUBLAS sees dY_flat^T, do not transpose to achieve implicit
+    //
+    // OP_T(X_col^T) = X_col = A: (C_in * K * K, H_out * W_out * batch_size)
+    //  M = C_in * K * K
+    //  K = H_out * W_out * batch_size
+    //  lda = H_out * W_out * batch_size
+    //
+    // OP_N(dY_flat^T) = dY_flat^T = B: (H_out * W_out * batch_size, C_out)
+    //  N = C_out
+    //  ldb = H_out * W_out * batch_size
+    //
+    //  ldc = C_in * K * K
+    int grad_W_flat_shape[GPU_MAX_RANK] = {C_out, C_in * K * K};
+    GPUTensor *grad_W_flat = gpu_tensor_create(2, grad_W_flat_shape);
+
+    const float alpha = 1.0f;
+    const float beta_accum = 1.0f; // For accumulating into dW, db
+    const float beta_zero = 0.0f;
+
+    cublasSgemm_v2(cublas, CUBLAS_OP_T, CUBLAS_OP_N, X_col->shape[0], C_out, X_col->shape[1],
+                   &alpha, X_col->d_data, X_col->shape[1], dY_flat->d_data, dY_flat->shape[1],
+                   &beta_accum, grad_W_flat->d_data, grad_W_flat->shape[1]);
+
+    // 4. Input gradient: W_row^T x dY_flat, col2im
+    //
+    // W_row = view(W, {C_out, C_in * K * K}): (C_out, C_in * K * K)
+    // dY_flat: (C_out, H_out * W_out * batch_size)
+    // dX_col: (C_in * K * K, H_out * W_out * batch_size)
+    //
+    // dX_col = (W_row)^T * dY_flat
+    //
+    // CUBLAS:
+    // (dX_col)^T = ((W_row)^T * dY_flat)^T
+    // = (dY_flat)^T * W_row
+    //
+    // CUBLAS sees (dY_flat)^T, do not transpose to achieve implicit
+    // CUBLAS sees (W_row)^T, transpose to get W_row
+    //
+    // OP_N(dY_flat^T) = dY_flat^T = A: (H_out * W_out * batch_size, C_out)
+    // M = H_out * W_out * batch_size
+    // K = C_out
+    // lda = H_out * W_out * batch_size
+    //
+    // OP_T(W_row^T) = W_row = B: (C_out, C_in * K * K)
+    // N = C_in * K * K
+    // ldb =  C_in * K * K
+    //
+    // ldc = H_out * W_out * batch_size
+    int dX_col_shape[GPU_MAX_RANK] = {C_in * K * K, H_out * W_out * batch_size, 0, 0};
+    GPUTensor *dX_col = gpu_tensor_create(2, dX_col_shape);
+
+    int W_row_shape[GPU_MAX_RANK] = {C_out, C_in * K * K, 0, 0};
+    GPUTensor *W_row = gpu_tensor_view(W, 2, W_row_shape);
+
+    cublasSgemm_v2(cublas, CUBLAS_OP_N, CUBLAS_OP_T, dX_col->shape[1], W_row->shape[0], C_out,
+                   &alpha, dY_flat->d_data, dY_flat->shape[1], W_row->d_data, dX_col->shape[0],
+                   &beta_zero, dX_col->d_data, dX_col->shape[1]);
+
+    // 5. col2im: convert dX_col back to padded spatial format
+    GPUTensor *dX_pad = _gpu_conv2d_layer_col2im(dX_col, &p);
+
+    // 6. Remove padding to get final input gradient
+    // dX_pad: (batch, C_in, H_padded, W_padded) -> dX: (batch, C_in, H_in, W_in)
+    GPUTensor *dX_unpadded = gpu_tensor_unpad2d(dX_pad, p.padding);
+    gpu_tensor_copy((GPUTensor *)dX, dX_unpadded);
+
+    // Clean up temporary tensors
+    gpu_tensor_free(dY_flat);
+    gpu_tensor_free(grad_W_flat);
+    gpu_tensor_free(dX_col);
+    gpu_tensor_free(W_row);
+    gpu_tensor_free(dX_pad);
+    gpu_tensor_free(dX_unpadded);
+
+    return (GPUTensor *)dX;
 }
