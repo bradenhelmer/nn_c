@@ -148,6 +148,7 @@ float gpu_optimizer_get_lr(GPUOptimizer *opt) {
         return ((GPUAdamOptimizer *)opt->optimizer)->learning_rate;
     }
     }
+    return 0.0f; // Should never reach here
 }
 
 #define THREADS 256
@@ -159,6 +160,17 @@ __global__ void _sgd_update_kernel(float *weights, float *grad_weights, float le
     const int global_idx = blockIdx.x * blockDim.x + tid;
     if (global_idx < size) {
         weights[global_idx] -= grad_weights[global_idx] * learning_rate;
+    }
+}
+
+// Fused kernel: combines gradient scaling and weight update in one pass
+// Computes: weights[i] -= lr_scaled * grads[i]
+// where lr_scaled = learning_rate * grad_scale (pre-computed on CPU)
+__global__ void _sgd_update_scaled_kernel(float *weights, const float *grads, float lr_scaled,
+                                          int size) {
+    const int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        weights[idx] -= lr_scaled * grads[idx];
     }
 }
 
@@ -182,6 +194,41 @@ static void _gpu_step_sgd(GPUSGDOptimizer *opt, GPUNeuralNet *gpu_nn) {
             GPUTensor *grad_biases = gpu_nn->d_grads[p_idx + 1];
             _sgd_update_kernel<<<BLOCKS(biases->size), THREADS>>>(
                 biases->d_data, grad_biases->d_data, opt->learning_rate, biases->size);
+
+            break;
+        }
+        case LAYER_ACTIVATION:
+        case LAYER_MAX_POOL:
+        case LAYER_FLATTEN:
+        case LAYER_RESHAPE:
+            // No weights to update
+            break;
+        }
+    }
+}
+
+// Fused SGD step: combines gradient scaling and weight update
+// Eliminates intermediate DRAM writes by computing: weight -= (lr * grad_scale) * grad
+static void _gpu_step_sgd_scaled(GPUSGDOptimizer *opt, GPUNeuralNet *gpu_nn, float grad_scale) {
+    // Pre-compute lr * scale on CPU (once, not per-element)
+    const float lr_scaled = opt->learning_rate * grad_scale;
+
+    for (int i = 0; i < gpu_nn->num_layers; i++) {
+        Layer *layer = gpu_nn->cpu_nn->layers[i];
+        switch (layer->type) {
+        case LAYER_CONV_2D:
+        case LAYER_LINEAR: {
+            const int p_idx = gpu_nn->layer_param_offset[i];
+
+            GPUTensor *weights = gpu_nn->d_params[p_idx];
+            GPUTensor *grad_weights = gpu_nn->d_grads[p_idx];
+            _sgd_update_scaled_kernel<<<BLOCKS(weights->size), THREADS>>>(
+                weights->d_data, grad_weights->d_data, lr_scaled, weights->size);
+
+            GPUTensor *biases = gpu_nn->d_params[p_idx + 1];
+            GPUTensor *grad_biases = gpu_nn->d_grads[p_idx + 1];
+            _sgd_update_scaled_kernel<<<BLOCKS(biases->size), THREADS>>>(
+                biases->d_data, grad_biases->d_data, lr_scaled, biases->size);
 
             break;
         }
@@ -224,6 +271,21 @@ void gpu_optimizer_step(GPUOptimizer *opt, GPUNeuralNet *gpu_nn) {
         break;
     case OPTIMIZER_ADAM:
         _gpu_step_adam(opt, gpu_nn);
+        break;
+    }
+}
+
+void gpu_optimizer_step_scaled(GPUOptimizer *opt, GPUNeuralNet *gpu_nn, float grad_scale) {
+    switch (opt->type) {
+    case OPTIMIZER_SGD:
+        _gpu_step_sgd_scaled((GPUSGDOptimizer *)opt->optimizer, gpu_nn, grad_scale);
+        break;
+    case OPTIMIZER_MOMENTUM:
+    case OPTIMIZER_ADAM:
+        // For non-SGD optimizers, fall back to separate scale + step
+        // TODO: Implement fused versions for Momentum and Adam
+        gpu_nn_scale_gradients(gpu_nn, grad_scale);
+        gpu_optimizer_step(opt, gpu_nn);
         break;
     }
 }

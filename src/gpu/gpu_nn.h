@@ -8,6 +8,10 @@
 #include "nn/nn_internal.h"
 #include <cublas_v2.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Input shape descriptor for dynamic workspace sizing
 typedef struct {
     int height;   // Image height (1 for fully-connected networks)
@@ -69,5 +73,9 @@ float gpu_nn_evaluate_accuracy(GPUNeuralNet *gpu_nn, Dataset *val_data, GPUTenso
 void workspace_reset(GPUNeuralNet *gpu_nn);
 float *workspace_alloc(GPUNeuralNet *gpu_nn, size_t bytes);
 GPUTensor *workspace_alloc_tensor(GPUNeuralNet *gpu_nn, int ndim, int shape[GPU_MAX_RANK]);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ifndef GPU_NN_H */

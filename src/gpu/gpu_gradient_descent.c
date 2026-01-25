@@ -84,9 +84,8 @@ TrainingResult *train_nn_gpu_batch(GPUNeuralNet *gpu_nn, GPUOptimizer *opt, Data
             // 4. Backward pass
             gpu_nn_backward(gpu_nn, d_target_batch);
 
-            // 5. Update weights
-            gpu_nn_scale_gradients(gpu_nn, 1.0f / actual_batch_size);
-            gpu_optimizer_step(opt, gpu_nn);
+            // 5. Update weights (fused scaling + update for better performance)
+            gpu_optimizer_step_scaled(opt, gpu_nn, 1.0f / actual_batch_size);
 
             samples_seen += actual_batch_size;
         }

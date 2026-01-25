@@ -57,6 +57,10 @@ void gpu_optimizer_free(GPUOptimizer *opt);
 // Apply gradients to parameters (call after gpu_nn_backward)
 void gpu_optimizer_step(GPUOptimizer *opt, struct GPUNeuralNet *gpu_nn);
 
+// Apply gradients with pre-scaling (fused scaling + update for better performance)
+// grad_scale is typically 1.0/batch_size
+void gpu_optimizer_step_scaled(GPUOptimizer *opt, struct GPUNeuralNet *gpu_nn, float grad_scale);
+
 // Learning rate access for scheduler integration
 void gpu_optimizer_set_lr(GPUOptimizer *opt, float lr);
 float gpu_optimizer_get_lr(GPUOptimizer *opt);
