@@ -6,3 +6,6 @@ perf.data
 perf.data.old
 mnist.profdata
 mnist.profraw
+*.nsys-rep
+*.ncu-rep
+*.sqlite

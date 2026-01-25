@@ -404,18 +404,46 @@ __global__ void _reshape_upstream_kernel(float *dY_flat, float *dY, int batch_si
     dY_flat[idx] = dY[src_idx];
 }
 
-__global__ void _gpu_conv2d_layer_sum_bias_gradient_kernel(float *db, float *dY_flat, int C_out,
-                                                           int dY_flat_cols) {
-    // Get src index.
-    const int idx = blockDim.x * blockIdx.x + threadIdx.x;
+__global__ void _gpu_conv2d_bias_grad_reduction_kernel(float *db, const float *dY_flat, int C_out,
+                                                       int N) {
+    const int c = blockIdx.y; // Which output channel
+    const int tid = threadIdx.x;
+    const int global_tid = blockIdx.x * blockDim.x + tid;
+    const int grid_stride = gridDim.x * blockDim.x;
 
-    if (idx >= C_out * dY_flat_cols) {
-        return;
+    // Step 1: Grid-stride loop to accumulate local sum
+    float local_sum = 0.0f;
+    for (int i = global_tid; i < N; i += grid_stride) {
+        local_sum += dY_flat[c * N + i];
     }
 
-    // Gest destination idx
-    const int c = idx / dY_flat_cols;
-    atomicAdd(&db[c], dY_flat[idx]);
+    // Step 2: Warp-level reduction
+    for (int offset = 16; offset > 0; offset >>= 1) {
+        local_sum += __shfl_down_sync(0xFFFFFFFF, local_sum, offset);
+    }
+
+    // Step 3: Store warp results to shared memory
+    __shared__ float warp_sums[8]; // 256 threads = 8 warps
+    int lane_id = tid % 32;
+    int warp_id = tid / 32;
+
+    if (lane_id == 0) {
+        warp_sums[warp_id] = local_sum;
+    }
+
+    __syncthreads();
+
+    // Step 4: First warp reduces warp_sums
+    if (tid < 8) {
+        local_sum = warp_sums[tid];
+        for (int offset = 4; offset > 0; offset >>= 1) {
+            local_sum += __shfl_down_sync(0xFF, local_sum, offset);
+        }
+
+        if (tid == 0) {
+            atomicAdd(&db[c], local_sum);
+        }
+    }
 }
 
 // col2im: Scatter dX_col back to dX_pad, accumulating overlapping contributions
@@ -497,6 +525,8 @@ static GPUTensor *_gpu_conv2d_layer_col2im(GPUTensor *dX_col, Conv2DParams *p) {
     return dX_pad;
 }
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 GPUTensor *gpu_conv2d_layer_backward(cublasHandle_t cublas, Conv2DLayer *layer, GPUTensor *dY,
                                      const GPUTensor *X_col, const GPUTensor *dX,
                                      const GPUTensor *W, const GPUTensor *dW, const GPUTensor *db) {
@@ -513,10 +543,13 @@ GPUTensor *gpu_conv2d_layer_backward(cublasHandle_t cublas, Conv2DLayer *layer, 
     GPUTensor *dY_flat = gpu_tensor_create(2, dY_flat_shape);
     _reshape_upstream_kernel<<<BLOCKS(dY_flat->size), THREADS>>>(dY_flat->d_data, dY->d_data,
                                                                  batch_size, C_out, H_out, W_out);
-
-    // 2. Sum bias gradient over spatial dimensions
-    _gpu_conv2d_layer_sum_bias_gradient_kernel<<<BLOCKS(dY_flat->size), THREADS>>>(
-        db->d_data, dY_flat->d_data, C_out, dY_flat_shape[1]);
+    // 2. Optimized bias gradient warp reduction
+    const int elements_per_channel = H_out * W_out * batch_size;
+    const int blocks_per_channel = MIN(256, (elements_per_channel + THREADS - 1) / THREADS);
+    dim3 grid(blocks_per_channel, C_out);
+    dim3 block(THREADS);
+    _gpu_conv2d_bias_grad_reduction_kernel<<<grid, block>>>(db->d_data, dY_flat->d_data, C_out,
+                                                            H_out * W_out * batch_size);
 
     // 3. Weight gradient: dY_flat x X_col ^ T
     //

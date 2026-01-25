@@ -272,7 +272,7 @@ format:
 
 clean:
 	@echo "$(YELLOW)Cleaning build artifacts...$(RESET)"
-	@rm -rf $(BUILD_DIR) perf.data perf.data.old
+	@rm -rf $(BUILD_DIR) perf.data perf.data.old *.ncu-rep *.nsys-rep *.sqlite
 
 help:
 	@echo "Available targets:"
