@@ -13,7 +13,10 @@
 #define THREADS 256
 #define BLOCKS(size) ((size) + (THREADS) - 1) / (THREADS)
 
-// Linear Layer
+// ==============================================================================
+// GPU LINEAR LAYER
+// ==============================================================================
+
 __global__ void _linear_add_bias_kernel(float *Y, const float *b, const int batch_size,
                                         const int out_features) {
     const int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -91,7 +94,10 @@ GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const
     return (GPUTensor *)dX;
 }
 
-// Activation Layer
+// ==============================================================================
+// GPU ACTIVATION LAYER
+// ==============================================================================
+
 GPUTensor *gpu_activation_layer_forward(GPUTensor *output, GPUTensor *input,
                                         ActivationType activation_type) {
     switch (activation_type) {
@@ -129,7 +135,10 @@ GPUTensor *gpu_activation_layer_backward(GPUTensor *output, GPUTensor *upstream_
     return output;
 }
 
-// Conv Layer Params
+// ==============================================================================
+// GPU CONV2D LAYER PARAMS
+// ==============================================================================
+
 Conv2DParams gpu_conv2d_params_create(const Conv2DLayer *layer, const GPUTensor *input) {
     Conv2DParams p;
     p.C_in = layer->in_channels;
@@ -203,6 +212,10 @@ Conv2DParams gpu_conv2d_params_from_upstream(const Conv2DLayer *layer,
 
     return gpu_conv2d_params_make(layer, batch_size, H_in, W_in);
 }
+
+// ==============================================================================
+// GPU CONV2D LAYER
+// ==============================================================================
 
 __global__ void _conv2d_layer_im2col_kernel(float *X_col, float *X_pad, int batch_size, int C_in,
                                             int H_out, int W_out, int K, int stride,
@@ -441,10 +454,8 @@ __global__ void _conv2d_layer_col2im_kernel(float *dX_pad, float *dX_col, int ba
 
     // Calculate linear index in dX_pad and accumulate gradient
     // (overlapping patches mean multiple threads may write to same location)
-    const int dX_pad_idx = batch_idx * dX_pad_stride_batch +
-                           c * dX_pad_stride_in +
-                           h_pad * dX_pad_stride_h +
-                           w_pad;
+    const int dX_pad_idx =
+        batch_idx * dX_pad_stride_batch + c * dX_pad_stride_in + h_pad * dX_pad_stride_h + w_pad;
 
     atomicAdd(&dX_pad[dX_pad_idx], dX_col[idx]);
 }
@@ -584,4 +595,111 @@ GPUTensor *gpu_conv2d_layer_backward(cublasHandle_t cublas, Conv2DLayer *layer, 
     gpu_tensor_free(dX_unpadded);
 
     return (GPUTensor *)dX;
+}
+
+// ==============================================================================
+// GPU MAX POOLING LAYER
+// ==============================================================================
+
+__global__ void _maxpool_forward_kernel(float *Y, const float *X, int *max_indices, int batch_size,
+                                        int C, int H_in, int W_in, int H_out, int W_out, int stride,
+                                        int pool_size) {
+    // Each thread handles one output pool position
+    const int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int total_pools = batch_size * C * H_out * W_out;
+    if (idx >= total_pools) {
+        return;
+    }
+
+    // Decode linear index to 4D coordinates: (batch, channel, h_out, w_out)
+    const int batch_idx = idx / (C * H_out * W_out);
+    const int remainder = idx % (C * H_out * W_out);
+    const int c = remainder / (H_out * W_out);
+    const int h_out = (remainder % (H_out * W_out)) / W_out;
+    const int w_out = remainder % W_out;
+
+    // Calculate starting position of pool window in input
+    const int h_start = h_out * stride;
+    const int w_start = w_out * stride;
+
+    // Find maximum value within the pool window
+    float max_val = -INFINITY;
+    int max_offset = 0;
+
+    for (int m = 0; m < pool_size; m++) {
+        for (int n = 0; n < pool_size; n++) {
+            // Index into input using INPUT dimensions (H_in, W_in)
+            const int X_idx =
+                batch_idx * (C * H_in * W_in) + c * (H_in * W_in) + (h_start + m) * W_in + (w_start + n);
+            const float val = X[X_idx];
+            if (val > max_val) {
+                max_val = val;
+                max_offset = m * pool_size + n; // Store relative offset within pool
+            }
+        }
+    }
+
+    // Write output and store which input element was selected
+    Y[idx] = max_val;
+    max_indices[idx] = max_offset;
+}
+
+GPUTensor *gpu_maxpool_layer_forward(MaxPoolLayer *layer, GPUTensor *Y, const GPUTensor *X,
+                                     int *max_indices) {
+    const int batch_size = X->shape[0];
+    const int total_pools = batch_size * layer->input_c * layer->output_h * layer->output_w;
+
+    _maxpool_forward_kernel<<<BLOCKS(total_pools), THREADS>>>(
+        Y->d_data, X->d_data, max_indices, batch_size, layer->input_c, layer->input_h, layer->input_w,
+        layer->output_h, layer->output_w, layer->stride, layer->pool_size);
+
+    return Y;
+}
+
+__global__ void _maxpool_backward_kernel(float *dX, const float *dY, const int *max_indices,
+                                         int batch_size, int C, int H_in, int W_in, int H_out,
+                                         int W_out, int stride, int pool_size) {
+    // Each thread handles one upstream gradient (one output pool position)
+    const int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int total_pools = batch_size * C * H_out * W_out;
+    if (idx >= total_pools) {
+        return;
+    }
+
+    // Decode linear index to 4D coordinates: (batch, channel, h_out, w_out)
+    const int batch_idx = idx / (C * H_out * W_out);
+    const int remainder = idx % (C * H_out * W_out);
+    const int c = remainder / (H_out * W_out);
+    const int h_out = (remainder % (H_out * W_out)) / W_out;
+    const int w_out = remainder % W_out;
+
+    // 1. Read the upstream gradient for this pool
+    const float grad = dY[idx];
+
+    // 2. Look up which input element was the max (stored as relative offset)
+    const int max_offset = max_indices[idx];
+    const int m = max_offset / pool_size; // row within pool
+    const int n = max_offset % pool_size; // col within pool
+
+    // 3. Convert to absolute input coordinates
+    const int h_in = h_out * stride + m;
+    const int w_in = w_out * stride + n;
+
+    // 4. Scatter gradient to the input position that was selected as max
+    const int dX_idx = batch_idx * (C * H_in * W_in) + c * (H_in * W_in) + h_in * W_in + w_in;
+    atomicAdd(&dX[dX_idx], grad);
+}
+
+GPUTensor *gpu_maxpool_layer_backward(MaxPoolLayer *layer, GPUTensor *dY, int *max_indices) {
+    const int batch_size = dY->shape[0];
+    int dX_shape[GPU_MAX_RANK] = {batch_size, layer->input_c, layer->input_h, layer->input_w};
+    GPUTensor *dX = gpu_tensor_create(4, dX_shape);
+
+    const int total_pools = batch_size * layer->input_c * layer->output_h * layer->output_w;
+
+    _maxpool_backward_kernel<<<BLOCKS(total_pools), THREADS>>>(
+        dX->d_data, dY->d_data, max_indices, batch_size, layer->input_c, layer->input_h,
+        layer->input_w, layer->output_h, layer->output_w, layer->stride, layer->pool_size);
+
+    return dX;
 }

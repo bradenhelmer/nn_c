@@ -35,6 +35,9 @@ GPUTensor *gpu_conv2d_layer_backward(cublasHandle_t cublas, Conv2DLayer *layer, 
                                      const GPUTensor *W, const GPUTensor *dW, const GPUTensor *db);
 
 // Maxpool Layer
+GPUTensor *gpu_maxpool_layer_forward(MaxPoolLayer *layer, GPUTensor *Y, const GPUTensor *X,
+                                     int *max_indices);
+GPUTensor *gpu_maxpool_layer_backward(MaxPoolLayer *layer, GPUTensor *dY, int *max_indices);
 
 // Flatten Layer
 

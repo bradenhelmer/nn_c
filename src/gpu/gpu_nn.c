@@ -291,15 +291,28 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
             break;
         }
         case LAYER_MAX_POOL: {
-            // MaxPoolLayer *mpl = (MaxPoolLayer *)layer->layer;
-            // if (gpu_nn->layer_aux[i] == NULL) {
-            //     int h_out = (current->shape[2] - mpl->pool_size) / mpl->stride + 1;
-            //     int w_out = (current->shape[3] - mpl->pool_size) / mpl->stride + 1;
-            //     int indices_size = gpu_nn->batch_size * current->shape[1] * h_out * w_out;
-            //     cudaMalloc(&gpu_nn->layer_aux[i], indices_size * sizeof(int));
-            // }
-            // int *d_indices = (int *)gpu_nn->layer_aux[i];
-            // // current = maxpool_forward_gpu(...)
+            MaxPoolLayer *mpl = (MaxPoolLayer *)layer->layer;
+
+            const int C = current->shape[1];
+            const int H_in = current->shape[2];
+            const int W_in = current->shape[3];
+            const int H_out = (H_in - mpl->pool_size) / mpl->stride + 1;
+            const int W_out = (W_in - mpl->pool_size) / mpl->stride + 1;
+            mpl->input_c = C;
+            mpl->input_h = H_in;
+            mpl->input_w = W_in;
+            mpl->output_h = H_out;
+            mpl->output_w = W_out;
+
+            // Alloc max indices array if needed
+            if (gpu_nn->layer_aux[i] == NULL) {
+                const int indices_size = actual_batch_size * C * H_out * W_out;
+                cudaMalloc(&gpu_nn->layer_aux[i], indices_size * sizeof(int));
+            }
+            int *d_indices = (int *)gpu_nn->layer_aux[i];
+            GPUTensor *output = workspace_alloc_tensor(
+                gpu_nn, 4, (int[]){actual_batch_size, mpl->input_c, mpl->input_h, mpl->input_w});
+            current = gpu_maxpool_layer_forward(mpl, output, current, d_indices);
             break;
         }
         case LAYER_FLATTEN: {
@@ -373,8 +386,9 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
             break;
         }
         case LAYER_MAX_POOL: {
-            // MaxPoolLayer *mpl = (MaxPoolLayer *)layer->layer;
-            // current = maxpool_backward_gpu(...)
+            MaxPoolLayer *mpl = (MaxPoolLayer *)layer->layer;
+            int *max_indices = (int *)gpu_nn->layer_aux[i];
+            grad = gpu_maxpool_layer_backward(mpl, grad, max_indices);
             break;
         }
         case LAYER_FLATTEN: {
@@ -382,7 +396,6 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
             break;
         }
         case LAYER_RESHAPE: {
-
             break;
         }
         }
