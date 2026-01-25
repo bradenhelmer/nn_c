@@ -9,6 +9,7 @@
 #include "layers/layer_internal.h"
 #include <float.h>
 #include <math.h>
+#include <stdio.h>
 
 #define THREADS 256
 #define BLOCKS(size) ((size) + (THREADS) - 1) / (THREADS)
@@ -36,7 +37,7 @@ GPUTensor *gpu_linear_layer_forward(cublasHandle_t cublas, GPUTensor *Y, const G
     const float alpha = 1.0f;
     const float beta = 0.0f;
 
-    cublasSgemm_v2(cublas, CUBLAS_OP_T, CUBLAS_OP_N, out_features, batch_size, in_features, &alpha,
+    cublasSgemm_v2( cublas, CUBLAS_OP_T, CUBLAS_OP_N, out_features, batch_size, in_features, &alpha,
                    W->d_data, in_features, X->d_data, in_features, &beta, Y->d_data, out_features);
 
     _linear_add_bias_kernel<<<BLOCKS(batch_size * out_features), THREADS>>>(
@@ -78,7 +79,7 @@ GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const
     //
     // cuBLAS sees X as X^T, dY as dY^T
     // op(A) = X^T (no transpose), op(B) = dY (transpose dY^T)
-    cublasSgemm_v2(cublas, CUBLAS_OP_N, CUBLAS_OP_T, in_features, out_features, batch_size, &alpha,
+    cublasSgemm_v2( cublas, CUBLAS_OP_N, CUBLAS_OP_T, in_features, out_features, batch_size, &alpha,
                    X->d_data, in_features, dY->d_data, out_features, &beta_accum, dW->d_data,
                    in_features);
 
@@ -87,7 +88,7 @@ GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const
                                                            out_features, beta_accum);
 
     // 3. Input gradient: dX = dY @ W
-    cublasSgemm_v2(cublas, CUBLAS_OP_N, CUBLAS_OP_N, in_features, batch_size, out_features, &alpha,
+    cublasSgemm_v2( cublas, CUBLAS_OP_N, CUBLAS_OP_N, in_features, batch_size, out_features, &alpha,
                    W->d_data, in_features, dY->d_data, out_features, &beta_zero, dX->d_data,
                    in_features);
 
@@ -319,7 +320,7 @@ __global__ void _conv2d_transpose_output_kernel(float *Y, const float *Y_flat, i
 }
 
 GPUTensor *gpu_conv2d_layer_forward(cublasHandle_t cublas, Conv2DLayer *layer,
-                                    GPUTensor *input_cache_ptr, GPUTensor *Y, const GPUTensor *X,
+                                    GPUTensor **input_cache_ptr, GPUTensor *Y, const GPUTensor *X,
                                     const GPUTensor *W, const GPUTensor *b) {
     Conv2DParams p = gpu_conv2d_params_create(layer, X);
     const int batch_size = p.batch_size;
@@ -344,7 +345,7 @@ GPUTensor *gpu_conv2d_layer_forward(cublasHandle_t cublas, Conv2DLayer *layer,
     // In cuBLAS (column-major), this becomes: Y_flat^T = X_col^T × W_row^T
     const float alpha = 1.0f;
     const float beta = 0.0f;
-    cublasSgemm_v2(cublas, CUBLAS_OP_N, CUBLAS_OP_N, Y_flat_cols, C_out, C_in * K * K, &alpha,
+    cublasSgemm_v2( cublas, CUBLAS_OP_N, CUBLAS_OP_N, Y_flat_cols, C_out, C_in * K * K, &alpha,
                    X_col->d_data, Y_flat_cols, W_row->d_data, C_in * K * K, &beta, Y_flat->d_data,
                    Y_flat_cols);
 
@@ -362,8 +363,18 @@ GPUTensor *gpu_conv2d_layer_forward(cublasHandle_t cublas, Conv2DLayer *layer,
     gpu_tensor_free(Y_flat);
 
     // Store X_col in the provided cache location (for backward pass)
+    // X_col must be stored instead of just being freed, but input_cache_ptr
+    // may already have the wrong shape (from being allocated to match the 4D input).
+    // Solution: free the old cache and transfer ownership of X_col.
     if (input_cache_ptr != NULL) {
-        gpu_tensor_copy(input_cache_ptr, X_col);
+        // Free the old cache (which was allocated with wrong shape for conv2d)
+        if (*input_cache_ptr != NULL) {
+            gpu_tensor_free(*input_cache_ptr);
+        }
+        // Replace it with X_col directly
+        *input_cache_ptr = X_col;  // Transfer ownership
+    } else {
+        // No cache provided, so free X_col
         gpu_tensor_free(X_col);
     }
 
@@ -539,7 +550,7 @@ GPUTensor *gpu_conv2d_layer_backward(cublasHandle_t cublas, Conv2DLayer *layer, 
     const float beta_accum = 1.0f; // For accumulating into dW, db
     const float beta_zero = 0.0f;
 
-    cublasSgemm_v2(cublas, CUBLAS_OP_T, CUBLAS_OP_N, X_col->shape[0], C_out, X_col->shape[1],
+    cublasSgemm_v2( cublas, CUBLAS_OP_T, CUBLAS_OP_N, X_col->shape[0], C_out, X_col->shape[1],
                    &alpha, X_col->d_data, X_col->shape[1], dY_flat->d_data, dY_flat->shape[1],
                    &beta_accum, grad_W_flat->d_data, grad_W_flat->shape[1]);
 
@@ -574,8 +585,8 @@ GPUTensor *gpu_conv2d_layer_backward(cublasHandle_t cublas, Conv2DLayer *layer, 
     int W_row_shape[GPU_MAX_RANK] = {C_out, C_in * K * K, 0, 0};
     GPUTensor *W_row = gpu_tensor_view(W, 2, W_row_shape);
 
-    cublasSgemm_v2(cublas, CUBLAS_OP_N, CUBLAS_OP_T, dX_col->shape[1], W_row->shape[0], C_out,
-                   &alpha, dY_flat->d_data, dY_flat->shape[1], W_row->d_data, dX_col->shape[0],
+    cublasSgemm_v2( cublas, CUBLAS_OP_N, CUBLAS_OP_T, dX_col->shape[1], dX_col->shape[0], C_out,
+                   &alpha, dY_flat->d_data, dY_flat->shape[1], W_row->d_data, W_row->shape[1],
                    &beta_zero, dX_col->d_data, dX_col->shape[1]);
 
     // 5. col2im: convert dX_col back to padded spatial format

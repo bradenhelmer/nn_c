@@ -9,11 +9,6 @@
 #include "layers/layer.h"
 #include <cublas_v2.h>
 
-Conv2DParams gpu_conv2d_params_create(const Conv2DLayer *layer, const GPUTensor *input);
-Conv2DParams gpu_conv2d_params_from_padded(const Conv2DLayer *layer, const GPUTensor *padded_input);
-Conv2DParams gpu_conv2d_params_make(const Conv2DLayer *layer, int batch_size, int H_in, int W_in);
-Conv2DParams gpu_conv2d_params_from_upstream(const Conv2DLayer *layer,
-                                             const GPUTensor *upstream_grad);
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -26,9 +21,13 @@ GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const
                                      const GPUTensor *db);
 
 // Conv2D Layer
-
+Conv2DParams gpu_conv2d_params_create(const Conv2DLayer *layer, const GPUTensor *input);
+Conv2DParams gpu_conv2d_params_from_padded(const Conv2DLayer *layer, const GPUTensor *padded_input);
+Conv2DParams gpu_conv2d_params_make(const Conv2DLayer *layer, int batch_size, int H_in, int W_in);
+Conv2DParams gpu_conv2d_params_from_upstream(const Conv2DLayer *layer,
+                                             const GPUTensor *upstream_grad);
 GPUTensor *gpu_conv2d_layer_forward(cublasHandle_t cublas, Conv2DLayer *layer,
-                                    GPUTensor *input_cache_ptr, GPUTensor *Y, const GPUTensor *X,
+                                    GPUTensor **input_cache_ptr, GPUTensor *Y, const GPUTensor *X,
                                     const GPUTensor *W, const GPUTensor *b);
 GPUTensor *gpu_conv2d_layer_backward(cublasHandle_t cublas, Conv2DLayer *layer, GPUTensor *dY,
                                      const GPUTensor *X_col, const GPUTensor *dX,

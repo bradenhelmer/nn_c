@@ -243,7 +243,7 @@ void gpu_nn_free(GPUNeuralNet *gpu_nn) {
         }
         void *layer_auxiliary_data = gpu_nn->layer_aux[i];
         if (layer_auxiliary_data != NULL) {
-            free(layer_auxiliary_data);
+            cudaFree(layer_auxiliary_data);
         }
     }
     // Free storage pointers
@@ -271,12 +271,17 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
 
         // Cache input (persistent copy for backward pass)
         GPUTensor **input_cache_ptr = &gpu_nn->d_inputs[i];
-        if (*input_cache_ptr != NULL) {
-            gpu_tensor_free(*input_cache_ptr);
+
+        // For conv2d layers, the cache will be allocated inside the forward function
+        // (as X_col, not the original input), so skip pre-allocation here
+        if (layer->type != LAYER_CONV_2D) {
+            if (*input_cache_ptr != NULL) {
+                gpu_tensor_free(*input_cache_ptr);
+            }
+            // Allocate persistent storage and copy data from workspace
+            *input_cache_ptr = gpu_tensor_create_like(current);
+            gpu_tensor_copy(*input_cache_ptr, current);
         }
-        // Allocate persistent storage and copy data from workspace
-        *input_cache_ptr = gpu_tensor_create_like(current);
-        gpu_tensor_copy(*input_cache_ptr, current);
 
         // Use actual batch size from input tensor, not fixed gpu_nn->batch_size
         // This handles partial batches at end of epoch correctly
@@ -291,7 +296,7 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
             GPUTensor *biases = gpu_nn->d_params[p_idx + 1];
             GPUTensor *output = workspace_alloc_tensor(
                 gpu_nn, 4, (int[]){actual_batch_size, p.C_out, p.H_out, p.W_out});
-            current = gpu_conv2d_layer_forward(gpu_nn->cublas, conv_layer, *input_cache_ptr, output,
+            current = gpu_conv2d_layer_forward(gpu_nn->cublas, conv_layer, input_cache_ptr, output,
                                                current, weights, biases);
             break;
         }
@@ -351,12 +356,13 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
         case LAYER_RESHAPE: {
             ReshapeLayer *rl = (ReshapeLayer *)layer->layer;
             // Compute output shape for this batch
+            // Output has batch dimension prepended: (batch_size, target_shape...)
             int output_shape[GPU_MAX_RANK] = {0};
             output_shape[0] = actual_batch_size;
-            for (int dim = 1; dim < rl->target_ndim; dim++) {
-                output_shape[dim] = rl->target_shape[dim];
+            for (int dim = 0; dim < rl->target_ndim; dim++) {
+                output_shape[dim + 1] = rl->target_shape[dim];
             }
-            GPUTensor *output = workspace_alloc_tensor(gpu_nn, rl->target_ndim, output_shape);
+            GPUTensor *output = workspace_alloc_tensor(gpu_nn, rl->target_ndim + 1, output_shape);
             current = gpu_reshape_layer_forward(rl, output, current);
             break;
         }
@@ -431,6 +437,9 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
 
             // Allocate dX workspace with same shape as layer input
             GPUTensor *dX = workspace_alloc_tensor(gpu_nn, layer_input->ndim, layer_input->shape);
+
+            // Zero dX before atomicAdd scatter - prevents gradient explosion from garbage values
+            cudaMemset(dX->d_data, 0, dX->size * sizeof(float));
 
             grad = gpu_maxpool_layer_backward(mpl, grad, dX, max_indices);
             break;
