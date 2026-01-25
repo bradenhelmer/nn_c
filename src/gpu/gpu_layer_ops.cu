@@ -690,10 +690,8 @@ __global__ void _maxpool_backward_kernel(float *dX, const float *dY, const int *
     atomicAdd(&dX[dX_idx], grad);
 }
 
-GPUTensor *gpu_maxpool_layer_backward(MaxPoolLayer *layer, GPUTensor *dY, int *max_indices) {
+GPUTensor *gpu_maxpool_layer_backward(MaxPoolLayer *layer, GPUTensor *dY, GPUTensor *dX, int *max_indices) {
     const int batch_size = dY->shape[0];
-    int dX_shape[GPU_MAX_RANK] = {batch_size, layer->input_c, layer->input_h, layer->input_w};
-    GPUTensor *dX = gpu_tensor_create(4, dX_shape);
 
     const int total_pools = batch_size * layer->input_c * layer->output_h * layer->output_w;
 
@@ -701,5 +699,42 @@ GPUTensor *gpu_maxpool_layer_backward(MaxPoolLayer *layer, GPUTensor *dY, int *m
         dX->d_data, dY->d_data, max_indices, batch_size, layer->input_c, layer->input_h,
         layer->input_w, layer->output_h, layer->output_w, layer->stride, layer->pool_size);
 
+    return dX;
+}
+
+// ==============================================================================
+// GPU FLATTEN LAYER
+// ==============================================================================
+
+GPUTensor *gpu_flatten_layer_forward(FlattenLayer *layer, GPUTensor *Y, const GPUTensor *X) {
+    // Flatten just reshapes from (batch, C, H, W) to (batch, C*H*W)
+    // No computation needed - data is already contiguous
+    // Just copy the data pointer reference
+    gpu_tensor_copy(Y, X);
+    return Y;
+}
+
+GPUTensor *gpu_flatten_layer_backward(FlattenLayer *layer, GPUTensor *dY, GPUTensor *dX) {
+    // Backward pass just reshapes from (batch, features) back to (batch, C, H, W)
+    // No computation needed - just copy the gradient data
+    gpu_tensor_copy(dX, dY);
+    return dX;
+}
+
+// ==============================================================================
+// GPU RESHAPE LAYER
+// ==============================================================================
+
+GPUTensor *gpu_reshape_layer_forward(ReshapeLayer *layer, GPUTensor *Y, const GPUTensor *X) {
+    // Reshape just changes the view of the data without moving it
+    // Data is already contiguous, so just copy to the pre-allocated output shape
+    gpu_tensor_copy(Y, X);
+    return Y;
+}
+
+GPUTensor *gpu_reshape_layer_backward(ReshapeLayer *layer, GPUTensor *dY, GPUTensor *dX) {
+    // Backward pass reshapes gradient back to original input shape
+    // No computation needed - just copy the gradient data to the pre-allocated shape
+    gpu_tensor_copy(dX, dY);
     return dX;
 }

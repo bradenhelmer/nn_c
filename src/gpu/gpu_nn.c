@@ -78,6 +78,28 @@ static size_t _compute_workspace_size(NeuralNet *cpu_nn, int batch_size, InputSh
             break;
         }
         case LAYER_RESHAPE: {
+            ReshapeLayer *cfg = (ReshapeLayer *)layer->layer;
+            // Reshape doesn't change total element count, just dimensions
+            // Compute total elements from target shape
+            int total_elements = batch_size;
+            for (int dim = 1; dim < cfg->target_ndim; dim++) {
+                total_elements *= cfg->target_shape[dim];
+            }
+            activation_size = total_elements * sizeof(float);
+
+            // Update tracked dimensions based on target shape
+            // Assume target shape format depends on ndim
+            if (cfg->target_ndim == 2) {
+                // (batch, features) format
+                c = cfg->target_shape[1];
+                h = 1;
+                w = 1;
+            } else if (cfg->target_ndim == 4) {
+                // (batch, C, H, W) format
+                c = cfg->target_shape[1];
+                h = cfg->target_shape[2];
+                w = cfg->target_shape[3];
+            }
             break;
         }
         }
@@ -310,16 +332,32 @@ GPUTensor *gpu_nn_forward(GPUNeuralNet *gpu_nn, GPUTensor *input) {
                 cudaMalloc(&gpu_nn->layer_aux[i], indices_size * sizeof(int));
             }
             int *d_indices = (int *)gpu_nn->layer_aux[i];
-            GPUTensor *output = workspace_alloc_tensor(
-                gpu_nn, 4, (int[]){actual_batch_size, mpl->input_c, mpl->input_h, mpl->input_w});
+            GPUTensor *output =
+                workspace_alloc_tensor(gpu_nn, 4, (int[]){actual_batch_size, C, H_out, W_out});
             current = gpu_maxpool_layer_forward(mpl, output, current, d_indices);
             break;
         }
         case LAYER_FLATTEN: {
-            // current = flatten_forward_gpu(...)
+            FlattenLayer *fl = (FlattenLayer *)layer->layer;
+            const int C = current->shape[1];
+            const int H = current->shape[2];
+            const int W = current->shape[3];
+            const int flat_size = C * H * W;
+            GPUTensor *output =
+                workspace_alloc_tensor(gpu_nn, 4, (int[]){actual_batch_size, flat_size, 1, 1});
+            current = gpu_flatten_layer_forward(fl, output, current);
             break;
         }
         case LAYER_RESHAPE: {
+            ReshapeLayer *rl = (ReshapeLayer *)layer->layer;
+            // Compute output shape for this batch
+            int output_shape[GPU_MAX_RANK] = {0};
+            output_shape[0] = actual_batch_size;
+            for (int dim = 1; dim < rl->target_ndim; dim++) {
+                output_shape[dim] = rl->target_shape[dim];
+            }
+            GPUTensor *output = workspace_alloc_tensor(gpu_nn, rl->target_ndim, output_shape);
+            current = gpu_reshape_layer_forward(rl, output, current);
             break;
         }
         }
@@ -359,7 +397,9 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
             GPUTensor *grad_weights = gpu_nn->d_grads[p_idx];
             GPUTensor *grad_biases = gpu_nn->d_grads[p_idx + 1];
 
-            GPUTensor *dX;
+            // Allocate dX workspace with same shape as layer input
+            GPUTensor *dX = workspace_alloc_tensor(gpu_nn, layer_input->ndim, layer_input->shape);
+
             grad = gpu_conv2d_layer_backward(gpu_nn->cublas, conv_layer, grad, layer_input, dX,
                                              weights, grad_weights, grad_biases);
             break;
@@ -388,14 +428,29 @@ void gpu_nn_backward(GPUNeuralNet *gpu_nn, GPUTensor *target) {
         case LAYER_MAX_POOL: {
             MaxPoolLayer *mpl = (MaxPoolLayer *)layer->layer;
             int *max_indices = (int *)gpu_nn->layer_aux[i];
-            grad = gpu_maxpool_layer_backward(mpl, grad, max_indices);
+
+            // Allocate dX workspace with same shape as layer input
+            GPUTensor *dX = workspace_alloc_tensor(gpu_nn, layer_input->ndim, layer_input->shape);
+
+            grad = gpu_maxpool_layer_backward(mpl, grad, dX, max_indices);
             break;
         }
         case LAYER_FLATTEN: {
-            // current = flatten_backward_gpu(...)
+            FlattenLayer *fl = (FlattenLayer *)layer->layer;
+
+            // Allocate dX workspace with same shape as layer input
+            GPUTensor *dX = workspace_alloc_tensor(gpu_nn, layer_input->ndim, layer_input->shape);
+
+            grad = gpu_flatten_layer_backward(fl, grad, dX);
             break;
         }
         case LAYER_RESHAPE: {
+            ReshapeLayer *rl = (ReshapeLayer *)layer->layer;
+
+            // Allocate dX workspace with same shape as layer input
+            GPUTensor *dX = workspace_alloc_tensor(gpu_nn, layer_input->ndim, layer_input->shape);
+
+            grad = gpu_reshape_layer_backward(rl, grad, dX);
             break;
         }
         }
