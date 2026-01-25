@@ -37,7 +37,7 @@ GPUTensor *gpu_linear_layer_forward(cublasHandle_t cublas, GPUTensor *Y, const G
     const float alpha = 1.0f;
     const float beta = 0.0f;
 
-    cublasSgemm_v2( cublas, CUBLAS_OP_T, CUBLAS_OP_N, out_features, batch_size, in_features, &alpha,
+    cublasSgemm_v2(cublas, CUBLAS_OP_T, CUBLAS_OP_N, out_features, batch_size, in_features, &alpha,
                    W->d_data, in_features, X->d_data, in_features, &beta, Y->d_data, out_features);
 
     _linear_add_bias_kernel<<<BLOCKS(batch_size * out_features), THREADS>>>(
@@ -79,7 +79,7 @@ GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const
     //
     // cuBLAS sees X as X^T, dY as dY^T
     // op(A) = X^T (no transpose), op(B) = dY (transpose dY^T)
-    cublasSgemm_v2( cublas, CUBLAS_OP_N, CUBLAS_OP_T, in_features, out_features, batch_size, &alpha,
+    cublasSgemm_v2(cublas, CUBLAS_OP_N, CUBLAS_OP_T, in_features, out_features, batch_size, &alpha,
                    X->d_data, in_features, dY->d_data, out_features, &beta_accum, dW->d_data,
                    in_features);
 
@@ -88,7 +88,7 @@ GPUTensor *gpu_linear_layer_backward(cublasHandle_t cublas, GPUTensor *dY, const
                                                            out_features, beta_accum);
 
     // 3. Input gradient: dX = dY @ W
-    cublasSgemm_v2( cublas, CUBLAS_OP_N, CUBLAS_OP_N, in_features, batch_size, out_features, &alpha,
+    cublasSgemm_v2(cublas, CUBLAS_OP_N, CUBLAS_OP_N, in_features, batch_size, out_features, &alpha,
                    W->d_data, in_features, dY->d_data, out_features, &beta_zero, dX->d_data,
                    in_features);
 
@@ -345,7 +345,7 @@ GPUTensor *gpu_conv2d_layer_forward(cublasHandle_t cublas, Conv2DLayer *layer,
     // In cuBLAS (column-major), this becomes: Y_flat^T = X_col^T × W_row^T
     const float alpha = 1.0f;
     const float beta = 0.0f;
-    cublasSgemm_v2( cublas, CUBLAS_OP_N, CUBLAS_OP_N, Y_flat_cols, C_out, C_in * K * K, &alpha,
+    cublasSgemm_v2(cublas, CUBLAS_OP_N, CUBLAS_OP_N, Y_flat_cols, C_out, C_in * K * K, &alpha,
                    X_col->d_data, Y_flat_cols, W_row->d_data, C_in * K * K, &beta, Y_flat->d_data,
                    Y_flat_cols);
 
@@ -372,7 +372,7 @@ GPUTensor *gpu_conv2d_layer_forward(cublasHandle_t cublas, Conv2DLayer *layer,
             gpu_tensor_free(*input_cache_ptr);
         }
         // Replace it with X_col directly
-        *input_cache_ptr = X_col;  // Transfer ownership
+        *input_cache_ptr = X_col; // Transfer ownership
     } else {
         // No cache provided, so free X_col
         gpu_tensor_free(X_col);
@@ -550,7 +550,7 @@ GPUTensor *gpu_conv2d_layer_backward(cublasHandle_t cublas, Conv2DLayer *layer, 
     const float beta_accum = 1.0f; // For accumulating into dW, db
     const float beta_zero = 0.0f;
 
-    cublasSgemm_v2( cublas, CUBLAS_OP_T, CUBLAS_OP_N, X_col->shape[0], C_out, X_col->shape[1],
+    cublasSgemm_v2(cublas, CUBLAS_OP_T, CUBLAS_OP_N, X_col->shape[0], C_out, X_col->shape[1],
                    &alpha, X_col->d_data, X_col->shape[1], dY_flat->d_data, dY_flat->shape[1],
                    &beta_accum, grad_W_flat->d_data, grad_W_flat->shape[1]);
 
@@ -585,7 +585,7 @@ GPUTensor *gpu_conv2d_layer_backward(cublasHandle_t cublas, Conv2DLayer *layer, 
     int W_row_shape[GPU_MAX_RANK] = {C_out, C_in * K * K, 0, 0};
     GPUTensor *W_row = gpu_tensor_view(W, 2, W_row_shape);
 
-    cublasSgemm_v2( cublas, CUBLAS_OP_N, CUBLAS_OP_T, dX_col->shape[1], dX_col->shape[0], C_out,
+    cublasSgemm_v2(cublas, CUBLAS_OP_N, CUBLAS_OP_T, dX_col->shape[1], dX_col->shape[0], C_out,
                    &alpha, dY_flat->d_data, dY_flat->shape[1], W_row->d_data, W_row->shape[1],
                    &beta_zero, dX_col->d_data, dX_col->shape[1]);
 
@@ -640,8 +640,8 @@ __global__ void _maxpool_forward_kernel(float *Y, const float *X, int *max_indic
     for (int m = 0; m < pool_size; m++) {
         for (int n = 0; n < pool_size; n++) {
             // Index into input using INPUT dimensions (H_in, W_in)
-            const int X_idx =
-                batch_idx * (C * H_in * W_in) + c * (H_in * W_in) + (h_start + m) * W_in + (w_start + n);
+            const int X_idx = batch_idx * (C * H_in * W_in) + c * (H_in * W_in) +
+                              (h_start + m) * W_in + (w_start + n);
             const float val = X[X_idx];
             if (val > max_val) {
                 max_val = val;
@@ -661,8 +661,8 @@ GPUTensor *gpu_maxpool_layer_forward(MaxPoolLayer *layer, GPUTensor *Y, const GP
     const int total_pools = batch_size * layer->input_c * layer->output_h * layer->output_w;
 
     _maxpool_forward_kernel<<<BLOCKS(total_pools), THREADS>>>(
-        Y->d_data, X->d_data, max_indices, batch_size, layer->input_c, layer->input_h, layer->input_w,
-        layer->output_h, layer->output_w, layer->stride, layer->pool_size);
+        Y->d_data, X->d_data, max_indices, batch_size, layer->input_c, layer->input_h,
+        layer->input_w, layer->output_h, layer->output_w, layer->stride, layer->pool_size);
 
     return Y;
 }
@@ -701,7 +701,8 @@ __global__ void _maxpool_backward_kernel(float *dX, const float *dY, const int *
     atomicAdd(&dX[dX_idx], grad);
 }
 
-GPUTensor *gpu_maxpool_layer_backward(MaxPoolLayer *layer, GPUTensor *dY, GPUTensor *dX, int *max_indices) {
+GPUTensor *gpu_maxpool_layer_backward(MaxPoolLayer *layer, GPUTensor *dY, GPUTensor *dX,
+                                      int *max_indices) {
     const int batch_size = dY->shape[0];
 
     const int total_pools = batch_size * layer->input_c * layer->output_h * layer->output_w;

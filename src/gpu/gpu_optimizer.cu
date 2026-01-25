@@ -154,7 +154,7 @@ float gpu_optimizer_get_lr(GPUOptimizer *opt) {
 #define BLOCKS(size) ((size) + (THREADS) - 1) / (THREADS)
 
 __global__ void _sgd_update_kernel(float *weights, float *grad_weights, float learning_rate,
-                                           int size) {
+                                   int size) {
     const int tid = threadIdx.x;
     const int global_idx = blockIdx.x * blockDim.x + tid;
     if (global_idx < size) {

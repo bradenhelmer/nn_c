@@ -267,7 +267,7 @@ memcheck-test: $(TEST_DBG_TARGET)
 
 format:
 	@echo "$(BLUE)Formatting source files...$(RESET)"
-	@find $(SRC_DIR) $(TEST_DIR) -name '*.c' -o -name '*.h' | xargs clang-format -i
+	@find $(SRC_DIR) $(TEST_DIR) -name '*.c' -o -name '*.cu' -o -name '*.h' | xargs clang-format -i
 	@echo "$(GREEN)Formatting complete$(RESET)"
 
 clean:
