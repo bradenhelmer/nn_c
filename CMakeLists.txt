@@ -89,11 +89,6 @@ set(CMAKE_CUDA_ARCHITECTURES
 file(GLOB_RECURSE C_SOURCES "${CMAKE_SOURCE_DIR}/src/*.c")
 file(GLOB_RECURSE CUDA_SOURCES "${CMAKE_SOURCE_DIR}/src/*.cu")
 file(GLOB_RECURSE HEADERS "${CMAKE_SOURCE_DIR}/src/*.h")
-file(GLOB TEST_SOURCES "${CMAKE_SOURCE_DIR}/tests/*.c")
-
-# Separate main.c from library sources
-list(FILTER C_SOURCES EXCLUDE REGEX ".*main\\.c$")
-set(MAIN_SOURCE "${CMAKE_SOURCE_DIR}/src/main.c")
 
 # ==============================================================================
 # Core Library (shared by all targets)
@@ -108,34 +103,6 @@ target_link_libraries(nn_core PUBLIC CUDA::cudart CUDA::cublas m)
 
 # PIC for shared library compatibility (Python bindings)
 set_target_properties(nn_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-# ==============================================================================
-# Main Executable
-# ==============================================================================
-
-add_executable(neural_net ${MAIN_SOURCE})
-target_link_libraries(neural_net PRIVATE nn_core)
-
-# Force clang++ as linker when using clang with LTO
-if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-  set_target_properties(neural_net PROPERTIES LINKER_LANGUAGE CXX)
-endif()
-
-# ==============================================================================
-# Test Runner
-# ==============================================================================
-
-add_executable(test_runner ${TEST_SOURCES})
-target_include_directories(test_runner PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(test_runner PRIVATE nn_core)
-
-# Force clang++ as linker when using clang with LTO
-if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-  set_target_properties(test_runner PROPERTIES LINKER_LANGUAGE CXX)
-endif()
-
-enable_testing()
-add_test(NAME unit_tests COMMAND test_runner)
 
 # ==============================================================================
 # Python Bindings (pybind11)
@@ -176,56 +143,16 @@ endif()
 # Convenience Targets
 # ==============================================================================
 
-# Run target
-add_custom_target(
-  run
-  COMMAND neural_net
-  DEPENDS neural_net
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  COMMENT "Running neural_net")
-
-# Test target
-add_custom_target(
-  check
-  COMMAND test_runner
-  DEPENDS test_runner
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  COMMENT "Running tests")
-
-# Memcheck target
-add_custom_target(
-  memcheck
-  COMMAND valgrind --error-exitcode=1 --leak-check=full --show-leak-kinds=all
-          --track-origins=yes $<TARGET_FILE:neural_net>
-  DEPENDS neural_net
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  COMMENT "Running valgrind memcheck")
-
 # Format target for all source files (C/C++ and Python)
 add_custom_target(
   format
-  COMMAND find ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests -name "*.c" -o
-          -name "*.cu" -o -name "*.h" | xargs clang-format -i
+  COMMAND find ${CMAKE_SOURCE_DIR}/src -name "*.c" -o -name "*.cu" -o -name "*.h" |
+          xargs clang-format -i
   COMMAND uv run ruff format ${CMAKE_SOURCE_DIR}/python
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Formatting C/C++ and Python source files")
 
-# Perf recording (requires perf build)
-add_custom_target(
-  perf-record
-  COMMAND sudo perf record -g -F 4000 --call-graph dwarf
-          $<TARGET_FILE:neural_net>
-  DEPENDS neural_net
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  COMMENT "Recording perf profile")
-
-add_custom_target(
-  perf-report
-  COMMAND sudo perf report --stdio --no-children -n | head -100
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  COMMENT "Generating perf report")
-
-# Python test target (only if bindings are enabled)
+# Python test target (primary workflow)
 if(BUILD_PYTHON_BINDINGS)
   add_custom_target(
     pytest
@@ -237,13 +164,20 @@ if(BUILD_PYTHON_BINDINGS)
     DEPENDS _nn_core
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Running Python tests")
+
+  # Quick rebuild and test (primary dev workflow)
+  add_custom_target(
+    dev
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target _nn_core
+    COMMAND ${Python_EXECUTABLE} ${CMAKE_SOURCE_DIR}/python/run_tests.py
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Rebuilding bindings and running tests")
 endif()
 
 # ==============================================================================
 # Installation
 # ==============================================================================
 
-install(TARGETS neural_net RUNTIME DESTINATION bin)
 install(TARGETS nn_core ARCHIVE DESTINATION lib)
 install(FILES ${HEADERS} DESTINATION include/nn_c)
 
@@ -259,21 +193,15 @@ message(STATUS "  CUDA Architectures: ${CMAKE_CUDA_ARCHITECTURES}")
 message(STATUS "  Python bindings: ${BUILD_PYTHON_BINDINGS}")
 message(STATUS "")
 message(STATUS "Build targets:")
-message(STATUS "  neural_net    - Main executable")
-message(STATUS "  test_runner   - Test executable")
-message(STATUS "  nn_core       - Static library")
+message(STATUS "  nn_core       - Core C/CUDA library")
 if(BUILD_PYTHON_BINDINGS)
   message(STATUS "  _nn_core      - Python extension module")
 endif()
 message(STATUS "")
 message(STATUS "Convenience targets:")
-message(STATUS "  run           - Build and run neural_net")
-message(STATUS "  check         - Build and run tests")
-message(STATUS "  memcheck      - Run with valgrind")
-message(STATUS "  format        - Format C/C++ (clang-format) and Python (ruff)")
-message(STATUS "  perf-record   - Record perf profile")
-message(STATUS "  perf-report   - Show perf report")
+message(STATUS "  format        - Format source files (clang-format + ruff)")
 if(BUILD_PYTHON_BINDINGS)
-  message(STATUS "  pytest        - Run Python bindings tests")
+  message(STATUS "  pytest        - Run Python tests")
+  message(STATUS "  dev           - Rebuild bindings and run tests")
 endif()
 message(STATUS "")
