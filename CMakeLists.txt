@@ -126,8 +126,8 @@ if(BUILD_PYTHON_BINDINGS)
   pybind11_add_module(_nn_core ${BINDING_SOURCES})
 
   # Output extension directly to Python package for unified build
-  set_target_properties(_nn_core PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/python/nn_c)
+  set_target_properties(_nn_core PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                            ${CMAKE_SOURCE_DIR}/python/nn_c)
 
   # Link to nn_core library and explicitly inherit include directories
   target_link_libraries(_nn_core PRIVATE nn_core)
@@ -135,7 +135,8 @@ if(BUILD_PYTHON_BINDINGS)
     _nn_core PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/src/core
                      ${Python_INCLUDE_DIRS})
 
-  # Install the extension module inside the nn_c package for proper stub discovery
+  # Install the extension module inside the nn_c package for proper stub
+  # discovery
   install(TARGETS _nn_core LIBRARY DESTINATION nn_c)
 endif()
 
@@ -146,30 +147,20 @@ endif()
 # Format target for all source files (C/C++ and Python)
 add_custom_target(
   format
-  COMMAND find ${CMAKE_SOURCE_DIR}/src -name "*.c" -o -name "*.cu" -o -name "*.h" |
-          xargs clang-format -i
+  COMMAND find ${CMAKE_SOURCE_DIR}/src -name "*.c" -o -name "*.cu" -o -name
+          "*.h" | xargs clang-format -i
   COMMAND uv run ruff format ${CMAKE_SOURCE_DIR}/python
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMENT "Formatting C/C++ and Python source files")
 
 # Python test target (primary workflow)
 if(BUILD_PYTHON_BINDINGS)
-  add_custom_target(
-    pytest
-    COMMAND
-      ${CMAKE_COMMAND} -E echo
-      "Note: Run 'uv pip install -e .' first to install the package in development mode"
-    COMMAND ${Python_EXECUTABLE} -m pytest python/tests/ -v ||
-            ${Python_EXECUTABLE} python/run_tests.py
-    DEPENDS _nn_core
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Running Python tests")
 
   # Quick rebuild and test (primary dev workflow)
   add_custom_target(
     dev
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target _nn_core
-    COMMAND ${Python_EXECUTABLE} ${CMAKE_SOURCE_DIR}/python/run_tests.py
+    COMMAND uv run pytest
+    DEPENDS _nn_core
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Rebuilding bindings and running tests")
 endif()
