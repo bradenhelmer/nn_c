@@ -24,7 +24,7 @@ High-performance neural network library with a C/CUDA backend, designed to be us
 ```bash
 git clone <repository-url>
 cd nn_c
-uv venv && source .venv/bin/activate
+uv sync
 uv pip install -e .
 python -c "from nn_c import Tensor; print(Tensor([2, 3]))"
 ```
@@ -55,7 +55,7 @@ t2 = Tensor.from_bytes([2, 3], bytes_data)
 
 ```bash
 # Setup (one-time)
-uv venv && source .venv/bin/activate
+uv sync
 uv pip install -e .
 
 # After C/CUDA changes
@@ -69,4 +69,4 @@ python python/run_tests.py
 
 - Format code: `cmake --build build --target format`
 - Run all tests before committing
-- Update type stubs (`python/nn_c/_nn_core.pyi`) when adding bindings
+- Update type stubs when adding bindings
