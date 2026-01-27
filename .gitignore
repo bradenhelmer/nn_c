@@ -9,3 +9,12 @@ mnist.profraw
 *.nsys-rep
 *.ncu-rep
 *.sqlite
+__pycache__
+
+# Python artifacts
+.venv
+*.pyc
+*.egg-info
+dist
+*.so
+*.pyd

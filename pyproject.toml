@@ -1,0 +1,32 @@
+[build-system]
+requires = ["scikit-build-core>=0.8", "pybind11>=2.12"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "nn_c"
+version = "0.1.0"
+description = "Neural network library from scratch in C/CUDA"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.10"]
+
+[tool.scikit-build]
+cmake.build-type = "Release"
+cmake.define.BUILD_PYTHON_BINDINGS = "ON"
+wheel.packages = ["python/nn_c"]
+build-dir = "build"
+
+[tool.uv]
+dev-dependencies = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.10"]
+
+[tool.mypy]
+python_version = "3.12"
+
+[[tool.mypy.overrides]]
+module = "nn_c._nn_core"
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
