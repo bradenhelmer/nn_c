@@ -24,9 +24,5 @@ dev-dependencies = ["pytest>=8.0", "ruff>=0.4", "mypy>=1.10"]
 [tool.mypy]
 python_version = "3.12"
 
-[[tool.mypy.overrides]]
-module = "nn_c._nn_core"
-ignore_missing_imports = true
-
 [tool.ruff]
 line-length = 100
