@@ -22,6 +22,7 @@ Tensor *tensor_create3d(int x, int y, int z);
 Tensor *tensor_create4d(int x, int y, int z, int a);
 Tensor *tensor_zeros(int ndim, int *shape);
 Tensor *tensor_random(int ndim, int *shape, float min, float max);
+Tensor *tensor_ones_like(const Tensor *t);
 void tensor_free(Tensor *t);
 
 // ============================================================================
@@ -61,6 +62,7 @@ Tensor *tensor_transpose2d(const Tensor *t);
 void tensor_fill(Tensor *t, float val);
 void tensor_scale(Tensor *dest, const Tensor *src, float scalar);
 void tensor_add(Tensor *dest, const Tensor *a, const Tensor *b);
+void tensor_subtract(Tensor *dest, const Tensor *a, const Tensor *b);
 void tensor_elementwise_mul(Tensor *dest, const Tensor *a, const Tensor *b);
 
 // ============================================================================

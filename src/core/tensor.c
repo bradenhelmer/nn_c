@@ -65,6 +65,14 @@ Tensor *tensor_random(int ndim, int *shape, float min, float max) {
     return t;
 }
 
+Tensor *tensor_ones_like(const Tensor *t) {
+    Tensor *ones = tensor_create(t->ndim, t->shape);
+    for (int i = 0; i < ones->size; i++) {
+        ones->data[i] = 1.0f;
+    }
+    return ones;
+}
+
 void tensor_free(Tensor *t) {
     if (t->owner) {
         free(t->data);
@@ -254,6 +262,13 @@ void tensor_add(Tensor *dest, const Tensor *a, const Tensor *b) {
     assert(dest->size == a->size && a->size == b->size);
     for (int i = 0; i < dest->size; i++) {
         dest->data[i] = a->data[i] + b->data[i];
+    }
+}
+
+void tensor_subtract(Tensor *dest, const Tensor *a, const Tensor *b) {
+    assert(dest->size == a->size && a->size == b->size);
+    for (int i = 0; i < dest->size; i++) {
+        dest->data[i] = a->data[i] - b->data[i];
     }
 }
 
