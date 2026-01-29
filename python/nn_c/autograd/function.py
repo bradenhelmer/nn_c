@@ -4,14 +4,18 @@ nn_c.autograd.grad_function
 GradFunction class definition.
 """
 
-from abc import ABC, abstractmethod
-from typing import override
+from __future__ import annotations
 
-from nn_c import Tensor
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, override
+
 from nn_c._nn_core import Tensor as _CTensor
 
+if TYPE_CHECKING:
+    from nn_c.tensor import Tensor
 
-class GradFunction(ABC):
+
+class Function(ABC):
     """Base class for all gradient functions."""
 
     def __init__(self):
@@ -26,7 +30,7 @@ class GradFunction(ABC):
         pass
 
 
-class AddBackward(GradFunction):
+class AddBackward(Function):
     """Gradient for c = a + b"""
 
     @override
@@ -35,7 +39,7 @@ class AddBackward(GradFunction):
         return (grad_output, grad_output)
 
 
-class MatMulBackward(GradFunction):
+class MatMulBackward(Function):
     """Gradient for C = A @ B"""
 
     @override
@@ -51,7 +55,7 @@ class MatMulBackward(GradFunction):
         return (grad_A, grad_B)
 
 
-class ReLUBackward(GradFunction):
+class ReLUBackward(Function):
     """Gradient for ReLU"""
 
     @override

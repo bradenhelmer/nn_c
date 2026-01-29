@@ -10,6 +10,10 @@
 #ifndef TENSOR_H
 #define TENSOR_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct Tensor Tensor;
 
 // ============================================================================
@@ -133,5 +137,9 @@ Tensor *tensor_clone(const Tensor *t);
 int tensor_equals(const Tensor *a, const Tensor *b);
 void tensor_print_shape(const Tensor *t);
 void tensor_print(const Tensor *t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ifndef TENSOR_H */

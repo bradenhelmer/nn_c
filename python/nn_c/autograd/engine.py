@@ -4,8 +4,14 @@ nn_c.autograd.engine
 Autograd engine implementation
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from nn_c._nn_core import Tensor as _CTensor
-from nn_c.tensor import Tensor
+
+if TYPE_CHECKING:
+    from nn_c.tensor import Tensor
 
 
 def backward(root: Tensor):
@@ -37,6 +43,9 @@ def backward(root: Tensor):
 
             # Accumulate gradient for shared parameters
             if parent.grad is None:
+                # Import here to avoid circular dependency
+                from nn_c.tensor import Tensor
+
                 parent.grad = Tensor(grad, requires_grad=False)
             else:
                 parent.grad._data = parent.grad._data.add(grad)
