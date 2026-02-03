@@ -64,3 +64,11 @@ class ReLUBackward(Function):
         grad_input = _CTensor.relu_backward(grad_output, input_tensor)
 
         return (grad_input,)
+
+
+class Transpose2DBackward(Function):
+    """Gradient for 2D transpose operations."""
+
+    @override
+    def backward(self, grad_output: _CTensor) -> tuple[_CTensor, ...]:
+        return (grad_output.transpose2d(),)

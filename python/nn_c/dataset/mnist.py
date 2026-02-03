@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import cast
 
 from nn_c import Tensor
-from nn_c._nn_core import Tensor as _CTensor
 
 __all__ = ["load_mnist"]
 
@@ -30,7 +29,7 @@ def _load_mnist_images(filepath: Path) -> Tensor:
 
         float_data = struct.pack(f"{len(pixels)}f", *[b / 255.0 for b in pixels])
 
-        return Tensor(_CTensor.from_bytes(float_data, [num_images, 1, rows, cols]))
+        return Tensor([num_images, 1, rows, cols], float_data)
 
 
 def _load_mnist_labels(filepath: Path) -> Tensor:
@@ -52,7 +51,7 @@ def _load_mnist_labels(filepath: Path) -> Tensor:
             one_hot.extend(row)
 
         float_data = struct.pack(f"{len(one_hot)}f", *one_hot)
-        return Tensor(_CTensor.from_bytes(float_data, [num_labels, 10]))
+        return Tensor([num_labels, 10], float_data)
 
 
 def load_mnist(image_filepath: Path, label_filepath: Path) -> tuple[Tensor, Tensor]:
