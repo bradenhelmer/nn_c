@@ -10,6 +10,10 @@
 #ifndef TENSOR_H
 #define TENSOR_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct Tensor Tensor;
 
 // ============================================================================
@@ -22,6 +26,7 @@ Tensor *tensor_create3d(int x, int y, int z);
 Tensor *tensor_create4d(int x, int y, int z, int a);
 Tensor *tensor_zeros(int ndim, int *shape);
 Tensor *tensor_random(int ndim, int *shape, float min, float max);
+Tensor *tensor_ones_like(const Tensor *t);
 void tensor_free(Tensor *t);
 
 // ============================================================================
@@ -61,7 +66,13 @@ Tensor *tensor_transpose2d(const Tensor *t);
 void tensor_fill(Tensor *t, float val);
 void tensor_scale(Tensor *dest, const Tensor *src, float scalar);
 void tensor_add(Tensor *dest, const Tensor *a, const Tensor *b);
+void tensor_subtract(Tensor *dest, const Tensor *a, const Tensor *b);
 void tensor_elementwise_mul(Tensor *dest, const Tensor *a, const Tensor *b);
+
+// ============================================================================
+// Broadcasting Operations
+// ============================================================================
+void tensor_add_broadcast(Tensor *dest, const Tensor *a, const Tensor *b);
 
 // ============================================================================
 // Linear Algebra Operations
@@ -106,6 +117,7 @@ float tensor_sum(const Tensor *t);
 float tensor_max(const Tensor *t);
 int tensor_argmax(const Tensor *t);
 float tensor_sum_2drow(const Tensor *t, int row_idx);
+void tensor_sum_axis(Tensor *dest, const Tensor *src, int axis);
 
 // ============================================================================
 // Batch and Row Operations
@@ -131,5 +143,9 @@ Tensor *tensor_clone(const Tensor *t);
 int tensor_equals(const Tensor *a, const Tensor *b);
 void tensor_print_shape(const Tensor *t);
 void tensor_print(const Tensor *t);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ifndef TENSOR_H */

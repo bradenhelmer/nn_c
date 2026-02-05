@@ -11,6 +11,10 @@
 
 #include "core/tensor.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // =============================================================================
 // SCALAR ACTIVATION FUNCTIONS
 // =============================================================================
@@ -65,5 +69,9 @@ void tensor_tanh_derivative(Tensor *output, const Tensor *tanh_output);
 // Linear (identity)
 void tensor_linear(Tensor *output, const Tensor *input);
 void tensor_linear_derivative(Tensor *output, const Tensor *input);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ifndef ACTIVATIONS_H */

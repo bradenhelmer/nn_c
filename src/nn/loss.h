@@ -15,6 +15,10 @@ float mse_loss(float predicted, float target);
 // TENSOR LOSS FUNCTIONS
 // =============================================================================
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum { LOSS_MSE, LOSS_CROSS_ENTROPY, LOSS_SOFTMAX_CROSS_ENTROPY } LossType;
 
 // Tensor functions (1D tensors)
@@ -30,5 +34,9 @@ void tensor_cross_entropy_derivative(Tensor *result, const Tensor *prediction,
 float tensor_softmax_cross_entropy(const Tensor *logits, const Tensor *target);
 void tensor_softmax_cross_entropy_derivative(Tensor *result, const Tensor *logits,
                                              const Tensor *target);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* ifndef LOSS_H */
