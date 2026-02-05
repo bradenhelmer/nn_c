@@ -1,7 +1,7 @@
 """
 nn_c.nn.module
 ~~~~~~~~~~~~~~
-Neural net module base class defintion.
+Base class for neural network modules.
 """
 
 from abc import ABC, abstractmethod
@@ -11,12 +11,12 @@ from nn_c import Tensor
 
 
 class Module(ABC):
-    """Base class for all layers."""
+    """Base class for all neural network modules."""
 
     @abstractmethod
     def forward(self, x: Tensor) -> Tensor:
         """
-        Forward pass method.
+        Forward pass.
 
         Parameters
         ----------
@@ -26,7 +26,7 @@ class Module(ABC):
         Returns
         -------
         Tensor
-            Output tensor, or y.
+            Output tensor.
         """
         pass
 
@@ -36,11 +36,11 @@ class Module(ABC):
     @abstractmethod
     def parameters(self) -> Iterator[Tensor]:
         """
-        Gets the parameters associated with the layer.
+        Iterate over module parameters.
 
-        Returns
-        -------
-        Iterator[Tensor]
-            An iterator over the module's parameters.
+        Yields
+        ------
+        Tensor
+            Each parameter tensor in the module.
         """
         pass

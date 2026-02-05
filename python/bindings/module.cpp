@@ -9,6 +9,7 @@
  */
 
 #include "activations/activations.h"
+#include "nn/loss.h"
 #include "tensor.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h> // For std::vector <-> Python list conversion
@@ -115,12 +116,16 @@ void bind_tensor(py::module_ &m) {
             },
             py::arg("data"), py::arg("shape"))
 
+        .def_static("ones_like", [](const Tensor *t) { return TensorPtr(tensor_ones_like(t)); })
+
+        // Static factory: Tensor.random(shape, min, max)
         .def_static(
-            "ones_like",
-            [](const Tensor *t) {
-                return TensorPtr(tensor_ones_like(t));
-            }
-        )
+            "random",
+            [](std::vector<int> shape, float min, float max) {
+                Tensor *t = tensor_random(shape.size(), shape.data(), min, max);
+                return TensorPtr(t);
+            },
+            py::arg("shape"), py::arg("min"), py::arg("max"))
 
         // Export: tensor.to_bytes()
         .def("to_bytes",
@@ -189,6 +194,7 @@ void bind_tensor(py::module_ &m) {
                  }
                  t->data[flat_idx] = val;
              })
+        .def("__len__", [](const Tensor *t) { return t->size; })
 
         // Nice repr for debugging
         .def("__repr__",
@@ -210,6 +216,11 @@ void bind_tensor(py::module_ &m) {
 
         .def("add",
              [](const Tensor *t, const Tensor *other) {
+                 if (t->ndim == 2 && other->ndim == 1 && other->shape[0] == t->shape[1]) {
+                     Tensor *dest = tensor_create(t->ndim, t->shape);
+                     tensor_add_broadcast(dest, t, other);
+                     return TensorPtr(dest);
+                 }
                  Tensor *dest = tensor_create(t->ndim, t->shape);
                  tensor_add(dest, t, other);
                  return TensorPtr(dest);
@@ -222,7 +233,7 @@ void bind_tensor(py::module_ &m) {
              })
         .def("elementwise_mul",
              [](const Tensor *t, const Tensor *other) {
-                 Tensor *dest = tensor_create(2, (int[]){t->shape[0], other->shape[1]});
+                 Tensor *dest = tensor_create(t->ndim, t->shape);
                  tensor_elementwise_mul(dest, t, other);
                  return TensorPtr(dest);
              })
@@ -250,13 +261,66 @@ void bind_tensor(py::module_ &m) {
         .def("clone", [](const Tensor *t) { return TensorPtr(tensor_clone(t)); })
         .def("fill", [](Tensor *t, float val) { tensor_fill(t, val); })
         .def("sum", [](const Tensor *t) { return tensor_sum(t); })
-        .def("argmax", [](const Tensor *t) { return tensor_argmax(t); });
+        .def(
+            "sum_axis",
+            [](const Tensor *t, int axis) {
+                if (axis < 0 || axis >= t->ndim) {
+                    throw std::invalid_argument("axis out of range");
+                }
+
+                std::vector<int> dest_shape;
+                for (int i = 0; i < t->ndim; i++) {
+                    if (i != axis) {
+                        dest_shape.push_back(t->shape[i]);
+                    }
+                }
+
+                if (dest_shape.empty()) {
+                    dest_shape.push_back(1);
+                }
+
+                Tensor *dest = tensor_create(dest_shape.size(), dest_shape.data());
+                tensor_sum_axis(dest, t, axis);
+                return TensorPtr(dest);
+            },
+            py::arg("axis"))
+        .def("argmax", [](const Tensor *t) { return tensor_argmax(t); })
 
         // ==============================================================================
         // Backward helpers
         // ==============================================================================
-        
+        .def(
+            "relu_backward",
+            [](const Tensor *grad_output, const Tensor *relu_output) {
+                Tensor *mask = tensor_create(relu_output->ndim, relu_output->shape);
+                tensor_relu_derivative(mask, relu_output);
 
+                Tensor *dest = tensor_create(grad_output->ndim, grad_output->shape);
+                tensor_elementwise_mul(dest, grad_output, mask);
+
+                tensor_free(mask);
+                return TensorPtr(dest);
+            },
+            py::arg("relu_output"))
+
+        // ==============================================================================
+        // Loss Methods
+        // ==============================================================================
+        .def(
+            "softmax_cross_entropy",
+            [](const Tensor *logits, const Tensor *target) {
+                return tensor_softmax_cross_entropy(logits, target);
+            },
+            py::arg("target"))
+
+        .def(
+            "softmax_cross_entropy_backward",
+            [](const Tensor *logits, const Tensor *target) {
+                Tensor *result = tensor_clone(logits);
+                tensor_softmax_cross_entropy_derivative(result, logits, target);
+                return TensorPtr(result);
+            },
+            py::arg("target"));
 }
 
 // =============================================================================

@@ -279,6 +279,24 @@ void tensor_elementwise_mul(Tensor *dest, const Tensor *a, const Tensor *b) {
     }
 }
 
+void tensor_add_broadcast(Tensor *dest, const Tensor *a, const Tensor *b) {
+    assert(a->ndim == 2);
+    assert(b->ndim == 1);
+    assert(dest->ndim == 2);
+    assert(a->shape[1] == b->shape[0]);
+    assert(dest->shape[0] == a->shape[0]);
+    assert(dest->shape[1] == a->shape[1]);
+
+    const int rows = a->shape[0];
+    const int cols = a->shape[1];
+
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            dest->data[i * cols + j] = a->data[i * cols + j] + b->data[j];
+        }
+    }
+}
+
 static void _tensor_matvec_mul_simd(Tensor *dest, const Tensor *mat, const Tensor *vec) {
     const int m = mat->shape[0];
     const int n = mat->shape[1];
@@ -667,4 +685,30 @@ float tensor_sum_2drow(const Tensor *t, int row_idx) {
         row_ptr++;
     }
     return sum;
+}
+
+void tensor_sum_axis(Tensor *dest, const Tensor *src, int axis) {
+    assert(axis >= 0 && axis < src->ndim);
+    assert(dest->ndim == src->ndim - 1 || (src->ndim == 1 && dest->ndim == 1 && dest->size == 1));
+
+    for (int i = 0; i < dest->size; i++) {
+        dest->data[i] = 0.0f;
+    }
+
+    for (int src_idx = 0; src_idx < src->size; src_idx++) {
+        int remaining = src_idx;
+        int dest_idx = 0;
+
+        for (int d = src->ndim - 1; d >= 0; d--) {
+            int coord = remaining % src->shape[d];
+            remaining /= src->shape[d];
+
+            if (d != axis) {
+                int dest_d = (d > axis) ? d - 1 : d;
+                dest_idx += coord * dest->strides[dest_d];
+            }
+        }
+
+        dest->data[dest_idx] += src->data[src_idx];
+    }
 }

@@ -1,77 +1,69 @@
 """
 nn_c.autograd.engine
 ~~~~~~~~~~~~~~~~~~~~
-Autograd engine implementation
+Backward pass execution for automatic differentiation.
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from nn_c._nn_core import Tensor as _CTensor
-
 if TYPE_CHECKING:
     from nn_c.tensor import Tensor
 
 
-def backward(root: Tensor):
+def run_backward(root: Tensor) -> None:
     """
-    Run backward pass from this tensor.
+    Execute backward pass on the computation graph.
 
-    Assumes scalar loss, gradient == 1.
+    Traverses the graph in reverse topological order, calling each node's
+    grad_fn to compute and accumulate gradients.
+
+    Parameters
+    ----------
+    root : Tensor
+        Root tensor to backpropagate from. Must have grad initialized.
     """
-
-    # 1. Init root gradient
-    if root.grad is None:
-        root.grad = _CTensor.ones_like(root._data)
-
-    # 2. Topo sort to get reverse order
-    topo_order = _topological_sort(root)
-
-    # 3. Traverse in reverse to compute gradients
-    for tensor in reversed(topo_order):
+    for tensor in reversed(_topological_sort(root)):
         if tensor.grad_fn is None or tensor.grad is None:
-            continue  # Leaf or no gradient yet
+            continue
 
-        # Which gradients go to your inputs?
-        grad_inputs = tensor.grad_fn.backward(tensor.grad)
+        grad_inputs = tensor.grad_fn(tensor.grad)
 
-        # Distribute gradients to parent tensors
-        for parent, grad in zip(tensor.grad_fn.inputs, grad_inputs):
+        for parent, grad in zip(tensor._inputs, grad_inputs):
             if grad is None:
-                continue  # Input doesn't need gradients
+                continue
 
-            # Accumulate gradient for shared parameters
             if parent.grad is None:
-                # Import here to avoid circular dependency
-                from nn_c.tensor import Tensor
-
-                parent.grad = Tensor(grad, requires_grad=False)
+                parent.grad = grad
             else:
-                parent.grad._data = parent.grad._data.add(grad)
+                parent.grad = parent.grad.add(grad)
 
 
 def _topological_sort(root: Tensor) -> list[Tensor]:
     """
-    Returns tensors in topological order (depencies before dependents).
+    Sort computation graph in topological order.
 
-    Uses depth first search for ordering.
+    Parameters
+    ----------
+    root : Tensor
+        Root of the computation graph.
+
+    Returns
+    -------
+    list[Tensor]
+        Tensors in topological order (dependencies before dependents).
     """
-
     visited: set[int] = set()
-    topo_order: list[Tensor] = []
+    order: list[Tensor] = []
 
     def dfs(tensor: Tensor) -> None:
         if id(tensor) in visited or tensor.grad_fn is None:
             return
-
         visited.add(id(tensor))
-
-        # Visit parents first
-        for parent in tensor.grad_fn.inputs:
+        for parent in tensor._inputs:
             dfs(parent)
-
-        topo_order.append(tensor)
+        order.append(tensor)
 
     dfs(root)
-    return topo_order
+    return order

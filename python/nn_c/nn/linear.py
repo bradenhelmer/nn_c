@@ -1,9 +1,10 @@
 """
-nn_core.nn.linear
-~~~~~~~~~
-Linear layer class
+nn_c.nn.linear
+~~~~~~~~~~~~~~
+Linear (fully connected) layer.
 """
 
+import math
 from collections.abc import Iterator
 from typing import override
 
@@ -13,18 +14,40 @@ from nn_c.nn.module import Module
 
 class Linear(Module):
     """
-    Fully connected layer:
+    Fully connected layer: y = x @ W + b.
 
-    y = xW^T + b
+    Parameters
+    ----------
+    in_features : int
+        Size of each input sample.
+    out_features : int
+        Size of each output sample.
     """
 
     def __init__(self, in_features: int, out_features: int) -> None:
-        self.weights: Tensor = Tensor([in_features, out_features])
-        self.biases: Tensor = Tensor([out_features])
+        # Xavier/Glorot initialization: scale = sqrt(2 / (fan_in + fan_out))
+        scale = math.sqrt(2.0 / (in_features + out_features))
+        self.weights: Tensor = Tensor.random(
+            [in_features, out_features], -scale, scale, requires_grad=True
+        )
+        self.biases: Tensor = Tensor([out_features], requires_grad=True)
 
     @override
     def forward(self, x: Tensor) -> Tensor:
-        out = x.matmul(self.weights.transpose2d())
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x : Tensor
+            Input tensor of shape (batch_size, in_features).
+
+        Returns
+        -------
+        Tensor
+            Output tensor of shape (batch_size, out_features).
+        """
+        out = x.matmul(self.weights)
         out = out.add(self.biases)
         return out
 

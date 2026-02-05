@@ -70,6 +70,11 @@ void tensor_subtract(Tensor *dest, const Tensor *a, const Tensor *b);
 void tensor_elementwise_mul(Tensor *dest, const Tensor *a, const Tensor *b);
 
 // ============================================================================
+// Broadcasting Operations
+// ============================================================================
+void tensor_add_broadcast(Tensor *dest, const Tensor *a, const Tensor *b);
+
+// ============================================================================
 // Linear Algebra Operations
 // ============================================================================
 
@@ -112,6 +117,7 @@ float tensor_sum(const Tensor *t);
 float tensor_max(const Tensor *t);
 int tensor_argmax(const Tensor *t);
 float tensor_sum_2drow(const Tensor *t, int row_idx);
+void tensor_sum_axis(Tensor *dest, const Tensor *src, int axis);
 
 // ============================================================================
 // Batch and Row Operations
