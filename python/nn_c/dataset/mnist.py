@@ -67,3 +67,22 @@ def load_mnist(image_filepath: Path, label_filepath: Path) -> tuple[Tensor, Tens
         Images tensor of shape (N, 784) and labels tensor of shape (N, 10).
     """
     return _load_mnist_images(image_filepath), _load_mnist_labels(label_filepath)
+
+
+def mnist_comparator(label: Tensor, prediction: Tensor) -> bool:
+    """
+    Compares a label to a prediction.
+
+    Parameters
+    ----------
+    label : Tensor
+        The label to compare against.
+    prediction : Tensor
+        The prediction to classify.
+
+    Returns
+    -------
+    bool
+        True if the prediction and label share the same index for argmax.
+    """
+    return label.argmax() == prediction.argmax()

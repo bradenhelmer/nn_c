@@ -234,6 +234,26 @@ class Tensor:
         """Sum tensor along specified axis."""
         return Tensor._from_ctensor(self._data.sum_axis(axis))
 
+    def argmax(self) -> int:
+        """Returns the index of the maximum value in the tensor."""
+        return self._data.argmax()
+
+    def reshape(self, new_shape: list[int]) -> Tensor:
+        """
+        Return a new tensor with the specified shape.
+
+        Parameters
+        ----------
+        new_shape : list[int]
+            The desired shape. Total size must match the original tensor.
+
+        Returns
+        -------
+        Tensor
+            A new tensor with the specified shape sharing no data with the original.
+        """
+        return Tensor._from_ctensor(self._data.reshape(new_shape), self.requires_grad)
+
     # -------------------------------------------------------------------------
     # Data Access
     # -------------------------------------------------------------------------

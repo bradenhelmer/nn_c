@@ -285,6 +285,14 @@ void bind_tensor(py::module_ &m) {
             },
             py::arg("axis"))
         .def("argmax", [](const Tensor *t) { return tensor_argmax(t); })
+        .def(
+            "reshape",
+            [](const Tensor *t, std::vector<int> new_shape) {
+                Tensor *result = tensor_clone(t);
+                tensor_reshape_inplace(result, new_shape.size(), new_shape.data());
+                return TensorPtr(result);
+            },
+            py::arg("new_shape"))
 
         // ==============================================================================
         // Backward helpers

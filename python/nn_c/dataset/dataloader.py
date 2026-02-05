@@ -111,6 +111,11 @@ class TensorDataset:
             Tensor(self._label_shape, label_data),
         )
 
+    def __iter__(self) -> Iterator[tuple[Tensor, Tensor]]:
+        """Yields feature/label tuple sets."""
+        for i in range(len(self)):
+            yield self[i]
+
 
 class DataLoader:
     """
