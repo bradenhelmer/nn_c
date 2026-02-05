@@ -7,14 +7,17 @@ Core tensor class with integrated autograd.
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import override
 
 from nn_c._nn_core import Tensor as _CTensor
+
+from nn_c.autograd.engine import run_backward
 
 
 class Tensor:
     """N-dimensional tensor with automatic differentiation support."""
 
-    __slots__ = ("_data", "grad", "grad_fn", "_inputs", "requires_grad")
+    __slots__: tuple[str, ...] = ("_data", "grad", "grad_fn", "_inputs", "requires_grad")
 
     def __init__(
         self,
@@ -22,18 +25,7 @@ class Tensor:
         data: bytes | list[float] | None = None,
         requires_grad: bool = False,
     ) -> None:
-        """
-        Create a new tensor.
-
-        Parameters
-        ----------
-        shape : list[int]
-            Shape of the tensor.
-        data : bytes | list[float] | None
-            Initial data. If None, tensor is zero-initialized.
-        requires_grad : bool
-            If True, gradients will be computed for this tensor.
-        """
+        self._data: _CTensor
         if isinstance(data, bytes):
             self._data = _CTensor.from_bytes(data, shape)
         elif isinstance(data, list):
@@ -44,7 +36,7 @@ class Tensor:
         self.grad: Tensor | None = None
         self.grad_fn: Callable[[Tensor], tuple[Tensor | None, ...]] | None = None
         self._inputs: list[Tensor] = []
-        self.requires_grad = requires_grad
+        self.requires_grad: bool = requires_grad
 
     # -------------------------------------------------------------------------
     # Internal Factory
@@ -119,8 +111,6 @@ class Tensor:
         """Run backward pass from this tensor."""
         if self.grad is None:
             self.grad = Tensor.ones_like(self)
-
-        from nn_c.autograd.engine import run_backward
 
         run_backward(self)
 
@@ -257,6 +247,7 @@ class Tensor:
     def __len__(self) -> int:
         return len(self._data)
 
+    @override
     def __repr__(self) -> str:
         grad_info = ", requires_grad=True" if self.requires_grad else ""
         return f"Tensor(shape={list(self.shape)}{grad_info})"
@@ -268,3 +259,7 @@ class Tensor:
     def to_bytes(self) -> bytes:
         """Export tensor data as raw bytes."""
         return self._data.to_bytes()
+
+    def inputs(self) -> list[Tensor]:
+        """Return tensor inputs for backward pass."""
+        return self._inputs

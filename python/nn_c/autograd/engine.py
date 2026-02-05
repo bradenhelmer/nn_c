@@ -30,7 +30,7 @@ def run_backward(root: Tensor) -> None:
 
         grad_inputs = tensor.grad_fn(tensor.grad)
 
-        for parent, grad in zip(tensor._inputs, grad_inputs):
+        for parent, grad in zip(tensor.inputs(), grad_inputs):
             if grad is None:
                 continue
 

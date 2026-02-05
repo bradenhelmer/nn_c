@@ -38,10 +38,10 @@ class Trainer:
         loss_fn: Callable[[Tensor, Tensor], Tensor],
         dataloader: DataLoader,
     ) -> None:
-        self.model = model
-        self.optimizer = optimizer
-        self.loss_fn = loss_fn
-        self.dataloader = dataloader
+        self.model: Module = model
+        self.optimizer: Optimizer = optimizer
+        self.loss_fn: Callable[[Tensor, Tensor], Tensor] = loss_fn
+        self.dataloader: DataLoader = dataloader
 
     def train(self, epochs: int = 1) -> None:
         """
@@ -92,9 +92,9 @@ class Trainer:
         loss.backward()
         self.optimizer.step()
 
-        return loss._data[0]
+        return loss[0]
 
-    def on_epoch_start(self, epoch: int) -> None:
+    def on_epoch_start(self, epoch: int) -> None:  # pyright: ignore[reportUnusedParameter]
         """
         Called at the start of each epoch.
 
@@ -122,7 +122,7 @@ class Trainer:
         """
         print(f"Epoch {epoch + 1} | loss: {avg_loss:.4f}")
 
-    def on_batch_end(self, batch_idx: int, loss: float) -> None:
+    def on_batch_end(self, batch_idx: int, loss: float) -> None:  # pyright: ignore[reportUnusedParameter]
         """
         Called after each batch.
 

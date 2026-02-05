@@ -25,7 +25,7 @@ class SGD:
 
     def __init__(self, params: Iterator[Tensor], lr: float = 0.01) -> None:
         self.params: list[Tensor] = list(params)
-        self.lr = lr
+        self.lr: float = lr
 
     def step(self) -> None:
         """Apply one SGD update to all parameters."""

@@ -65,18 +65,18 @@ class TensorDataset:
                 f"got {features.shape[0]} and {labels.shape[0]}"
             )
 
-        self._features = features
-        self._labels = labels
+        self._features: Tensor = features
+        self._labels: Tensor = labels
 
-        self._feat_data = features._data.to_list()
-        self._feat_shape = list(features.shape[1:])
-        self._feat_stride = 1
+        self._feat_data: list[float] = features.to_list()
+        self._feat_shape: list[int] = list(features.shape[1:])
+        self._feat_stride: int = 1
         for d in self._feat_shape:
             self._feat_stride *= d
 
-        self._label_data = labels._data.to_list()
-        self._label_shape = list(labels.shape[1:])
-        self._label_stride = 1
+        self._label_data: list[float] = labels.to_list()
+        self._label_shape: list[int] = list(labels.shape[1:])
+        self._label_stride: int = 1
         for d in self._label_shape:
             self._label_stride *= d
 
@@ -138,10 +138,10 @@ class DataLoader:
         shuffle: bool = False,
         drop_last: bool = False,
     ) -> None:
-        self.dataset = dataset
-        self.batch_size = batch_size
-        self.shuffle = shuffle
-        self.drop_last = drop_last
+        self.dataset: Dataset = dataset
+        self.batch_size: int = batch_size
+        self.shuffle: bool = shuffle
+        self.drop_last: bool = drop_last
 
     def __len__(self) -> int:
         """Return the number of batches per epoch."""
@@ -187,7 +187,7 @@ class DataLoader:
             batch_shape = [len(items)] + list(items[0].shape)
             batch_data: list[float] = []
             for item in items:
-                batch_data.extend(item._data.to_list())
+                batch_data.extend(item.to_list())
             batched.append(Tensor(batch_shape, batch_data))
 
         return tuple(batched)
