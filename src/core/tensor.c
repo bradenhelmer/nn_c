@@ -7,6 +7,7 @@
 #include "utils/utils.h"
 #include <assert.h>
 #include <immintrin.h>
+#include <math.h>
 #include <pmmintrin.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -276,6 +277,27 @@ void tensor_elementwise_mul(Tensor *dest, const Tensor *a, const Tensor *b) {
     assert(dest->size == a->size && a->size == b->size);
     for (int i = 0; i < dest->size; i++) {
         dest->data[i] = a->data[i] * b->data[i];
+    }
+}
+
+void tensor_elementwise_div(Tensor *dest, const Tensor *a, const Tensor *b) {
+    assert(dest->size == a->size && a->size == b->size);
+    for (int i = 0; i < dest->size; i++) {
+        dest->data[i] = a->data[i] / b->data[i];
+    }
+}
+
+void tensor_add_scalar(Tensor *dest, const Tensor *src, float scalar) {
+    assert(dest->size == src->size);
+    for (int i = 0; i < src->size; i++) {
+        dest->data[i] = src->data[i] + scalar;
+    }
+}
+
+void tensor_sqrt(Tensor *dest, const Tensor *src) {
+    assert(dest->size == src->size);
+    for (int i = 0; i < src->size; i++) {
+        dest->data[i] = sqrtf(src->data[i]);
     }
 }
 

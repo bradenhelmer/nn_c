@@ -10,7 +10,6 @@ from collections.abc import Callable
 from typing import override
 
 from nn_c._nn_core import Tensor as _CTensor
-
 from nn_c.autograd.engine import run_backward
 
 
@@ -226,6 +225,122 @@ class Tensor:
 
             result.requires_grad = True
             result._inputs = [self]
+            result.grad_fn = backward
+
+        return result
+
+    def scale(self, scalar: float) -> Tensor:
+        """
+        Multiply tensor by a scalar.
+
+        Parameters
+        ----------
+        scalar : float
+            Scalar multiplier.
+        """
+        result = Tensor._from_ctensor(self._data.scale(scalar))
+
+        if self.requires_grad:
+            saved_scalar = scalar
+
+            def backward(grad: Tensor) -> tuple[Tensor]:
+                return (grad.scale(saved_scalar),)
+
+            result.requires_grad = True
+            result._inputs = [self]
+            result.grad_fn = backward
+
+        return result
+
+    def elementwise_mul(self, other: Tensor) -> Tensor:
+        """
+        Element-wise multiplication.
+
+        Parameters
+        ----------
+        other : Tensor
+            Tensor to multiply element-wise.
+        """
+        result = Tensor._from_ctensor(self._data.elementwise_mul(other._data))
+
+        if self.requires_grad or other.requires_grad:
+            saved_self, saved_other = self, other
+
+            def backward(grad: Tensor) -> tuple[Tensor, Tensor]:
+                grad_self = grad.elementwise_mul(saved_other)
+                grad_other = grad.elementwise_mul(saved_self)
+                return (grad_self, grad_other)
+
+            result.requires_grad = True
+            result._inputs = [self, other]
+            result.grad_fn = backward
+
+        return result
+
+    def sqrt(self) -> Tensor:
+        """Element-wise square root."""
+        result = Tensor._from_ctensor(self._data.sqrt())
+
+        if self.requires_grad:
+            saved_result = result
+
+            def backward(grad: Tensor) -> tuple[Tensor]:
+                # d/dx sqrt(x) = 0.5 / sqrt(x)
+                return (grad.elementwise_div(saved_result.scale(2.0)),)
+
+            result.requires_grad = True
+            result._inputs = [self]
+            result.grad_fn = backward
+
+        return result
+
+    def add_scalar(self, scalar: float) -> Tensor:
+        """
+        Add a scalar to every element.
+
+        Parameters
+        ----------
+        scalar : float
+            Scalar to add.
+        """
+        result = Tensor._from_ctensor(self._data.add_scalar(scalar))
+
+        if self.requires_grad:
+
+            def backward(grad: Tensor) -> tuple[Tensor]:
+                return (grad,)
+
+            result.requires_grad = True
+            result._inputs = [self]
+            result.grad_fn = backward
+
+        return result
+
+    def elementwise_div(self, other: Tensor) -> Tensor:
+        """
+        Element-wise division: self / other.
+
+        Parameters
+        ----------
+        other : Tensor
+            Divisor tensor.
+        """
+        result = Tensor._from_ctensor(self._data.elementwise_div(other._data))
+
+        if self.requires_grad or other.requires_grad:
+            saved_self, saved_other, saved_result = self, other, result
+
+            def backward(grad: Tensor) -> tuple[Tensor, Tensor]:
+                # d/da (a/b) = 1/b
+                grad_self = grad.elementwise_div(saved_other)
+                # d/db (a/b) = -a/b^2 = -result/b
+                grad_other = grad.elementwise_mul(saved_result).scale(-1.0).elementwise_div(
+                    saved_other
+                )
+                return (grad_self, grad_other)
+
+            result.requires_grad = True
+            result._inputs = [self, other]
             result.grad_fn = backward
 
         return result

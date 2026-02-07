@@ -237,6 +237,24 @@ void bind_tensor(py::module_ &m) {
                  tensor_elementwise_mul(dest, t, other);
                  return TensorPtr(dest);
              })
+        .def("elementwise_div",
+             [](const Tensor *t, const Tensor *other) {
+                 Tensor *dest = tensor_create(t->ndim, t->shape);
+                 tensor_elementwise_div(dest, t, other);
+                 return TensorPtr(dest);
+             })
+        .def("add_scalar",
+             [](const Tensor *t, float scalar) {
+                 Tensor *dest = tensor_create(t->ndim, t->shape);
+                 tensor_add_scalar(dest, t, scalar);
+                 return TensorPtr(dest);
+             })
+        .def("sqrt",
+             [](const Tensor *t) {
+                 Tensor *dest = tensor_create(t->ndim, t->shape);
+                 tensor_sqrt(dest, t);
+                 return TensorPtr(dest);
+             })
         .def("matmul",
              [](const Tensor *t, const Tensor *other) {
                  Tensor *dest = tensor_create(2, (int[]){t->shape[0], other->shape[1]});

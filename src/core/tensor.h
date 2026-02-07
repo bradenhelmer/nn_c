@@ -68,6 +68,9 @@ void tensor_scale(Tensor *dest, const Tensor *src, float scalar);
 void tensor_add(Tensor *dest, const Tensor *a, const Tensor *b);
 void tensor_subtract(Tensor *dest, const Tensor *a, const Tensor *b);
 void tensor_elementwise_mul(Tensor *dest, const Tensor *a, const Tensor *b);
+void tensor_elementwise_div(Tensor *dest, const Tensor *a, const Tensor *b);
+void tensor_add_scalar(Tensor *dest, const Tensor *src, float scalar);
+void tensor_sqrt(Tensor *dest, const Tensor *src);
 
 // ============================================================================
 // Broadcasting Operations

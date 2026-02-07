@@ -6,6 +6,8 @@ Optimization algorithms.
 
 from typing import Protocol, runtime_checkable
 
+from nn_c.optim.adam import Adam
+from nn_c.optim.momentum import Momentum
 from nn_c.optim.sgd import SGD
 
 
@@ -22,4 +24,4 @@ class Optimizer(Protocol):
         ...
 
 
-__all__ = ["Optimizer", "SGD"]
+__all__ = ["Adam", "Momentum", "Optimizer", "SGD"]
