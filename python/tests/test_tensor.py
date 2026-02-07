@@ -5,7 +5,7 @@ import struct
 from nn_c import Tensor
 
 
-def test_tensor_creation():
+def test_tensor_creation() -> None:
     """Create tensor with shape, initialized to zeros."""
     t = Tensor([2, 3, 4])
     assert t.shape == (2, 3, 4)
@@ -13,7 +13,7 @@ def test_tensor_creation():
     assert t.ndim == 3
 
 
-def test_tensor_from_list():
+def test_tensor_from_list() -> None:
     """Create tensor from flat Python list."""
     data = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
     t = Tensor.from_list(data, [2, 3])
@@ -23,7 +23,7 @@ def test_tensor_from_list():
     assert t[1, 2] == 6.0
 
 
-def test_tensor_from_bytes():
+def test_tensor_from_bytes() -> None:
     """Create tensor from raw bytes (fastest path for data loading)."""
     # Pack 4 floats as bytes
     data = struct.pack("4f", 1.0, 2.0, 3.0, 4.0)
@@ -32,7 +32,7 @@ def test_tensor_from_bytes():
     assert t.to_list() == [1.0, 2.0, 3.0, 4.0]
 
 
-def test_tensor_roundtrip():
+def test_tensor_roundtrip() -> None:
     """Verify data survives Python -> C -> Python."""
     original = [i * 0.1 for i in range(100)]
     t = Tensor.from_list(original, [10, 10])
@@ -42,7 +42,7 @@ def test_tensor_roundtrip():
         assert abs(a - b) < 1e-6
 
 
-def test_tensor_indexing():
+def test_tensor_indexing() -> None:
     """Element access and assignment."""
     t = Tensor([3, 3])
 
@@ -57,7 +57,7 @@ def test_tensor_indexing():
     assert t[2, 2] == 9.0
 
 
-def test_ones_like():
+def test_ones_like() -> None:
     """Test ones_like static method."""
     t = Tensor([2, 3])
     ones = Tensor.ones_like(t)
@@ -65,7 +65,7 @@ def test_ones_like():
     assert all(ones[i] == 1.0 for i in range(ones.size))
 
 
-def test_zeros_like():
+def test_zeros_like() -> None:
     """Test zeros_like static method."""
     t = Tensor([2, 3])
     zeros = Tensor.zeros_like(t)
@@ -73,7 +73,7 @@ def test_zeros_like():
     assert all(zeros[i] == 0.0 for i in range(zeros.size))
 
 
-def test_tensor_repr():
+def test_tensor_repr() -> None:
     """Test tensor string representation."""
     t = Tensor([2, 3])
     assert repr(t) == "Tensor(shape=[2, 3])"
@@ -82,7 +82,7 @@ def test_tensor_repr():
     assert repr(t_grad) == "Tensor(shape=[2, 3], requires_grad=True)"
 
 
-def test_tensor_add():
+def test_tensor_add() -> None:
     """Test element-wise addition."""
     a = Tensor.from_list([1.0, 2.0, 3.0, 4.0], [2, 2])
     b = Tensor.from_list([5.0, 6.0, 7.0, 8.0], [2, 2])
@@ -92,7 +92,7 @@ def test_tensor_add():
     assert c.to_list() == [6.0, 8.0, 10.0, 12.0]
 
 
-def test_tensor_matmul():
+def test_tensor_matmul() -> None:
     """Test matrix multiplication."""
     # 2x3 @ 3x2 = 2x2
     a = Tensor.from_list([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], [2, 3])
@@ -108,7 +108,7 @@ def test_tensor_matmul():
     assert c[1, 1] == 64.0
 
 
-def test_tensor_relu():
+def test_tensor_relu() -> None:
     """Test ReLU activation."""
     t = Tensor.from_list([-1.0, 0.0, 1.0, 2.0], [4])
     r = t.relu()
@@ -116,7 +116,7 @@ def test_tensor_relu():
     assert r.to_list() == [0.0, 0.0, 1.0, 2.0]
 
 
-def test_tensor_transpose2d():
+def test_tensor_transpose2d() -> None:
     """Test 2D transpose."""
     t = Tensor.from_list([1.0, 2.0, 3.0, 4.0, 5.0, 6.0], [2, 3])
     tt = t.transpose2d()

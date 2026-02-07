@@ -4,11 +4,13 @@ nn_c.trainer
 Training loop with overridable hooks.
 """
 
+from __future__ import annotations
+
 from collections.abc import Callable
 
 from nn_c.dataset.dataloader import DataLoader
 from nn_c.nn.module import Module
-from nn_c.optim import Optimizer
+from nn_c.optim import Optimizer, Scheduler
 from nn_c.tensor import Tensor
 
 
@@ -29,6 +31,8 @@ class Trainer:
         Loss function taking (predictions, targets) and returning scalar loss.
     dataloader : DataLoader
         DataLoader providing training batches.
+    scheduler : Scheduler, optional
+        Learning rate scheduler. If provided, step() is called at the end of each epoch.
     """
 
     def __init__(
@@ -37,11 +41,13 @@ class Trainer:
         optimizer: Optimizer,
         loss_fn: Callable[[Tensor, Tensor], Tensor],
         dataloader: DataLoader,
+        scheduler: Scheduler | None = None,
     ) -> None:
         self.model: Module = model
         self.optimizer: Optimizer = optimizer
         self.loss_fn: Callable[[Tensor, Tensor], Tensor] = loss_fn
         self.dataloader: DataLoader = dataloader
+        self.scheduler: Scheduler | None = scheduler
 
     def train(self, epochs: int = 1) -> None:
         """
@@ -66,6 +72,10 @@ class Trainer:
 
             avg_loss = epoch_loss / len(self.dataloader) if len(self.dataloader) > 0 else 0.0
             self.on_epoch_end(epoch, avg_loss)
+
+            # Update learning rate if scheduler is configured
+            if self.scheduler is not None:
+                self.scheduler.step()
 
     def train_step(self, x: Tensor, y: Tensor) -> float:
         """

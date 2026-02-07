@@ -334,8 +334,8 @@ class Tensor:
                 # d/da (a/b) = 1/b
                 grad_self = grad.elementwise_div(saved_other)
                 # d/db (a/b) = -a/b^2 = -result/b
-                grad_other = grad.elementwise_mul(saved_result).scale(-1.0).elementwise_div(
-                    saved_other
+                grad_other = (
+                    grad.elementwise_mul(saved_result).scale(-1.0).elementwise_div(saved_other)
                 )
                 return (grad_self, grad_other)
 

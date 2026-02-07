@@ -64,8 +64,8 @@ class Adam:
         self.timestep += 1
 
         # Precompute bias corrections
-        bc1 = 1.0 - self.beta1 ** self.timestep
-        bc2 = 1.0 - self.beta2 ** self.timestep
+        bc1 = 1.0 - self.beta1**self.timestep
+        bc2 = 1.0 - self.beta2**self.timestep
 
         for i, param in enumerate(self.params):
             if param.grad is None:
@@ -77,8 +77,8 @@ class Adam:
             self.m[i] = self.m[i].scale(self.beta1).add(grad.scale(1.0 - self.beta1))
 
             # s = beta2 * s + (1 - beta2) * grad^2
-            self.s[i] = self.s[i].scale(self.beta2).add(
-                grad.elementwise_mul(grad).scale(1.0 - self.beta2)
+            self.s[i] = (
+                self.s[i].scale(self.beta2).add(grad.elementwise_mul(grad).scale(1.0 - self.beta2))
             )
 
             # m_hat = m / (1 - beta1^t)

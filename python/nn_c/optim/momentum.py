@@ -28,10 +28,10 @@ class Momentum:
         Beta value.
     """
 
-    def __init__(self, params: Iterator[Tensor], lr: float = 0.01, beta: float = 0.9 ) -> None:
+    def __init__(self, params: Iterator[Tensor], lr: float = 0.01, beta: float = 0.9) -> None:
         self.params: list[Tensor] = list(params)
         self.lr: float = lr
-        self.beta: float = beta 
+        self.beta: float = beta
         self.velocities: list[Tensor] = []
         self._init_velocity_tensors()
 
@@ -55,4 +55,3 @@ class Momentum:
         """Zero out gradients for all parameters."""
         for param in self.params:
             param.zero_grad()
-

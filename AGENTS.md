@@ -153,7 +153,7 @@ Use `UNUSED` macro (`__attribute__((unused))`) on functions/params kept as refer
 ### Formatting
 
 - `ruff format` with 100-char line limit (configured in `pyproject.toml`)
-- Type hints on all function signatures
+- Type hints on all function signatures and instance variables
 - `from __future__ import annotations` for forward references
 
 ### Module Docstrings
